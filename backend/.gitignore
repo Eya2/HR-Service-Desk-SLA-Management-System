@@ -1,0 +1,9 @@
+.env
+bin/
+obj/
+*.user
+*.suo
+TestResults/
+.vs/
+.idea/
+.DS_Store

@@ -1,0 +1,39 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{json,yml,yaml,xml,csproj,props}]
+indent_size = 2
+
+[*.cs]
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_using_directive_placement = outside_namespace
+
+# C#-only codebase: VB keyword clashes (e.g. a type named Error) are irrelevant.
+dotnet_diagnostic.CA1716.severity = none
+# Static factories on Result<T> are the intended API.
+dotnet_diagnostic.CA1000.severity = none
+# ASP.NET Core has no SynchronizationContext; ConfigureAwait(false) adds noise only.
+dotnet_diagnostic.CA2007.severity = none
+# Messages are developer-facing; user-facing text is localized in the SPA.
+dotnet_diagnostic.CA1303.severity = none
+
+[tests/**.cs]
+# xUnit test names use underscores for readability.
+dotnet_diagnostic.CA1707.severity = none
+# Test classes are discovered via reflection.
+dotnet_diagnostic.CA1515.severity = none
+dotnet_diagnostic.CA2234.severity = none
+# xUnit disposes fixtures via IAsyncLifetime; collection definitions are named *Collection by convention.
+dotnet_diagnostic.CA1001.severity = none
+dotnet_diagnostic.CA1711.severity = none
+
+[**/Migrations/**.cs]
+generated_code = true
+dotnet_analyzer_diagnostic.severity = none
