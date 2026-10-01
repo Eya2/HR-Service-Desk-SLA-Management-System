@@ -1,0 +1,13 @@
+name: hr-service-desk-web
+
+# The SPA container. It proxies /api to the backend stack (backend/docker-compose.yml),
+# which publishes the API on the host at port 5080 by default.
+services:
+  web:
+    build: .
+    environment:
+      API_UPSTREAM: ${API_UPSTREAM:-http://host.docker.internal:5080}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${WEB_PORT:-8080}:8080"
