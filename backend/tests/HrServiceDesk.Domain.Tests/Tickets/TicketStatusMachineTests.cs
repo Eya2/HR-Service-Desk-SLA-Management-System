@@ -116,6 +116,17 @@ public class TicketStatusMachineTests
     }
 
     [Fact]
+    public void Events_recorded_at_the_same_instant_keep_their_order()
+    {
+        var ticket = NewTicket();
+
+        ticket.AddComment(Guid.NewGuid(), "Not eligible", isInternal: false, Now);
+        ticket.ChangeStatus(Rejected, A, Guid.NewGuid(), Now, "Not eligible");
+
+        ticket.Events.Select(e => e.OccurredAt).Should().BeInAscendingOrder().And.OnlyHaveUniqueItems();
+    }
+
+    [Fact]
     public void Invalid_and_unauthorised_transitions_are_rejected_without_side_effects()
     {
         var ticket = NewTicket();

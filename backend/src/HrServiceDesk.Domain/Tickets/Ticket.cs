@@ -1,6 +1,8 @@
 using System.Text.Json;
 using HrServiceDesk.Domain.Catalog;
 using HrServiceDesk.Domain.Common;
+using HrServiceDesk.Domain.Users;
+using HrServiceDesk.Domain.Workflows;
 
 namespace HrServiceDesk.Domain.Tickets;
 
@@ -16,6 +18,10 @@ public sealed class Ticket : Entity, ITenantOwned, IAuditable
     private readonly List<Comment> _comments = [];
     private readonly List<Attachment> _attachments = [];
     private readonly List<TicketEvent> _events = [];
+    private readonly List<TicketApproval> _approvals = [];
+
+    // Last timestamp handed out by this instance (see Record).
+    private DateTimeOffset _lastEventAt = DateTimeOffset.MinValue;
 
     private Ticket() { }
 
@@ -51,6 +57,14 @@ public sealed class Ticket : Entity, ITenantOwned, IAuditable
     public IReadOnlyCollection<Attachment> Attachments => _attachments.AsReadOnly();
 
     public IReadOnlyCollection<TicketEvent> Events => _events.AsReadOnly();
+
+    public IReadOnlyCollection<TicketApproval> Approvals => _approvals.AsReadOnly();
+
+    /// <summary>The step waiting for a decision, if the case is pending approval.</summary>
+    public TicketApproval? CurrentApproval =>
+        Status == TicketStatus.PendingApproval
+            ? _approvals.Where(a => a.Decision == ApprovalDecision.Pending).MinBy(a => a.StepOrder)
+            : null;
 
     public DateTimeOffset CreatedAt { get; set; }
 
@@ -112,12 +126,85 @@ public sealed class Ticket : Entity, ITenantOwned, IAuditable
             : new { from = Status.ToString(), to = to.ToString(), reason = reason.Trim() };
         Record(TicketEventType.StatusChanged, actorId, now, data);
         Status = to;
+
+        // Steps still waiting are moot once the case is rejected or withdrawn.
+        if (to is TicketStatus.Rejected or TicketStatus.Cancelled)
+        {
+            foreach (var pending in _approvals.Where(a => a.Decision == ApprovalDecision.Pending))
+                pending.Decide(ApprovalDecision.Skipped, null, null, now);
+        }
+    }
+
+    /// <summary>
+    /// Copies the workflow's steps onto the case and sends it for approval. A "Manager" step is assigned to
+    /// <paramref name="requesterManagerId"/>; without a manager it falls back to HR Admins, so approval is never skipped.
+    /// </summary>
+    public void StartApproval(WorkflowDefinition workflow, Guid? requesterManagerId, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(workflow);
+        if (_approvals.Count > 0)
+            throw new DomainException("ticket.approval_already_started", "Approval has already started for this case.");
+
+        foreach (var step in workflow.OrderedSteps)
+        {
+            var approval = step.ApproverRole == Role.Manager
+                ? requesterManagerId is { } managerId
+                    ? new TicketApproval(Id, step.Order, step.Name, Role.Manager, managerId)
+                    : new TicketApproval(Id, step.Order, $"{step.Name} (no manager: HR Admin)", Role.HrAdmin, null)
+                : new TicketApproval(Id, step.Order, step.Name, step.ApproverRole, null);
+            _approvals.Add(approval);
+        }
+
+        ChangeStatus(TicketStatus.PendingApproval, TransitionActor.System, null, now);
+        RecordApprovalRequested(now);
+    }
+
+    /// <summary>
+    /// Records the decision on the current step. A rejection rejects the case; approving the last step opens it.
+    /// The requester can never approve their own case.
+    /// </summary>
+    public void DecideApproval(Guid approvalId, bool approve, Guid deciderId, IReadOnlyCollection<Role> deciderRoles, string? comment, DateTimeOffset now)
+    {
+        var current = CurrentApproval;
+        if (current is null || current.Id != approvalId)
+            throw new DomainException("approval.not_current", "This approval step is not waiting for a decision.");
+        if (deciderId == RequesterId || !current.IsApprover(deciderId, deciderRoles))
+            throw new DomainException("approval.not_approver", "You are not an approver for this step.");
+        if (!approve && string.IsNullOrWhiteSpace(comment))
+            throw new DomainException("approval.reason_required", "A reason is required to reject a request.");
+        if (comment?.Trim().Length > TicketApproval.CommentMaxLength)
+            throw new DomainException("approval.comment_too_long", $"The comment must be at most {TicketApproval.CommentMaxLength} characters.");
+
+        current.Decide(approve ? ApprovalDecision.Approved : ApprovalDecision.Rejected, deciderId, comment, now);
+        Record(TicketEventType.ApprovalDecided, deciderId, now, new
+        {
+            step = current.StepName,
+            decision = current.Decision.ToString(),
+            comment = current.Comment,
+        });
+
+        if (!approve)
+            ChangeStatus(TicketStatus.Rejected, TransitionActor.System, deciderId, now, comment);
+        else if (CurrentApproval is null)
+            ChangeStatus(TicketStatus.Open, TransitionActor.System, deciderId, now);
+        else
+            RecordApprovalRequested(now);
+    }
+
+    private void RecordApprovalRequested(DateTimeOffset now)
+    {
+        var next = CurrentApproval!;
+        Record(TicketEventType.ApprovalRequested, null, now, new { step = next.StepName, approverRole = next.ApproverRole.ToString() });
     }
 
     /// <summary>Appends an entry to the audit trail.</summary>
     public TicketEvent Record(TicketEventType type, Guid? actorId, DateTimeOffset now, object data, bool isInternal = false)
     {
-        var entry = new TicketEvent(Id, type, actorId, now, JsonSerializer.Serialize(data, JsonDefaults.Web), isInternal);
+        // One operation often records several events at the same instant (a reply and a status change).
+        // Each gets a strictly later timestamp (1 µs, PostgreSQL's precision) so the trail sorts in the order things happened.
+        var at = now > _lastEventAt ? now : _lastEventAt.AddTicks(10);
+        _lastEventAt = at;
+        var entry = new TicketEvent(Id, type, actorId, at, JsonSerializer.Serialize(data, JsonDefaults.Web), isInternal);
         _events.Add(entry);
         return entry;
     }
