@@ -89,17 +89,25 @@ internal sealed class GetTicketHandler(IAppDbContext db, ICurrentUser currentUse
             {
                 var files = attachments.Where(a => a.FieldKey == field.Key).ToList();
                 if (files.Count > 0)
-                    answers.Add(new FormAnswerDto(field.Key, field.Label, field.Type, null, files));
+                    answers.Add(new FormAnswerDto(field.Key, field.Label, field.Type, null, null, files));
             }
             else if (values[field.Key] is { } value)
             {
-                answers.Add(new FormAnswerDto(field.Key, field.Label, field.Type, value.DeepClone(), []));
+                answers.Add(new FormAnswerDto(field.Key, field.Label, field.Type, value.DeepClone(), DisplayValue(field, value), []));
             }
         }
 
         foreach (var (key, value) in values.Where(kv => schema.Field(kv.Key) is null))
-            answers.Add(new FormAnswerDto(key, key, FormFieldType.Text, value?.DeepClone(), []));
+            answers.Add(new FormAnswerDto(key, key, FormFieldType.Text, value?.DeepClone(), value?.ToString(), []));
 
         return answers;
+    }
+
+    private static string DisplayValue(FormField field, JsonNode value)
+    {
+        var raw = value is JsonValue v && v.TryGetValue<string>(out var text) ? text : value.ToJsonString();
+        return field.Type == FormFieldType.Select
+            ? field.Options?.FirstOrDefault(o => o.Value == raw)?.Label ?? raw
+            : raw;
     }
 }

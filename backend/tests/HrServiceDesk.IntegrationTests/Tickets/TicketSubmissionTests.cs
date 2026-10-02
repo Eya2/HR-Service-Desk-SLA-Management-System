@@ -30,7 +30,10 @@ public sealed partial class TicketSubmissionTests(PostgresFixture postgres)
         ticket.Priority.Should().Be("High");
         ticket.RequestTypeName.Should().Be("Payslip correction");
         ticket.Answers.Select(a => a.Label).Should().Equal("Pay period", "Issue", "Expected amount", "Payslip");
-        ticket.Answers.Single(a => a.Key == "issue").Value!.GetValue<string>().Should().Be("missing_overtime");
+        var issue = ticket.Answers.Single(a => a.Key == "issue");
+        issue.Value!.GetValue<string>().Should().Be("missing_overtime");
+        issue.DisplayValue.Should().Be("Missing overtime");
+        ticket.Answers.Single(a => a.Key == "expectedAmount").DisplayValue.Should().Be("320.5");
         var payslip = ticket.Answers.Single(a => a.Key == "payslip").Files.Should().ContainSingle().Subject;
         payslip.FileName.Should().Be("payslip-march.pdf");
         payslip.ContentType.Should().Be("application/pdf");

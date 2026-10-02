@@ -27,8 +27,12 @@ public sealed record AttachmentDto(
 
 public sealed record CommentDto(Guid Id, Guid AuthorId, string AuthorName, string Body, bool IsInternal, DateTimeOffset CreatedAt);
 
-/// <summary>One answer of the submitted form, labelled with the request type's field definition.</summary>
-public sealed record FormAnswerDto(string Key, string Label, FormFieldType Type, JsonNode? Value, IReadOnlyList<AttachmentDto> Files);
+/// <summary>
+/// One answer of the submitted form, labelled with the request type's field definition.
+/// <see cref="DisplayValue"/> is human-readable (the option label for a select).
+/// </summary>
+public sealed record FormAnswerDto(
+    string Key, string Label, FormFieldType Type, JsonNode? Value, string? DisplayValue, IReadOnlyList<AttachmentDto> Files);
 
 /// <summary>What the caller may do on the case, so the UI shows only the actions the API will accept.</summary>
 public sealed record TicketPermissionsDto(bool CanComment, bool CanCommentInternally, bool CanEdit, bool CanChangePriority, bool CanAttach);

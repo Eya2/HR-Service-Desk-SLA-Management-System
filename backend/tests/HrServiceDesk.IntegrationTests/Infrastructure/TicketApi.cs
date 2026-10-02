@@ -15,7 +15,7 @@ public sealed record Attachment(Guid Id, string FileName, string ContentType, lo
 
 public sealed record Comment(Guid Id, string AuthorName, string Body, bool IsInternal);
 
-public sealed record Answer(string Key, string Label, string Type, JsonNode? Value, Attachment[] Files);
+public sealed record Answer(string Key, string Label, string Type, JsonNode? Value, string? DisplayValue, Attachment[] Files);
 
 public sealed record Permissions(bool CanComment, bool CanCommentInternally, bool CanEdit, bool CanChangePriority, bool CanAttach);
 
