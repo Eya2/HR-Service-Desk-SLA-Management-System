@@ -178,6 +178,12 @@ The Hangfire dashboard is exposed at `/hangfire`, restricted to SuperAdmin.
 | 15 | SLA policy lookup: a `SlaPolicy` holds one target row per priority; a RequestType references a policy, with a tenant default policy as fallback | Spec says "per priority and request type" |
 | 16 | Escalation triggers: `AtRisk`, `Breached`, `NoResponseFor(hours)`; actions: `NotifyAssignee`, `NotifyManager` (team lead), `BumpPriority`, `ReassignToTeam(teamId)`. A "higher-tier team" is whatever team the rule names | Spec gives triggers/actions but no tier model |
 | 17 | The data model follows the spec's table list, plus `RefreshTokens`, `AuditLogs`, and `ReferenceCounters` | Needed by the auth, GDPR and numbering designs above |
+| 18 | E-mail addresses are unique platform-wide and are the login; sign-in needs no organisation field | Simplest sign-in UX; an employee belongs to one employer |
+| 19 | SuperAdmin accounts live in a dedicated `platform` tenant and reach other tenants only through explicit `IgnoreQueryFilters()` paths | Keeps every user tenant-owned, so the tenant filter never has exceptions |
+| 20 | Password policy: 12 to 128 characters with upper case, lower case, digit and symbol; 5 failed attempts lock the account for 15 minutes (both configurable) | Spec asks for a password policy without detail |
+| 21 | All endpoints require authentication unless marked `[AllowAnonymous]` (fallback policy); an anonymous call to an unknown route therefore gets 401, not 404 | Secure by default; does not reveal which routes exist |
+| 22 | User roles are stored as a PostgreSQL `varchar(32)[]` on `users` rather than a join table | Roles are a closed enum; arrays are queryable (`= ANY`) and keep the model small |
+| 23 | Demo accounts are seeded only when `Seed:Enabled` is true and `SEED_PASSWORD` is provided; the JWT key comes from `JWT_SIGNING_KEY` | No secret or shared password is committed |
 
 ## 7. Testing strategy
 
