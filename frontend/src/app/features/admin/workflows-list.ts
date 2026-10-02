@@ -46,9 +46,6 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
     }
   `,
   styles: `
-    h1 {
-      font: var(--mat-sys-headline-small);
-    }
     .intro {
       color: var(--mat-sys-on-surface-variant);
     }

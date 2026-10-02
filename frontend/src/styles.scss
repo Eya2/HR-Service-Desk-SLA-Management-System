@@ -597,3 +597,66 @@ div.mat-mdc-autocomplete-panel {
     transform: rotate(360deg);
   }
 }
+
+/* ==========================================================================
+   Page titles, table links, compact filters, labels above form fields.
+   ========================================================================== */
+
+h1 {
+  font: 700 1.75rem/1.2 Inter, 'IBM Plex Sans Arabic', system-ui, sans-serif;
+  letter-spacing: -0.025em;
+  margin: 0 0 16px;
+}
+
+.mat-mdc-table a,
+table.data a {
+  font-weight: 600;
+  text-decoration: none;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+
+  &:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+// Filters and search boxes (outside forms): compact, label inside.
+.mat-mdc-form-field:not(form .mat-mdc-form-field) {
+  @include mat.form-field-density(-3);
+}
+
+// Form fields: the label sits above the box, as on the sign-in page.
+form .mat-mdc-form-field.mat-form-field-appearance-outline {
+  padding-top: 28px;
+
+  .mat-mdc-text-field-wrapper,
+  .mdc-notched-outline,
+  .mdc-notched-outline__notch {
+    overflow: visible !important;
+  }
+
+  .mdc-notched-outline__notch {
+    border-top-style: solid !important;
+    border-top-width: var(--mat-form-field-outlined-outline-width, 1px) !important;
+  }
+
+  &.mat-focused .mdc-notched-outline__notch {
+    border-top-width: var(--mat-form-field-outlined-focus-outline-width, 2px) !important;
+  }
+
+  .mdc-floating-label,
+  .mdc-floating-label--float-above {
+    top: -20px !important;
+    transform: none !important;
+    inset-inline-start: 0 !important;
+    max-width: 100% !important;
+    font-size: 0.85rem !important;
+    font-weight: 600;
+    color: var(--mat-sys-on-surface) !important;
+  }
+
+  &.mat-form-field-invalid .mdc-floating-label {
+    color: var(--mat-sys-error) !important;
+  }
+}

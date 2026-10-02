@@ -76,9 +76,6 @@ import { TranslatePipe } from '@ngx-translate/core';
     }
   `,
   styles: `
-    h1 {
-      font: var(--mat-sys-headline-small);
-    }
     .filters {
       display: flex;
       flex-wrap: wrap;

@@ -83,22 +83,19 @@ import { EnumLabelPipe } from '../../shared/ui/enum-label';
             <div class="sub">{{ t.requestTypeName }} · {{ t.requesterName }}</div>
           </td>
         </ng-container>
-        <ng-container matColumnDef="team">
-          <th mat-header-cell *matHeaderCellDef>{{ 'ticket.team' | translate }}</th>
-          <td mat-cell *matCellDef="let t">{{ t.teamName ?? '—' }}</td>
-        </ng-container>
         <ng-container matColumnDef="assignee">
           <th mat-header-cell *matHeaderCellDef>{{ 'ticket.assignee' | translate }}</th>
           <td mat-cell *matCellDef="let t">
             @if (t.assigneeName) {
-              {{ t.assigneeName }}
+              <div>{{ t.assigneeName }}</div>
             } @else if (canWork) {
-              <button mat-stroked-button type="button" (click)="claim(t)" [disabled]="claiming() === t.id" [attr.data-testid]="'take-' + t.reference">
+              <button mat-stroked-button type="button" class="take" (click)="claim(t)" [disabled]="claiming() === t.id" [attr.data-testid]="'take-' + t.reference">
                 {{ 'queue.take' | translate }}
               </button>
             } @else {
-              —
+              <div>—</div>
             }
+            <div class="sub">{{ t.teamName ?? ('common.noTeam' | translate) }}</div>
           </td>
         </ng-container>
         <ng-container matColumnDef="status">
@@ -115,7 +112,7 @@ import { EnumLabelPipe } from '../../shared/ui/enum-label';
         </ng-container>
         <ng-container matColumnDef="created">
           <th mat-header-cell *matHeaderCellDef>{{ 'requests.submitted' | translate }}</th>
-          <td mat-cell *matCellDef="let t">{{ t.createdAt | date: 'short' }}</td>
+          <td mat-cell *matCellDef="let t">{{ t.createdAt | date: 'd MMM' }}</td>
         </ng-container>
         <tr mat-header-row *matHeaderRowDef="columns"></tr>
         <tr mat-row *matRowDef="let row; columns: columns" [attr.data-testid]="'row-' + row.reference"></tr>
@@ -133,8 +130,19 @@ import { EnumLabelPipe } from '../../shared/ui/enum-label';
     }
   `,
   styles: `
-    h1 {
-      font: var(--mat-sys-headline-small);
+    .mat-column-reference,
+    .mat-column-assignee,
+    .mat-column-status,
+    .mat-column-priority,
+    .mat-column-sla,
+    .mat-column-created {
+      white-space: nowrap;
+    }
+    .mat-column-title {
+      min-width: 220px;
+    }
+    .take {
+      height: 30px;
     }
     .filters {
       display: flex;
@@ -161,7 +169,7 @@ export class Queue {
   /** Auditors read the queue but do not take cases. */
   protected readonly canWork = this.auth.hasAnyRole(['HrOfficer', 'PayrollSpecialist', 'HrAdmin']);
   protected readonly statuses = STATUSES;
-  protected readonly columns = ['reference', 'title', 'team', 'assignee', 'status', 'priority', 'sla', 'created'];
+  protected readonly columns = ['reference', 'title', 'assignee', 'status', 'priority', 'sla', 'created'];
   protected readonly scopes = computed<{ value: TicketScope; label: string }[]>(() =>
     this.canWork
       ? [

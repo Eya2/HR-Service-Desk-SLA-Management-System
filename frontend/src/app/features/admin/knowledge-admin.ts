@@ -45,7 +45,7 @@ import { EnumLabelPipe } from '../../shared/ui/enum-label';
       <mat-progress-bar mode="indeterminate" />
     }
 
-    <div class="layout">
+    <div class="layout" [class.with-editor]="open()">
       <div class="list">
         @for (a of articles.value() ?? []; track a.id) {
           <button type="button" class="row" [class.selected]="editingId() === a.id" (click)="edit(a)" [attr.data-testid]="'kb-' + a.title">
@@ -109,9 +109,12 @@ import { EnumLabelPipe } from '../../shared/ui/enum-label';
   styles: `
     .layout {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+      grid-template-columns: minmax(0, 1fr);
       gap: 20px;
       align-items: start;
+    }
+    .layout.with-editor {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
     }
     .list {
       display: grid;
@@ -201,7 +204,7 @@ import { EnumLabelPipe } from '../../shared/ui/enum-label';
       color: var(--app-muted);
     }
     @media (max-width: 959px) {
-      .layout {
+      .layout.with-editor {
         grid-template-columns: 1fr;
       }
       .editor {

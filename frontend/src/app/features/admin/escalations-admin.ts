@@ -88,9 +88,6 @@ const ACTIONS: EscalationRuleInfo['action'][] = ['NotifyAssignee', 'NotifyManage
     </mat-card>
   `,
   styles: `
-    h1 {
-      font: var(--mat-sys-headline-small);
-    }
     .intro,
     .fired {
       color: var(--mat-sys-on-surface-variant);

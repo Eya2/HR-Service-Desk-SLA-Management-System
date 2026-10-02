@@ -63,7 +63,7 @@ import { PASSWORD_RULES } from '../auth/reset-password';
       </mat-form-field>
     </div>
 
-    <div class="layout">
+    <div class="layout" [class.with-editor]="open()">
       <div class="list">
         <table class="data">
           <thead>
@@ -77,11 +77,13 @@ import { PASSWORD_RULES } from '../auth/reset-password';
             @for (u of users.value()?.items ?? []; track u.id) {
               <tr (click)="edit(u)" [class.selected]="editingId() === u.id" [class.inactive]="!u.isActive" [attr.data-testid]="'user-' + u.email">
                 <td>
-                  <span class="avatar" aria-hidden="true">{{ initials(u.fullName) }}</span>
-                  <span class="who">
-                    <strong>{{ u.fullName }}</strong>
-                    <small>{{ u.email }}</small>
-                  </span>
+                  <div class="person">
+                    <span class="avatar" aria-hidden="true">{{ initials(u.fullName) }}</span>
+                    <span class="who">
+                      <strong>{{ u.fullName }}</strong>
+                      <small [title]="u.email">{{ u.email }}</small>
+                    </span>
+                  </div>
                 </td>
                 <td>
                   @for (r of u.roles; track r) {
@@ -165,9 +167,12 @@ import { PASSWORD_RULES } from '../auth/reset-password';
     }
     .layout {
       display: grid;
-      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr);
       gap: 20px;
       align-items: start;
+    }
+    .layout.with-editor {
+      grid-template-columns: minmax(0, 1.5fr) minmax(340px, 1fr);
     }
     .list {
       border-radius: var(--app-radius);
@@ -202,10 +207,21 @@ import { PASSWORD_RULES } from '../auth/reset-password';
     tr.inactive strong {
       color: var(--app-muted);
     }
-    td:first-child {
+    table.data {
+      table-layout: fixed;
+    }
+    th:nth-child(2) {
+      width: 34%;
+    }
+    th:nth-child(3) {
+      width: 150px;
+      white-space: nowrap;
+    }
+    .person {
       display: flex;
       align-items: center;
       gap: 10px;
+      min-width: 0;
     }
     .avatar {
       flex: none;
@@ -222,6 +238,12 @@ import { PASSWORD_RULES } from '../auth/reset-password';
       display: grid;
       min-width: 0;
     }
+    .who strong,
+    .who small {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     .who small,
     .muted {
       color: var(--app-muted);
@@ -233,6 +255,7 @@ import { PASSWORD_RULES } from '../auth/reset-password';
       border-radius: 10px;
       font-size: 0.75rem;
       font-weight: 600;
+      white-space: nowrap;
       background: var(--mat-sys-surface-container-high);
     }
     .pill.off {
@@ -277,7 +300,7 @@ import { PASSWORD_RULES } from '../auth/reset-password';
       gap: 8px;
     }
     @media (max-width: 959px) {
-      .layout {
+      .layout.with-editor {
         grid-template-columns: 1fr;
       }
       .editor {

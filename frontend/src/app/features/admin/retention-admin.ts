@@ -39,9 +39,6 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
     </mat-card>
   `,
   styles: `
-    h1 {
-      font: var(--mat-sys-headline-small);
-    }
     .card {
       max-width: 640px;
     }

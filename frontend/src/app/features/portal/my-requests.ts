@@ -90,9 +90,10 @@ import { EnumLabelPipe } from '../../shared/ui/enum-label';
       justify-content: space-between;
       gap: 16px;
       flex-wrap: wrap;
+      margin-bottom: 16px;
     }
-    h1 {
-      font: var(--mat-sys-headline-small);
+    .toolbar h1 {
+      margin: 0;
     }
     .table {
       width: 100%;

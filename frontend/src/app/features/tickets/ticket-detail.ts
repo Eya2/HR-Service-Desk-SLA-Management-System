@@ -499,7 +499,6 @@ import { EnumLabelPipe } from '../../shared/ui/enum-label';
       margin: 0;
     }
     h1 {
-      font: var(--mat-sys-headline-small);
       margin: 4px 0 16px;
     }
     .chips {

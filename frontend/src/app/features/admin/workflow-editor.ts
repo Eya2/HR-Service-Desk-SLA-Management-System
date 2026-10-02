@@ -110,9 +110,6 @@ const MAX_STEPS = 5;
     }
   `,
   styles: `
-    h1 {
-      font: var(--mat-sys-headline-small);
-    }
     .note {
       padding: 8px 12px;
       border-radius: 8px;

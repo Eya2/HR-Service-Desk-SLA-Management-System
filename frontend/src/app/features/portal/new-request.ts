@@ -104,7 +104,6 @@ import { KnowledgeApi } from '../../core/api/knowledge.api';
       margin-bottom: 8px;
     }
     h1 {
-      font: var(--mat-sys-headline-small);
       margin-bottom: 4px;
     }
     .description {

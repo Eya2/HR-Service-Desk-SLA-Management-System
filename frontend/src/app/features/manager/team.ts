@@ -65,9 +65,6 @@ import { EnumLabelPipe } from '../../shared/ui/enum-label';
     }
   `,
   styles: `
-    h1 {
-      font: var(--mat-sys-headline-small);
-    }
     .tiles {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));

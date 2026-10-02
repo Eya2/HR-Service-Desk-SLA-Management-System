@@ -16,7 +16,7 @@ const ICONS: Record<SlaStateName, string> = { None: 'remove', OnTrack: 'schedule
       <mat-icon fontSet="material-symbols-outlined">{{ paused() ? 'pause_circle' : icon() }}</mat-icon>
       {{ (paused() ? 'sla.paused' : 'sla.' + state()) | translate }}
       @if (dueAt() && !paused() && state() !== 'None') {
-        <span class="due">· {{ dueAt() | date: 'short' }}</span>
+        <span class="due">· {{ dueAt() | date: 'd MMM, HH:mm' }}</span>
       }
     </span>
   `,

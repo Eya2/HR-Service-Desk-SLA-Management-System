@@ -104,9 +104,6 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
       justify-content: space-between;
       align-items: center;
     }
-    h1 {
-      font: var(--mat-sys-headline-small);
-    }
     .editor {
       max-width: 640px;
       margin-bottom: 16px;

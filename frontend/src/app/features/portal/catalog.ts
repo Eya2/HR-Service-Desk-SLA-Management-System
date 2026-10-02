@@ -69,9 +69,6 @@ const fold = (text: string) => text.normalize('NFD').replace(/\p{Diacritic}/gu, 
     </div>
   `,
   styles: `
-    h1 {
-      font: var(--mat-sys-headline-small);
-    }
     .help-banner {
       display: flex;
       align-items: center;

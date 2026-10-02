@@ -53,9 +53,6 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
     </div>
   `,
   styles: `
-    h1 {
-      font: var(--mat-sys-headline-small);
-    }
     .list {
       display: grid;
       gap: 12px;
