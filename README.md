@@ -130,7 +130,7 @@ Each folder is self-contained, and the branches share nothing but this README, s
 ```bash
 git clone -b backend https://github.com/Eya2/HR-Service-Desk-SLA-Management-System.git hr-backend
 cd hr-backend/backend
-cp .env.example .env        # then set POSTGRES_PASSWORD
+cp .env.example .env        # then set POSTGRES_PASSWORD, JWT_SIGNING_KEY and SEED_PASSWORD
 docker compose up -d --build
 ```
 
@@ -150,11 +150,28 @@ docker compose up -d --build
 
 The app is served at http://localhost:8080 and forwards `/api` to the backend on port 5080.
 
+### Demo accounts
+
+On first start the API seeds two organisations and one account per role. Every account uses the password you set in `SEED_PASSWORD`.
+
+| Organisation | Role | E-mail |
+|---|---|---|
+| Acme Tunisie | Employee | `amira.bensalah@acme.example` |
+| Acme Tunisie | Manager (Amira's manager) | `youssef.haddad@acme.example` |
+| Acme Tunisie | HR Officer | `leila.mansour@acme.example` |
+| Acme Tunisie | Payroll Specialist | `sami.gharbi@acme.example` |
+| Acme Tunisie | HR Admin | `nadia.jaziri@acme.example` |
+| Acme Tunisie | Auditor | `hedi.chaabane@acme.example` |
+| Globex France | Employee · Manager · HR Officer · Payroll · HR Admin · Auditor | `camille.martin@` · `julien.bernard@` · `sophie.laurent@` · `thomas.petit@` · `claire.moreau@` · `antoine.dubois@globex.example` |
+| Platform | SuperAdmin | `platform.admin@platform.example` |
+
 ### Local development (without Docker for the apps)
 
 ```bash
 # backend: needs a PostgreSQL instance (e.g. `docker compose up -d postgres` in backend/)
 cd backend
+dotnet user-secrets set "Jwt:SigningKey" "$(openssl rand -base64 48)" --project src/HrServiceDesk.Api
+dotnet user-secrets set "Seed:DemoPassword" "<a 12+ character password>" --project src/HrServiceDesk.Api
 dotnet run --project src/HrServiceDesk.Api        # http://localhost:5080/swagger
 
 # frontend: proxies /api to http://localhost:5080
@@ -177,8 +194,8 @@ The project is delivered in 13 phases. Each phase ends with a green build and te
 | # | Phase | Scope | Branch | Status |
 |---|---|---|---|---|
 | 1 | **Scaffolding** | Solution structure, EF Core + tenant filter, Serilog, Swagger, ProblemDetails, health checks, Docker Compose, Angular shell, CI | backend · frontend | ✅ Done |
-| 2 | **Authentication** | Users, roles, policies, JWT + rotating refresh tokens, password policy, rate limiting; Angular login, layout, guards, interceptor | backend · frontend | ⏳ Next |
-| 3 | **Catalog & tickets** | Request types with JSON form schema, tickets CRUD, reference numbers, public/internal comments, attachments; employee portal | backend · frontend | 🔲 Planned |
+| 2 | **Authentication** | Users, roles, policies, JWT + rotating refresh tokens, password policy, rate limiting; Angular login, layout, guards, interceptor | backend · frontend | ✅ Done |
+| 3 | **Catalog & tickets** | Request types with JSON form schema, tickets CRUD, reference numbers, public/internal comments, attachments; employee portal | backend · frontend | ⏳ Next |
 | 4 | **Status machine & audit** | Transition table with role permissions, audit events, timeline UI, exhaustive tests | backend · frontend | 🔲 Planned |
 | 5 | **Approval workflows** | Workflow engine, admin workflow editor, manager approval queue | backend · frontend | 🔲 Planned |
 | 6 | **Teams & assignment** | Teams, manual / round-robin / least-loaded strategies, optimistic concurrency, agent queue | backend · frontend | 🔲 Planned |
