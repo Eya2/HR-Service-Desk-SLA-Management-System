@@ -28,6 +28,12 @@ server {
         proxy_set_header Host $host;
     }
 
+    # API documentation (served by the API when Swagger is enabled); ^~ keeps its .js/.css away from the static rule below.
+    location ^~ /swagger/ {
+        proxy_pass ${API_UPSTREAM};
+        proxy_set_header Host $host;
+    }
+
     location /health/ {
         proxy_pass ${API_UPSTREAM};
     }

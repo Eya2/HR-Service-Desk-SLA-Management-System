@@ -315,6 +315,9 @@ export const AUDIT_ACTIONS = [
   'PasswordReset',
   'RetentionPolicyChanged',
   'CaseAnonymized',
+  'ApiKeyCreated',
+  'ApiKeyRevoked',
+  'WebhookChanged',
 ] as const;
 
 export interface ArticleSummary {

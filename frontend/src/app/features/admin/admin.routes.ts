@@ -38,6 +38,11 @@ export const routes: Routes = [
         title: 'title.kbAdmin',
       },
       {
+        path: 'integrations',
+        loadComponent: () => import('./integrations-admin').then((m) => m.IntegrationsAdmin),
+        title: 'title.integrations',
+      },
+      {
         path: 'workflows/:requestTypeId',
         loadComponent: () => import('./workflow-editor').then((m) => m.WorkflowEditor),
         title: 'title.editWorkflow',
