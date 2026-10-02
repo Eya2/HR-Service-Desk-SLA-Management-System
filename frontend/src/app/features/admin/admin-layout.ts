@@ -9,6 +9,7 @@ import { TranslatePipe } from '@ngx-translate/core';
   imports: [MatTabsModule, RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe],
   template: `
     <nav mat-tab-nav-bar [tabPanel]="panel" class="tabs">
+      <a mat-tab-link routerLink="users" routerLinkActive #usr="routerLinkActive" [active]="usr.isActive" data-testid="users-tab">{{ 'users.tab' | translate }}</a>
       <a mat-tab-link routerLink="workflows" routerLinkActive #workflows="routerLinkActive" [active]="workflows.isActive">
         {{ 'admin.workflowsTab' | translate }}
       </a>

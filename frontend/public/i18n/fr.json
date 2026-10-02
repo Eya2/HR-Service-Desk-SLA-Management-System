@@ -767,7 +767,28 @@
     "sla": "SLA et calendrier",
     "team": "Mon équipe",
     "teams": "Équipes",
+    "users": "Utilisateurs",
     "workflows": "Circuits d'approbation"
+  },
+  "users": {
+    "active": "Compte actif (peut se connecter)",
+    "edit": "Modifier l'utilisateur",
+    "firstName": "Prénom",
+    "inactive": "Inactif",
+    "lastLogin": "Dernière connexion",
+    "lastName": "Nom",
+    "lead": "Les comptes de l'organisation : rôles, manager, accès.",
+    "manager": "Manager",
+    "name": "Nom",
+    "new": "Nouvel utilisateur",
+    "newPassword": "Nouveau mot de passe (facultatif)",
+    "passwordHint": "12 caractères minimum avec majuscule, minuscule, chiffre et symbole.",
+    "passwordHintEdit": "Laissez vide pour le conserver. Une réinitialisation déconnecte l'utilisateur partout.",
+    "role": "Rôle",
+    "roles": "Rôles",
+    "search": "Rechercher par nom ou e-mail",
+    "tab": "Utilisateurs",
+    "title": "Utilisateurs"
   },
   "workflows": {
     "active": "Circuit actif",

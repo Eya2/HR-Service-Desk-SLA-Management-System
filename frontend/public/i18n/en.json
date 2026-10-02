@@ -767,7 +767,28 @@
     "sla": "SLA & calendar",
     "team": "My team",
     "teams": "Teams",
+    "users": "Users",
     "workflows": "Approval workflows"
+  },
+  "users": {
+    "active": "Account active (can sign in)",
+    "edit": "Edit user",
+    "firstName": "First name",
+    "inactive": "Inactive",
+    "lastLogin": "Last sign-in",
+    "lastName": "Last name",
+    "lead": "Accounts of the organisation: roles, manager, access.",
+    "manager": "Manager",
+    "name": "Name",
+    "new": "New user",
+    "newPassword": "New password (optional)",
+    "passwordHint": "12+ characters with upper and lower case, a digit and a symbol.",
+    "passwordHintEdit": "Leave empty to keep it. A reset signs the user out everywhere.",
+    "role": "Role",
+    "roles": "Roles",
+    "search": "Search by name or e-mail",
+    "tab": "Users",
+    "title": "Users"
   },
   "workflows": {
     "active": "Workflow active",

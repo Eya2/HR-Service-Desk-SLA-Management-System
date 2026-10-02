@@ -6,7 +6,12 @@ export const routes: Routes = [
     path: '',
     component: AdminLayout,
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'workflows' },
+      { path: '', pathMatch: 'full', redirectTo: 'users' },
+      {
+        path: 'users',
+        loadComponent: () => import('./users-admin').then((m) => m.UsersAdmin),
+        title: 'title.users',
+      },
       {
         path: 'workflows',
         loadComponent: () => import('./workflows-list').then((m) => m.WorkflowsList),
