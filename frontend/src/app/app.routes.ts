@@ -46,6 +46,12 @@ export const routes: Routes = [
         loadChildren: () => import('./features/admin/admin.routes').then((m) => m.routes),
       },
       {
+        // Any signed-in user; the API returns 404 for cases the caller may not see.
+        path: 'tickets/:id',
+        loadComponent: () => import('./features/tickets/ticket-detail').then((m) => m.TicketDetail),
+        title: 'Case · HR Service Desk',
+      },
+      {
         path: 'forbidden',
         loadComponent: () => import('./features/home/forbidden').then((m) => m.Forbidden),
         title: 'Access denied · HR Service Desk',

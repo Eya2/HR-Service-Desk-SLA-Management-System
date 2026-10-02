@@ -1,0 +1,418 @@
+import { DatePipe, formatDate, formatNumber } from '@angular/common';
+import { Component, LOCALE_ID, inject, input, signal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { AttachmentInfo, FormAnswer, PRIORITIES, TicketDetails } from '../../core/api/api.models';
+import { TicketsApi } from '../../core/api/tickets.api';
+import { problemOf } from '../../core/http/error.interceptor';
+import { fileSize } from '../../shared/ui/labels';
+import { StatusChip } from '../../shared/ui/status-chip';
+
+/** A case: answers, documents and the conversation. Actions follow the permissions sent by the API. */
+@Component({
+  selector: 'app-ticket-detail',
+  imports: [
+    DatePipe,
+    ReactiveFormsModule,
+    MatButtonModule,
+    MatCardModule,
+    MatCheckboxModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatProgressBarModule,
+    MatSelectModule,
+    StatusChip,
+  ],
+  template: `
+    @if (ticket.isLoading() && !ticket.value()) {
+      <mat-progress-bar mode="indeterminate" />
+    } @else if (ticket.error()) {
+      <h1>Case not found</h1>
+      <p>It does not exist or you are not allowed to see it.</p>
+    } @else if (ticket.value(); as t) {
+      <header class="header">
+        <div>
+          <p class="reference">{{ t.reference }} · {{ t.requestTypeName }}</p>
+          @if (!editing()) {
+            <h1 data-testid="ticket-title">{{ t.title }}</h1>
+          }
+        </div>
+        <div class="chips">
+          <app-status-chip [value]="t.status" />
+          <app-status-chip [value]="t.priority" />
+          @if (t.isConfidential) {
+            <span class="confidential"><mat-icon fontSet="material-symbols-outlined">lock</mat-icon>Confidential</span>
+          }
+        </div>
+      </header>
+
+      <div class="layout">
+        <div class="main">
+          @if (editing()) {
+            <mat-card appearance="outlined">
+              <mat-card-content>
+                <form [formGroup]="editForm" (ngSubmit)="saveEdit(t)" class="edit">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Title</mat-label>
+                    <input matInput formControlName="title" maxlength="200" />
+                  </mat-form-field>
+                  <mat-form-field appearance="outline">
+                    <mat-label>Additional details</mat-label>
+                    <textarea matInput formControlName="description" rows="4" maxlength="4000"></textarea>
+                  </mat-form-field>
+                  @if (t.permissions.canChangePriority) {
+                    <mat-form-field appearance="outline">
+                      <mat-label>Priority</mat-label>
+                      <mat-select formControlName="priority">
+                        @for (p of priorities; track p) {
+                          <mat-option [value]="p">{{ p }}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                  }
+                  <div class="actions">
+                    <button mat-button type="button" (click)="editing.set(false)">Cancel</button>
+                    <button mat-flat-button type="submit" [disabled]="editForm.invalid">Save</button>
+                  </div>
+                </form>
+              </mat-card-content>
+            </mat-card>
+          } @else {
+            <mat-card appearance="outlined">
+              <mat-card-header>
+                <mat-card-title>Request</mat-card-title>
+                @if (t.permissions.canEdit) {
+                  <button mat-icon-button class="edit-button" (click)="startEdit(t)" aria-label="Edit request">
+                    <mat-icon fontSet="material-symbols-outlined">edit</mat-icon>
+                  </button>
+                }
+              </mat-card-header>
+              <mat-card-content>
+                @if (t.description) {
+                  <p class="description">{{ t.description }}</p>
+                }
+                <dl class="answers">
+                  @for (answer of t.answers; track answer.key) {
+                    <dt>{{ answer.label }}</dt>
+                    <dd [attr.data-answer]="answer.key">
+                      @if (answer.type === 'File') {
+                        @for (file of answer.files; track file.id) {
+                          <button mat-button type="button" (click)="download(t, file)">
+                            <mat-icon fontSet="material-symbols-outlined">download</mat-icon>{{ file.fileName }}
+                          </button>
+                        }
+                      } @else {
+                        {{ display(answer) }}
+                      }
+                    </dd>
+                  }
+                </dl>
+              </mat-card-content>
+            </mat-card>
+          }
+
+          <mat-card appearance="outlined">
+            <mat-card-header><mat-card-title>Conversation</mat-card-title></mat-card-header>
+            <mat-card-content>
+              <ol class="comments">
+                @for (comment of t.comments; track comment.id) {
+                  <li [class.internal]="comment.isInternal" data-testid="comment">
+                    <div class="meta">
+                      <strong>{{ comment.authorName }}</strong>
+                      <span>{{ comment.createdAt | date: 'medium' }}</span>
+                      @if (comment.isInternal) {
+                        <span class="internal-tag">Internal note</span>
+                      }
+                    </div>
+                    <p>{{ comment.body }}</p>
+                  </li>
+                } @empty {
+                  <li class="empty">No messages yet.</li>
+                }
+              </ol>
+
+              @if (t.permissions.canComment) {
+                <form [formGroup]="commentForm" (ngSubmit)="sendComment(t)" class="reply">
+                  <mat-form-field appearance="outline">
+                    <mat-label>{{ commentForm.controls.isInternal.value ? 'Internal note (HR only)' : 'Reply' }}</mat-label>
+                    <textarea matInput formControlName="body" rows="3" maxlength="4000" data-testid="comment-body"></textarea>
+                  </mat-form-field>
+                  <div class="actions">
+                    @if (t.permissions.canCommentInternally) {
+                      <mat-checkbox formControlName="isInternal" data-testid="internal-toggle">Internal note</mat-checkbox>
+                    }
+                    <button mat-flat-button type="submit" [disabled]="commentForm.invalid || sending()">Send</button>
+                  </div>
+                </form>
+              }
+            </mat-card-content>
+          </mat-card>
+        </div>
+
+        <aside class="side">
+          <mat-card appearance="outlined">
+            <mat-card-content>
+              <dl class="facts">
+                <dt>Requester</dt>
+                <dd>{{ t.requester.fullName }}</dd>
+                <dt>Assignee</dt>
+                <dd>{{ t.assignee?.fullName ?? 'Not assigned yet' }}</dd>
+                <dt>Submitted</dt>
+                <dd>{{ t.createdAt | date: 'medium' }}</dd>
+              </dl>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card appearance="outlined">
+            <mat-card-header><mat-card-title>Documents</mat-card-title></mat-card-header>
+            <mat-card-content>
+              <ul class="documents">
+                @for (file of t.attachments; track file.id) {
+                  <li>
+                    <button mat-button type="button" (click)="download(t, file)" [attr.data-testid]="'doc-' + file.fileName">
+                      <mat-icon fontSet="material-symbols-outlined">description</mat-icon>{{ file.fileName }}
+                    </button>
+                    <span class="size">{{ size(file.sizeBytes) }}</span>
+                  </li>
+                } @empty {
+                  <li class="empty">No documents.</li>
+                }
+              </ul>
+              @if (t.permissions.canAttach) {
+                <input #picker type="file" hidden multiple (change)="upload(t, picker.files); picker.value = ''" />
+                <button mat-stroked-button type="button" (click)="picker.click()" [disabled]="uploading()">
+                  <mat-icon fontSet="material-symbols-outlined">upload</mat-icon> Add documents
+                </button>
+              }
+            </mat-card-content>
+          </mat-card>
+        </aside>
+      </div>
+    }
+  `,
+  styles: `
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .reference {
+      color: var(--mat-sys-on-surface-variant);
+      margin: 0;
+    }
+    h1 {
+      font: var(--mat-sys-headline-small);
+      margin: 4px 0 16px;
+    }
+    .chips {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .confidential {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      color: var(--mat-sys-error);
+      font: var(--mat-sys-label-medium);
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 899px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+    .main,
+    .side {
+      display: grid;
+      gap: 16px;
+    }
+    mat-card-header {
+      align-items: center;
+    }
+    .edit-button {
+      margin-left: auto;
+    }
+    .description {
+      white-space: pre-line;
+    }
+    .answers,
+    .facts {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: 8px 16px;
+      margin: 0;
+    }
+    dt {
+      color: var(--mat-sys-on-surface-variant);
+    }
+    dd {
+      margin: 0;
+      white-space: pre-line;
+    }
+    .comments {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 16px;
+      display: grid;
+      gap: 12px;
+    }
+    .comments li {
+      padding: 12px;
+      border-radius: 8px;
+      background: var(--mat-sys-surface-container);
+    }
+    .comments li.internal {
+      background: var(--mat-sys-tertiary-container);
+      color: var(--mat-sys-on-tertiary-container);
+    }
+    .comments li.empty {
+      background: none;
+      color: var(--mat-sys-on-surface-variant);
+    }
+    .meta {
+      display: flex;
+      gap: 8px;
+      align-items: baseline;
+      flex-wrap: wrap;
+      font: var(--mat-sys-body-small);
+    }
+    .internal-tag {
+      font-weight: 500;
+    }
+    .comments p {
+      margin: 4px 0 0;
+      white-space: pre-line;
+    }
+    .reply,
+    .edit {
+      display: grid;
+    }
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 16px;
+    }
+    .documents {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 12px;
+    }
+    .documents li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .size {
+      color: var(--mat-sys-on-surface-variant);
+      font: var(--mat-sys-body-small);
+    }
+  `,
+})
+export class TicketDetail {
+  private readonly api = inject(TicketsApi);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly fb = inject(NonNullableFormBuilder);
+  private readonly locale = inject(LOCALE_ID);
+
+  /** Route parameter. */
+  readonly id = input.required<string>();
+
+  protected readonly ticket = rxResource({ params: () => this.id(), stream: ({ params }) => this.api.get(params) });
+  protected readonly priorities = PRIORITIES;
+  protected readonly size = fileSize;
+  protected readonly editing = signal(false);
+  protected readonly sending = signal(false);
+  protected readonly uploading = signal(false);
+
+  protected readonly commentForm = this.fb.group({
+    body: ['', [Validators.required, Validators.maxLength(4000)]],
+    isInternal: [false],
+  });
+  protected readonly editForm = this.fb.group({
+    title: ['', [Validators.required, Validators.maxLength(200)]],
+    description: ['', Validators.maxLength(4000)],
+    priority: [''],
+  });
+
+  protected display(answer: FormAnswer): string {
+    const value = answer.value;
+    if (answer.type === 'Select' && answer.displayValue) return answer.displayValue;
+    if (answer.type === 'Number' && typeof value === 'number') return formatNumber(value, this.locale);
+    if (answer.type === 'Date' && typeof value === 'string') return formatDate(value, 'mediumDate', this.locale);
+    return value === null || value === undefined ? '' : `${value}`;
+  }
+
+  protected download(ticket: TicketDetails, file: AttachmentInfo): void {
+    this.api.download(ticket.id, file);
+  }
+
+  protected startEdit(ticket: TicketDetails): void {
+    this.editForm.setValue({ title: ticket.title, description: ticket.description, priority: ticket.priority });
+    this.editing.set(true);
+  }
+
+  protected saveEdit(ticket: TicketDetails): void {
+    const { title, description, priority } = this.editForm.getRawValue();
+    this.api
+      .update(ticket.id, { title, description, priority: ticket.permissions.canChangePriority ? priority : null })
+      .subscribe({
+        next: () => {
+          this.editing.set(false);
+          this.ticket.reload();
+        },
+        error: (error: unknown) => this.snackBar.open(problemOf(error)?.title ?? 'Could not save.', 'Dismiss', { duration: 6000 }),
+      });
+  }
+
+  protected sendComment(ticket: TicketDetails): void {
+    const { body, isInternal } = this.commentForm.getRawValue();
+    this.sending.set(true);
+    this.api.addComment(ticket.id, body, isInternal).subscribe({
+      next: (comment) => {
+        this.sending.set(false);
+        this.commentForm.reset({ body: '', isInternal: false });
+        this.ticket.update((t) => (t ? { ...t, comments: [...t.comments, comment] } : t));
+      },
+      error: (error: unknown) => {
+        this.sending.set(false);
+        this.snackBar.open(problemOf(error)?.title ?? 'Could not send the message.', 'Dismiss', { duration: 6000 });
+      },
+    });
+  }
+
+  protected upload(ticket: TicketDetails, list: FileList | null): void {
+    if (!list || list.length === 0) return;
+    this.uploading.set(true);
+    this.api.addAttachments(ticket.id, Array.from(list)).subscribe({
+      next: (added) => {
+        this.uploading.set(false);
+        this.ticket.update((t) => (t ? { ...t, attachments: [...t.attachments, ...added] } : t));
+      },
+      error: (error: unknown) => {
+        this.uploading.set(false);
+        const problem = problemOf(error);
+        const detail = problem?.errors ? Object.values(problem.errors).flat().join(' ') : problem?.title;
+        this.snackBar.open(detail ?? 'Upload failed.', 'Dismiss', { duration: 8000 });
+      },
+    });
+  }
+}
