@@ -213,6 +213,12 @@ The Hangfire dashboard is exposed at `/hangfire`, restricted to SuperAdmin.
 | 50 | Elapsed time excludes every pause; deadlines are pushed back only by completed pauses, and shown empty while paused | A deadline frozen at the moment of resolution stays meaningful for reporting |
 | 51 | First response = HR's first public reply, a status message to the employee, or moving to InProgress/Resolved; until then the first-response target also drives the case's SLA state | Decision 9 refined; a forgotten case must show up as at risk early |
 | 52 | Demo policies: Standard (default; Low 8h/40h … Critical 1h/4h in business time) and Payroll (twice as fast) for payroll request types | Lets the demo breach a payroll case quickly |
+| 53 | Notifications are derived from new audit events by one planner, inside the same save (SaveChanges interceptor); delivery (SignalR push, e-mail) happens after commit and never fails the request | One place for every notification rule; nothing is announced for a change that rolled back |
+| 54 | Nobody is notified of their own action, except the confirmation of their own submission; internal notes only reach the assignee; confidential cases never put their title in notifications or e-mails | Spec events + confidentiality |
+| 55 | The SLA monitor is a Hangfire recurring job (every minute, no concurrent runs) that processes every organisation's running clocks one case at a time; a case edited at the same moment is skipped until the next run | Spec: every-minute job; a conflict never loses other cases' updates |
+| 56 | Escalation rules: trigger (AtRisk, Breached, NoResponseFor N business hours) + action (NotifyAssignee, NotifyManager = the assignee's manager or HR Admins, BumpPriority, ReassignToTeam), optionally per request type; `escalation_executions (ticket, rule)` is unique | Spec rules; idempotent even if two monitors race |
+| 57 | Background jobs and SMTP are configuration switches; tests run jobs directly and record e-mails; the Hangfire dashboard is local-only (bearer tokens cannot reach it from a browser) | Deterministic tests; no unauthenticated dashboard |
+| 58 | Child entities of a case (events, comments, attachments, approvals) take the case's tenant in the aggregate | Background jobs run without a tenant context |
 
 ## 7. Testing strategy
 
