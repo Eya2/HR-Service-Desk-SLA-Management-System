@@ -190,6 +190,11 @@ The Hangfire dashboard is exposed at `/hangfire`, restricted to SuperAdmin.
 | 27 | Priority comes from the request type; only HR staff can change it | Employees should not self-escalate |
 | 28 | Accepted attachments: PDF, PNG, JPEG, DOCX, XLSX, 10 MB each, 10 per request, type checked by magic bytes; always served as downloads | Spec asks for size and type validation |
 | 29 | Reference numbers come from `reference_counters` (tenant, year) incremented with `INSERT … ON CONFLICT … RETURNING` inside the submission transaction; the year follows the tenant's time zone | Sequential, gap-free and race-free |
+| 30 | Status permissions are expressed per transition for three actors: Requester, Agent (HR staff roles) and System (approval engine, automations); a user holding several gets the union | "Role-based permission per transition" where the requester is a relationship, not a role |
+| 31 | Closed, Rejected and Cancelled are terminal; reopening is only possible from Resolved, by the requester | Common ITSM convention; spec lists Reopened without its entry points |
+| 32 | An impossible transition is 422 `ticket.invalid_transition`; an allowed one requested by the wrong actor is 403 `ticket.transition_not_permitted` | Distinguishes "never possible" from "not for you" |
+| 33 | A reply from the employee on a WaitingOnEmployee case moves it back to InProgress automatically | Resumes work and, from phase 7, the SLA clock |
+| 34 | `ticket_events` is the case audit trail (append-only, jsonb data); events about internal notes are flagged internal and hidden from employees | Spec: every transition writes an audit event; the same trail feeds the timeline |
 
 ## 7. Testing strategy
 
