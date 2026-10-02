@@ -43,6 +43,9 @@ public sealed class Ticket : Entity, ITenantOwned, IAuditable
 
     public Guid? AssigneeId { get; private set; }
 
+    /// <summary>The team handling the case (from the request type at submission, or after a reassignment).</summary>
+    public Guid? TeamId { get; private set; }
+
     /// <summary>Copied from the request type at submission, so later catalog edits do not expose existing cases.</summary>
     public bool IsConfidential { get; private set; }
 
@@ -85,6 +88,7 @@ public sealed class Ticket : Entity, ITenantOwned, IAuditable
             Priority = requestType.DefaultPriority,
             IsConfidential = requestType.IsConfidential,
             FormData = formData,
+            TeamId = requestType.ResponsibleTeamId,
         };
         ticket.ApplyDetails(title, description);
         ticket.Record(TicketEventType.Created, requesterId, now, new { reference });
@@ -195,6 +199,40 @@ public sealed class Ticket : Entity, ITenantOwned, IAuditable
     {
         var next = CurrentApproval!;
         Record(TicketEventType.ApprovalRequested, null, now, new { step = next.StepName, approverRole = next.ApproverRole.ToString() });
+    }
+
+    /// <summary>
+    /// Gives the case to <paramref name="assigneeId"/> (null: back to the team queue). <paramref name="actorId"/>
+    /// is null for automatic assignment.
+    /// </summary>
+    public void Assign(Guid? assigneeId, Guid? actorId, DateTimeOffset now)
+    {
+        if (IsFinal)
+            throw new DomainException("ticket.not_assignable", "A closed case cannot be reassigned.");
+        if (assigneeId == AssigneeId)
+            return;
+        Record(TicketEventType.Assigned, actorId, now, new { from = AssigneeId, to = assigneeId, teamId = TeamId });
+        AssigneeId = assigneeId;
+    }
+
+    /// <summary>An agent takes an unassigned case. Taking a case someone else holds is refused (409).</summary>
+    public void Claim(Guid agentId, DateTimeOffset now)
+    {
+        if (AssigneeId is { } current && current != agentId)
+            throw new DomainException("ticket.already_assigned", "Someone else is already working on this case.");
+        Assign(agentId, agentId, now);
+    }
+
+    /// <summary>Moves the case to another team; the current assignee is released.</summary>
+    public void MoveToTeam(Guid teamId, Guid? actorId, DateTimeOffset now)
+    {
+        if (IsFinal)
+            throw new DomainException("ticket.not_assignable", "A closed case cannot be reassigned.");
+        if (teamId == TeamId)
+            return;
+        Record(TicketEventType.Assigned, actorId, now, new { from = AssigneeId, to = (Guid?)null, fromTeamId = TeamId, teamId });
+        TeamId = teamId;
+        AssigneeId = null;
     }
 
     /// <summary>Appends an entry to the audit trail.</summary>

@@ -29,6 +29,9 @@ public sealed class RequestType : Entity, ITenantOwned, IAuditable
     /// <summary>The <see cref="FormSchema"/> as JSON (jsonb column).</summary>
     public string FormSchemaJson { get; private set; } = FormSchema.Empty.ToJson();
 
+    /// <summary>The team that handles cases of this type; null leaves them in the general HR queue.</summary>
+    public Guid? ResponsibleTeamId { get; private set; }
+
     public DateTimeOffset CreatedAt { get; set; }
 
     public DateTimeOffset? UpdatedAt { get; set; }
@@ -62,6 +65,8 @@ public sealed class RequestType : Entity, ITenantOwned, IAuditable
         DefaultPriority = defaultPriority;
         FormSchemaJson = schema.ToJson();
     }
+
+    public void SetResponsibleTeam(Guid? teamId) => ResponsibleTeamId = teamId;
 
     public void Deactivate() => IsActive = false;
 
