@@ -28,6 +28,8 @@ describe('Queue', () => {
     teamName: 'HR Service Center',
     assigneeId: assigneeName ? 'u-2' : null,
     assigneeName,
+    slaState: 'AtRisk',
+    resolutionDueAt: '2026-03-02T16:00:00Z',
     createdAt: '2026-03-02T09:00:00Z',
     updatedAt: null,
   });

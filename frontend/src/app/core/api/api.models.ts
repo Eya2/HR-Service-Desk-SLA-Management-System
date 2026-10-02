@@ -60,8 +60,43 @@ export interface TicketSummary {
   teamName: string | null;
   assigneeId: string | null;
   assigneeName: string | null;
+  slaState: SlaStateName;
+  resolutionDueAt: string | null;
   createdAt: string;
   updatedAt: string | null;
+}
+
+export type SlaStateName = 'None' | 'OnTrack' | 'AtRisk' | 'Breached';
+
+/** SLA position of a case; due dates are null while the clock is paused. */
+export interface TicketSla {
+  state: SlaStateName;
+  isPaused: boolean;
+  firstResponseDueAt: string | null;
+  resolutionDueAt: string | null;
+  firstRespondedAt: string | null;
+  firstResponseBreached: boolean;
+  resolutionBreached: boolean;
+  firstResponseTargetMinutes: number | null;
+  resolutionTargetMinutes: number | null;
+}
+
+export interface CalendarInfo {
+  id: string;
+  name: string;
+  timeZoneId: string;
+  workingHours: { day: string; start: string; end: string }[];
+  holidays: { date: string; name: string }[];
+}
+
+export interface SlaPolicyInfo {
+  id: string;
+  name: string;
+  isDefault: boolean;
+  atRiskThresholdPercent: number;
+  targets: { priority: string; firstResponseMinutes: number; resolutionMinutes: number }[];
+  pauseStatuses: string[];
+  requestTypes: string[];
 }
 
 export interface Person {
@@ -199,6 +234,7 @@ export interface TicketDetails {
   requester: Person;
   assignee: Person | null;
   team: { id: string; name: string } | null;
+  sla: TicketSla;
   answers: FormAnswer[];
   attachments: AttachmentInfo[];
   comments: CommentInfo[];

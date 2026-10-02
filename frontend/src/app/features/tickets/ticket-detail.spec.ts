@@ -186,6 +186,13 @@ describe('TicketDetail', () => {
     http.expectOne('/api/tickets/t-1/claim').flush(null, { status: 204, statusText: 'No Content' });
   });
 
+  it('shows the SLA position of the case', async () => {
+    const el = await render(ticketDetails());
+
+    expect(el.querySelector('[data-testid="sla"]')?.textContent).toContain('On track');
+    expect(el.querySelector('[data-testid="sla"]')?.textContent).toContain('1h / 4h');
+  });
+
   it('shows no assignment controls to the employee', async () => {
     const el = await render(ticketDetails({ team: { id: 'team-1', name: 'HR Service Center' } }));
 

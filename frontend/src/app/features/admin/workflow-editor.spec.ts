@@ -35,6 +35,7 @@ describe('WorkflowEditor', () => {
     fixture.detectChanges();
     http.expectOne(`/api/workflows/${workflow.requestTypeId}`).flush(workflow);
     http.expectOne('/api/teams').flush([]);
+    http.expectOne('/api/sla-policies').flush([]);
     await fixture.whenStable();
     return fixture.nativeElement as HTMLElement;
   }

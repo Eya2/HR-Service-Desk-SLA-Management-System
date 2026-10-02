@@ -18,6 +18,11 @@ export const routes: Routes = [
         title: 'Teams · HR Service Desk',
       },
       {
+        path: 'sla',
+        loadComponent: () => import('./sla-admin').then((m) => m.SlaAdmin),
+        title: 'SLA & calendar · HR Service Desk',
+      },
+      {
         path: 'workflows/:requestTypeId',
         loadComponent: () => import('./workflow-editor').then((m) => m.WorkflowEditor),
         title: 'Edit workflow · HR Service Desk',

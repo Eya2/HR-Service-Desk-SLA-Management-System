@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
-import { Paged, PendingApproval, TeamInfo, TeamStats, TicketSummary, WorkflowInfo } from './api.models';
+import { CalendarInfo, Paged, PendingApproval, SlaPolicyInfo, TeamInfo, TeamStats, TicketSummary, WorkflowInfo } from './api.models';
 
 @Injectable({ providedIn: 'root' })
 export class ApprovalsApi {
@@ -73,5 +73,39 @@ export class TeamsApi {
           page.items.filter((u) => u.isActive && u.roles.some((r) => ['HrOfficer', 'PayrollSpecialist', 'HrAdmin'].includes(r))),
         ),
       );
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class SlaApi {
+  private readonly http = inject(HttpClient);
+
+  calendar(): Observable<CalendarInfo> {
+    return this.http.get<CalendarInfo>('/api/calendar');
+  }
+
+  addHoliday(date: string, name: string): Observable<CalendarInfo> {
+    return this.http.post<CalendarInfo>('/api/calendar/holidays', { date, name });
+  }
+
+  removeHoliday(date: string): Observable<CalendarInfo> {
+    return this.http.delete<CalendarInfo>(`/api/calendar/holidays/${encodeURIComponent(date)}`);
+  }
+
+  /** The deadline `minutes` business minutes after `start`, computed by the API on the calendar. */
+  deadline(start: string, minutes: number): Observable<string> {
+    return this.http.get<string>('/api/calendar/deadline', { params: { start, minutes } });
+  }
+
+  policies(): Observable<SlaPolicyInfo[]> {
+    return this.http.get<SlaPolicyInfo[]>('/api/sla-policies');
+  }
+
+  savePolicy(policy: Omit<SlaPolicyInfo, 'requestTypes'>): Observable<SlaPolicyInfo> {
+    return this.http.put<SlaPolicyInfo>(`/api/sla-policies/${encodeURIComponent(policy.id)}`, policy);
+  }
+
+  setRequestTypePolicy(requestTypeId: string, policyId: string | null): Observable<void> {
+    return this.http.put<void>(`/api/request-types/${encodeURIComponent(requestTypeId)}/sla-policy`, { policyId });
   }
 }

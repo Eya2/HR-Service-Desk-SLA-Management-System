@@ -18,6 +18,7 @@ import { ApprovalsApi, TeamsApi } from '../../core/api/approvals.api';
 import { TicketsApi } from '../../core/api/tickets.api';
 import { problemOf } from '../../core/http/error.interceptor';
 import { fileSize, humanize } from '../../shared/ui/labels';
+import { SlaBadge } from '../../shared/ui/sla-badge';
 import { StatusChip } from '../../shared/ui/status-chip';
 import { ReasonDialog, ReasonRequest } from './reason-dialog';
 import { StatusAction, describeEvent, statusAction } from './status-actions';
@@ -36,6 +37,7 @@ import { StatusAction, describeEvent, statusAction } from './status-actions';
     MatInputModule,
     MatProgressBarModule,
     MatSelectModule,
+    SlaBadge,
     StatusChip,
   ],
   template: `
@@ -262,6 +264,37 @@ import { StatusAction, describeEvent, statusAction } from './status-actions';
             </mat-card-content>
           </mat-card>
 
+          @if (t.sla.state !== 'None') {
+            <mat-card appearance="outlined" data-testid="sla">
+              <mat-card-header><mat-card-title>Service level</mat-card-title></mat-card-header>
+              <mat-card-content>
+                <app-sla-badge [state]="t.sla.state" [dueAt]="t.sla.resolutionDueAt" [paused]="t.sla.isPaused" />
+                <dl class="facts sla">
+                  <dt>First response</dt>
+                  <dd>
+                    @if (t.sla.firstRespondedAt) {
+                      {{ t.sla.firstResponseBreached ? 'Late' : 'On time' }} · {{ t.sla.firstRespondedAt | date: 'short' }}
+                    } @else if (t.sla.firstResponseDueAt) {
+                      due {{ t.sla.firstResponseDueAt | date: 'short' }}
+                    } @else {
+                      paused
+                    }
+                  </dd>
+                  <dt>Resolution</dt>
+                  <dd>
+                    @if (t.sla.resolutionDueAt) {
+                      due {{ t.sla.resolutionDueAt | date: 'short' }}
+                    } @else {
+                      paused
+                    }
+                  </dd>
+                  <dt>Targets</dt>
+                  <dd>{{ hours(t.sla.firstResponseTargetMinutes) }} / {{ hours(t.sla.resolutionTargetMinutes) }} (business hours)</dd>
+                </dl>
+              </mat-card-content>
+            </mat-card>
+          }
+
           <mat-card appearance="outlined">
             <mat-card-header><mat-card-title>Documents</mat-card-title></mat-card-header>
             <mat-card-content>
@@ -362,6 +395,9 @@ import { StatusAction, describeEvent, statusAction } from './status-actions';
     .timeline time {
       display: block;
       color: var(--mat-sys-on-surface-variant);
+    }
+    .sla {
+      margin-top: 12px;
     }
     .take {
       width: 100%;
@@ -612,6 +648,10 @@ export class TicketDetail {
         this.ticket.reload();
       },
     });
+  }
+
+  protected hours(minutes: number | null): string {
+    return minutes === null ? '—' : `${+(minutes / 60).toFixed(1)}h`;
   }
 
   protected decisionIcon(step: ApprovalInfo): string {

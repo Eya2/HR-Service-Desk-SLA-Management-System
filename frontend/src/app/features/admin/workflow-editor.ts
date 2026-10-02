@@ -11,7 +11,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterLink } from '@angular/router';
 import { APPROVER_ROLES } from '../../core/api/api.models';
-import { TeamsApi, WorkflowsApi } from '../../core/api/approvals.api';
+import { SlaApi, TeamsApi, WorkflowsApi } from '../../core/api/approvals.api';
 import { problemOf } from '../../core/http/error.interceptor';
 import { humanize } from '../../shared/ui/labels';
 
@@ -48,6 +48,14 @@ const MAX_STEPS = 5;
               <mat-option [value]="null">No team (general queue)</mat-option>
               @for (team of teams.value() ?? []; track team.id) {
                 <mat-option [value]="team.id">{{ team.name }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>SLA policy</mat-label>
+            <mat-select [value]="policyOf(w.requestTypeName)" (selectionChange)="setPolicy(w.requestTypeId, $event.value)" data-testid="sla-policy">
+              @for (policy of policies.value() ?? []; track policy.id) {
+                <mat-option [value]="policy.id">{{ policy.name }}{{ policy.isDefault ? ' (default)' : '' }}</mat-option>
               }
             </mat-select>
           </mat-form-field>
@@ -115,6 +123,11 @@ const MAX_STEPS = 5;
     .routing {
       margin-bottom: 16px;
     }
+    .routing mat-card-content {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
     h2 {
       font: var(--mat-sys-title-medium);
     }
@@ -160,6 +173,24 @@ export class WorkflowEditor {
   private readonly teamsApi = inject(TeamsApi);
 
   protected readonly teams = rxResource({ stream: () => this.teamsApi.list() });
+  private readonly slaApi = inject(SlaApi);
+  protected readonly policies = rxResource({ stream: () => this.slaApi.policies() });
+
+  protected policyOf(requestTypeName: string): string | null {
+    return this.policies.value()?.find((p) => p.requestTypes.includes(requestTypeName))?.id ?? null;
+  }
+
+  protected setPolicy(requestTypeId: string, policyId: string): void {
+    const policy = this.policies.value()?.find((p) => p.id === policyId);
+    // Choosing the default policy is stored as "no specific policy", so it follows future default changes.
+    this.slaApi.setRequestTypePolicy(requestTypeId, policy?.isDefault ? null : policyId).subscribe({
+      next: () => {
+        this.snackBar.open('SLA policy saved.', undefined, { duration: 3000 });
+        this.policies.reload();
+      },
+      error: (error: unknown) => this.snackBar.open(problemOf(error)?.title ?? 'Could not save.', 'Dismiss', { duration: 6000 }),
+    });
+  }
 
   /** Route parameter. */
   readonly requestTypeId = input.required<string>();

@@ -19,6 +19,7 @@ import { TicketScope, TicketsApi } from '../../core/api/tickets.api';
 import { AuthService } from '../../core/auth/auth.service';
 import { problemOf } from '../../core/http/error.interceptor';
 import { humanize } from '../../shared/ui/labels';
+import { SlaBadge } from '../../shared/ui/sla-badge';
 import { StatusChip } from '../../shared/ui/status-chip';
 
 /** The HR agent's work queue: my cases, my teams', unassigned ones, or everything. */
@@ -36,6 +37,7 @@ import { StatusChip } from '../../shared/ui/status-chip';
     MatSlideToggleModule,
     MatTableModule,
     RouterLink,
+    SlaBadge,
     StatusChip,
   ],
   template: `
@@ -104,6 +106,10 @@ import { StatusChip } from '../../shared/ui/status-chip';
           <th mat-header-cell *matHeaderCellDef>Priority</th>
           <td mat-cell *matCellDef="let t"><app-status-chip [value]="t.priority" /></td>
         </ng-container>
+        <ng-container matColumnDef="sla">
+          <th mat-header-cell *matHeaderCellDef>SLA</th>
+          <td mat-cell *matCellDef="let t"><app-sla-badge [state]="t.slaState" [dueAt]="t.resolutionDueAt" /></td>
+        </ng-container>
         <ng-container matColumnDef="created">
           <th mat-header-cell *matHeaderCellDef>Submitted</th>
           <td mat-cell *matCellDef="let t">{{ t.createdAt | date: 'short' }}</td>
@@ -152,7 +158,7 @@ export class Queue {
   protected readonly canWork = this.auth.hasAnyRole(['HrOfficer', 'PayrollSpecialist', 'HrAdmin']);
   protected readonly statuses = STATUSES;
   protected readonly humanize = humanize;
-  protected readonly columns = ['reference', 'title', 'team', 'assignee', 'status', 'priority', 'created'];
+  protected readonly columns = ['reference', 'title', 'team', 'assignee', 'status', 'priority', 'sla', 'created'];
   protected readonly scopes = computed<{ value: TicketScope; label: string }[]>(() =>
     this.canWork
       ? [
