@@ -23,6 +23,9 @@ public sealed partial class Tenant : Entity, IAuditable
 
     public bool IsActive { get; private set; } = true;
 
+    /// <summary>Closed cases older than this are anonymized (GDPR storage limitation).</summary>
+    public int RetentionMonths { get; private set; } = 24;
+
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }
 
@@ -45,6 +48,13 @@ public sealed partial class Tenant : Entity, IAuditable
             TimeZoneId = timeZoneId.Trim(),
             DefaultCulture = string.IsNullOrWhiteSpace(defaultCulture) ? "fr" : defaultCulture.Trim(),
         };
+    }
+
+    public void SetRetention(int months)
+    {
+        if (months is < 6 or > 120)
+            throw new DomainException("tenant.invalid_retention", "Retention must be between 6 and 120 months.");
+        RetentionMonths = months;
     }
 
     public void Deactivate() => IsActive = false;

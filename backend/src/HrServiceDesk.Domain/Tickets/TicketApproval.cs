@@ -56,6 +56,8 @@ public sealed class TicketApproval : Entity, ITenantOwned
     public bool IsApprover(Guid userId, IReadOnlyCollection<Role> roles) =>
         ApproverUserId is { } specific ? specific == userId : roles.Contains(ApproverRole);
 
+    internal void Redact() => Comment = null;
+
     internal void Decide(ApprovalDecision decision, Guid? deciderId, string? comment, DateTimeOffset now)
     {
         Decision = decision;

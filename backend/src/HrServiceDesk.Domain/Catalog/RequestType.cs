@@ -24,6 +24,9 @@ public sealed class RequestType : Entity, ITenantOwned, IAuditable
 
     public TicketPriority DefaultPriority { get; private set; } = TicketPriority.Medium;
 
+    /// <summary>Cases hold sensitive personal data (bank details, health…): every view by HR is audited.</summary>
+    public bool IsSensitive { get; private set; }
+
     public bool IsActive { get; private set; } = true;
 
     /// <summary>The <see cref="FormSchema"/> as JSON (jsonb column).</summary>
@@ -72,6 +75,8 @@ public sealed class RequestType : Entity, ITenantOwned, IAuditable
     public void SetResponsibleTeam(Guid? teamId) => ResponsibleTeamId = teamId;
 
     public void SetSlaPolicy(Guid? policyId) => SlaPolicyId = policyId;
+
+    public void MarkSensitive(bool isSensitive) => IsSensitive = isSensitive;
 
     public void Deactivate() => IsActive = false;
 

@@ -20,6 +20,12 @@ public sealed class Team : Entity, ITenantOwned, IAuditable
 
     public IReadOnlyCollection<TeamMember> Members => _members.AsReadOnly();
 
+    /// <summary>
+    /// Marks the restricted HR group: its members (and the requester) are the only people who can see
+    /// confidential cases.
+    /// </summary>
+    public bool IsConfidentialGroup { get; private set; }
+
     /// <summary>Who received the last automatically assigned case (round-robin pointer).</summary>
     public Guid? LastAssignedUserId { get; private set; }
 
@@ -60,6 +66,8 @@ public sealed class Team : Entity, ITenantOwned, IAuditable
     }
 
     public bool HasMember(Guid userId) => _members.Any(m => m.UserId == userId);
+
+    public void SetConfidentialGroup(bool isConfidentialGroup) => IsConfidentialGroup = isConfidentialGroup;
 
     /// <summary>
     /// Applies the team's strategy among <paramref name="eligible"/> members (e.g. active ones) and moves the

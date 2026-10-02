@@ -49,4 +49,17 @@ public sealed class TicketEvent : Entity, ITenantOwned
     public string Data { get; private set; } = "{}";
 
     public bool IsInternal { get; private set; }
+
+    /// <summary>Keeps the facts (type, statuses, dates) and drops free text (titles, reasons, comments, file names).</summary>
+    internal void Redact(Guid previousRequester, Guid formerEmployee)
+    {
+        if (ActorId == previousRequester)
+            ActorId = formerEmployee;
+
+        using var document = System.Text.Json.JsonDocument.Parse(Data);
+        var kept = document.RootElement.EnumerateObject()
+            .Where(p => p.Name is "from" or "to" or "decision" or "action" or "trigger" or "isInternal" or "reference" or "teamId" or "fromTeamId")
+            .ToDictionary(p => p.Name, p => p.Value.Clone());
+        Data = System.Text.Json.JsonSerializer.Serialize(kept);
+    }
 }

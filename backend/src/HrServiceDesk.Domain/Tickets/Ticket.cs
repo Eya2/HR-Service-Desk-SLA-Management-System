@@ -52,6 +52,12 @@ public sealed class Ticket : Entity, ITenantOwned, IAuditable
     /// <summary>Copied from the request type at submission, so later catalog edits do not expose existing cases.</summary>
     public bool IsConfidential { get; private set; }
 
+    /// <summary>Copied from the request type: views of the case by HR are audited.</summary>
+    public bool IsSensitive { get; private set; }
+
+    /// <summary>Set once the retention job has removed the case's personal data.</summary>
+    public DateTimeOffset? AnonymizedAt { get; private set; }
+
     /// <summary>The validated answers to the request type's form (jsonb). File fields hold attachment ids.</summary>
     public string FormData { get; private set; } = "{}";
 
@@ -126,6 +132,7 @@ public sealed class Ticket : Entity, ITenantOwned, IAuditable
             RequesterId = requesterId,
             Priority = requestType.DefaultPriority,
             IsConfidential = requestType.IsConfidential,
+            IsSensitive = requestType.IsSensitive || requestType.IsConfidential,
             FormData = formData,
             TeamId = requestType.ResponsibleTeamId,
         };
@@ -397,6 +404,37 @@ public sealed class Ticket : Entity, ITenantOwned, IAuditable
             _slaPauses.Add(new SlaPause(now, null));
         else if (!StopsClock(to) && open >= 0)
             _slaPauses[open] = _slaPauses[open] with { To = now };
+    }
+
+    /// <summary>
+    /// Removes the personal data of a closed case (GDPR): texts, answers and documents are erased, the
+    /// requester is replaced by <paramref name="formerEmployeeId"/>, and free text in the trail is dropped.
+    /// The structure (dates, statuses, SLA results) stays for statistics. Returns the storage keys to delete.
+    /// </summary>
+    public IReadOnlyList<string> Anonymize(Guid formerEmployeeId, DateTimeOffset now)
+    {
+        if (!IsFinal)
+            throw new DomainException("ticket.not_closed", "Only closed cases can be anonymized.");
+        if (AnonymizedAt is not null)
+            return [];
+
+        var previousRequester = RequesterId;
+        Title = "Anonymized case";
+        Description = string.Empty;
+        FormData = "{}";
+        RequesterId = formerEmployeeId;
+        AnonymizedAt = now;
+
+        foreach (var comment in _comments)
+            comment.Redact(previousRequester, formerEmployeeId);
+        foreach (var approval in _approvals)
+            approval.Redact();
+        foreach (var entry in _events)
+            entry.Redact(previousRequester, formerEmployeeId);
+
+        var keys = _attachments.Select(a => a.StorageKey).ToList();
+        _attachments.Clear();
+        return keys;
     }
 
     /// <summary>Appends an entry to the audit trail.</summary>

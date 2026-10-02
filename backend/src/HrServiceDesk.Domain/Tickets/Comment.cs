@@ -29,4 +29,11 @@ public sealed class Comment : Entity, ITenantOwned
     public bool IsInternal { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private set; }
+
+    internal void Redact(Guid previousRequester, Guid formerEmployee)
+    {
+        Body = "[removed]";
+        if (AuthorId == previousRequester)
+            AuthorId = formerEmployee;
+    }
 }
