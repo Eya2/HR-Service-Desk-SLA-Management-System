@@ -369,8 +369,17 @@ export class Shell {
   /** The most senior role, for the sidebar footer. */
   protected readonly roleLabel = computed(() => {
     const order = ['SuperAdmin', 'HrAdmin', 'Auditor', 'PayrollSpecialist', 'HrOfficer', 'Manager', 'Employee'];
-    const role = order.find((r) => this.auth.user()?.roles.includes(r as never)) ?? '';
-    return role.replace(/([a-z])([A-Z])/g, '$1 $2');
+    const labels: Record<string, string> = {
+      SuperAdmin: 'Super admin',
+      HrAdmin: 'HR Admin',
+      Auditor: 'Auditor',
+      PayrollSpecialist: 'Payroll specialist',
+      HrOfficer: 'HR Officer',
+      Manager: 'Manager',
+      Employee: 'Employee',
+    };
+    const role = order.find((r) => this.auth.user()?.roles.includes(r as never));
+    return role ? labels[role] : '';
   });
 
   protected readonly themeIcon = computed(() => ({ light: 'light_mode', dark: 'dark_mode', system: 'contrast' })[this.theme.mode()]);

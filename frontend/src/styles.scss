@@ -136,3 +136,10 @@ a {
     animation: none !important;
   }
 }
+
+// Compact controls for filter bars (dashboard, queues).
+.dense-controls {
+  @include mat.form-field-density(-4);
+  @include mat.button-toggle-density(-2);
+  @include mat.select-density(-2);
+}
