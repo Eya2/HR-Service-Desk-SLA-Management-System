@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using HrServiceDesk.Application.Abstractions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
@@ -16,14 +18,29 @@ public sealed class TestClock(DateTimeOffset now) : TimeProvider
     public void Advance(TimeSpan by) => Now += by;
 }
 
+/// <summary>Captures e-mails instead of sending them.</summary>
+public sealed class RecordingEmailSender : IEmailSender
+{
+    public ConcurrentQueue<EmailMessage> Sent { get; } = new();
+
+    public Task SendAsync(EmailMessage message, CancellationToken cancellationToken)
+    {
+        Sent.Enqueue(message);
+        return Task.CompletedTask;
+    }
+}
+
 /// <summary>
 /// An API host whose application clock is a <see cref="TestClock"/>, for time-based behaviour (SLA, jobs).
 /// Tokens are stamped with that clock, so their lifetime is not checked against the real one here.
 /// </summary>
-public sealed class ClockedApiFactory(string connectionString, DateTimeOffset start, IReadOnlyDictionary<string, string>? overrides = null)
-    : ApiFactory(connectionString, overrides)
+public sealed class ClockedApiFactory(string connectionString, DateTimeOffset start)
+    : ApiFactory(connectionString, new Dictionary<string, string> { ["Smtp:Enabled"] = "true" })
 {
     public TestClock Clock { get; } = new(start);
+
+    /// <summary>E-mails "sent" by this host.</summary>
+    public RecordingEmailSender Emails { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -32,6 +49,8 @@ public sealed class ClockedApiFactory(string connectionString, DateTimeOffset st
         {
             services.RemoveAll<TimeProvider>();
             services.AddSingleton<TimeProvider>(Clock);
+            services.RemoveAll<IEmailSender>();
+            services.AddSingleton<IEmailSender>(Emails);
             services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, o => o.TokenValidationParameters.ValidateLifetime = false);
         });
     }
