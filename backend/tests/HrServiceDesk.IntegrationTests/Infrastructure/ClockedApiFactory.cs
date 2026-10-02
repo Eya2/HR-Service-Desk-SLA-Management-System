@@ -30,6 +30,20 @@ public sealed class RecordingEmailSender : IEmailSender
     }
 }
 
+/// <summary>Captures webhook requests instead of sending them; <see cref="Respond"/> decides the outcome.</summary>
+public sealed class RecordingWebhookSender : IWebhookSender
+{
+    public ConcurrentQueue<WebhookRequest> Sent { get; } = new();
+
+    public Func<WebhookRequest, WebhookResponse> Respond { get; set; } = _ => new WebhookResponse(true, 200, null);
+
+    public Task<WebhookResponse> SendAsync(WebhookRequest request, CancellationToken cancellationToken)
+    {
+        Sent.Enqueue(request);
+        return Task.FromResult(Respond(request));
+    }
+}
+
 /// <summary>
 /// An API host whose application clock is a <see cref="TestClock"/>, for time-based behaviour (SLA, jobs).
 /// Tokens are stamped with that clock, so their lifetime is not checked against the real one here.
@@ -42,6 +56,9 @@ public sealed class ClockedApiFactory(string connectionString, DateTimeOffset st
     /// <summary>E-mails "sent" by this host.</summary>
     public RecordingEmailSender Emails { get; } = new();
 
+    /// <summary>Webhook requests "sent" by this host.</summary>
+    public RecordingWebhookSender Webhooks { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         base.ConfigureWebHost(builder);
@@ -51,6 +68,8 @@ public sealed class ClockedApiFactory(string connectionString, DateTimeOffset st
             services.AddSingleton<TimeProvider>(Clock);
             services.RemoveAll<IEmailSender>();
             services.AddSingleton<IEmailSender>(Emails);
+            services.RemoveAll<IWebhookSender>();
+            services.AddSingleton<IWebhookSender>(Webhooks);
             services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, o => o.TokenValidationParameters.ValidateLifetime = false);
         });
     }

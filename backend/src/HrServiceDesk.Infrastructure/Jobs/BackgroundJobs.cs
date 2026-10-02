@@ -1,7 +1,9 @@
 using Hangfire;
 using Hangfire.PostgreSql;
 using HrServiceDesk.Application.Escalations;
+using HrServiceDesk.Application.Abstractions;
 using HrServiceDesk.Application.Gdpr;
+using HrServiceDesk.Application.Integration;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
@@ -35,6 +37,30 @@ public sealed class RetentionJob(ISender sender)
     public Task RunAsync() => sender.Send(new RunRetentionCommand(TenantId: null));
 }
 
+/// <summary>Sends due webhook deliveries: every minute, and right after a change queues some.</summary>
+public sealed class WebhookDispatchJob(ISender sender)
+{
+    [DisableConcurrentExecution(timeoutInSeconds: 300)]
+    [AutomaticRetry(Attempts = 0)]
+    public async Task RunAsync()
+    {
+        // Batches until nothing is due, so a burst does not wait for the next minute.
+        while (await sender.Send(new DispatchWebhooksCommand()) == 50)
+        {
+        }
+    }
+}
+
+/// <summary>Enqueues a dispatch run when background jobs are on; otherwise the recurring sweep (or a test) sends them.</summary>
+internal sealed class WebhookDispatchTrigger(IServiceProvider services) : IWebhookDispatchTrigger
+{
+    public void Kick()
+    {
+        if (services.GetService(typeof(IBackgroundJobClient)) is IBackgroundJobClient jobs)
+            jobs.Enqueue<WebhookDispatchJob>(j => j.RunAsync());
+    }
+}
+
 public static class BackgroundJobsSetup
 {
     internal static void AddBackgroundJobs(IServiceCollection services, IConfiguration configuration)
@@ -42,6 +68,8 @@ public static class BackgroundJobsSetup
         var options = configuration.GetSection(BackgroundJobOptions.SectionName).Get<BackgroundJobOptions>() ?? new BackgroundJobOptions();
         services.AddScoped<SlaMonitorJob>();
         services.AddScoped<RetentionJob>();
+        services.AddScoped<WebhookDispatchJob>();
+        services.AddScoped<IWebhookDispatchTrigger, WebhookDispatchTrigger>();
         if (!options.Enabled)
             return;
 
@@ -66,6 +94,8 @@ public static class BackgroundJobsSetup
             .AddOrUpdate<SlaMonitorJob>("sla-monitor", job => job.RunAsync(), Cron.Minutely());
         app.Services.GetRequiredService<IRecurringJobManager>()
             .AddOrUpdate<RetentionJob>("retention", job => job.RunAsync(), Cron.Daily(2));
+        app.Services.GetRequiredService<IRecurringJobManager>()
+            .AddOrUpdate<WebhookDispatchJob>("webhooks", job => job.RunAsync(), Cron.Minutely());
 
         if (options.Dashboard)
             app.UseHangfireDashboard("/hangfire", new DashboardOptions { Authorization = [new Hangfire.Dashboard.LocalRequestsOnlyAuthorizationFilter()] });

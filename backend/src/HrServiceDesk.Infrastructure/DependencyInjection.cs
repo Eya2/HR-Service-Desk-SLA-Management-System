@@ -3,6 +3,7 @@ using HrServiceDesk.Application.Auth;
 using HrServiceDesk.Application.Tickets.Files;
 using HrServiceDesk.Infrastructure.Auth;
 using HrServiceDesk.Infrastructure.Files;
+using HrServiceDesk.Infrastructure.Integration;
 using HrServiceDesk.Infrastructure.Jobs;
 using HrServiceDesk.Infrastructure.Notifications;
 using HrServiceDesk.Infrastructure.Persistence;
@@ -28,6 +29,7 @@ public static class DependencyInjection
         AddAuth(services);
         AddTickets(services);
         AddNotifications(services);
+        AddIntegration(services);
         BackgroundJobsSetup.AddBackgroundJobs(services, configuration);
 
         return services;
@@ -45,6 +47,21 @@ public static class DependencyInjection
         services.AddScoped<INotificationChannel, EmailNotificationChannel>();
     }
 
+    private static void AddIntegration(IServiceCollection services)
+    {
+        services.AddOptions<IntegrationOptions>().BindConfiguration(IntegrationOptions.SectionName);
+        services.AddScoped<WebhookInterceptor>();
+        services.AddSingleton<IIntegrationSettings, IntegrationSettings>();
+        services.AddSingleton<IWebhookSecretProtector, AesSecretProtector>();
+        services.AddScoped<IWebhookSender, HttpWebhookSender>();
+        services.AddHttpClient(HttpWebhookSender.ClientName, (sp, client) =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<IntegrationOptions>>().Value.TimeoutSeconds);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("HrServiceDesk-Webhooks/1.0");
+            })
+            .ConfigurePrimaryHttpMessageHandler(sp => HttpWebhookSender.CreateHandler(sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<IntegrationOptions>>().Value));
+    }
+
     private static void AddPersistence(IServiceCollection services)
     {
         services.AddScoped<TenantStampingInterceptor>();
@@ -56,6 +73,7 @@ public static class DependencyInjection
             .UseSnakeCaseNamingConvention()
             .AddInterceptors(
                 sp.GetRequiredService<NotificationInterceptor>(),
+                sp.GetRequiredService<WebhookInterceptor>(),
                 sp.GetRequiredService<TenantStampingInterceptor>(),
                 sp.GetRequiredService<AuditableInterceptor>()));
 

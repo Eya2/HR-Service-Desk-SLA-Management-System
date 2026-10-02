@@ -1,6 +1,7 @@
 using HrServiceDesk.Domain.Audit;
 using HrServiceDesk.Domain.Catalog;
 using HrServiceDesk.Domain.Escalations;
+using HrServiceDesk.Domain.Integration;
 using HrServiceDesk.Domain.Knowledge;
 using HrServiceDesk.Domain.Notifications;
 using HrServiceDesk.Domain.Sla;
@@ -56,6 +57,12 @@ public interface IAppDbContext
     DbSet<KnowledgeArticle> KnowledgeArticles { get; }
 
     DbSet<SatisfactionRating> SatisfactionRatings { get; }
+
+    DbSet<ApiKey> ApiKeys { get; }
+
+    DbSet<WebhookSubscription> WebhookSubscriptions { get; }
+
+    DbSet<WebhookDelivery> WebhookDeliveries { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

@@ -9,4 +9,13 @@ public sealed class SeedOptions
 
     /// <summary>Password given to every demo account. Supplied via the SEED_PASSWORD environment variable, never committed.</summary>
     public string? DemoPassword { get; set; }
+
+    /// <summary>Full API key the demo payroll connector uses (hrd_&lt;8 chars&gt;_…). Seeded for Acme when set.</summary>
+    public string? PayrollApiKey { get; set; }
+
+    /// <summary>Where the demo webhook is sent (the mock payroll container).</summary>
+    public string? PayrollWebhookUrl { get; set; }
+
+    /// <summary>Signing secret shared with the mock payroll container.</summary>
+    public string? PayrollWebhookSecret { get; set; }
 }

@@ -4,6 +4,7 @@ using HrServiceDesk.Domain.Audit;
 using HrServiceDesk.Domain.Catalog;
 using HrServiceDesk.Domain.Common;
 using HrServiceDesk.Domain.Escalations;
+using HrServiceDesk.Domain.Integration;
 using HrServiceDesk.Domain.Knowledge;
 using HrServiceDesk.Domain.Notifications;
 using HrServiceDesk.Domain.Sla;
@@ -83,6 +84,12 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<KnowledgeArticle> KnowledgeArticles => Set<KnowledgeArticle>();
 
     public DbSet<SatisfactionRating> SatisfactionRatings => Set<SatisfactionRating>();
+
+    public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
+
+    public DbSet<WebhookSubscription> WebhookSubscriptions => Set<WebhookSubscription>();
+
+    public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();
 
     internal DbSet<ReferenceCounter> ReferenceCounters => Set<ReferenceCounter>();
 

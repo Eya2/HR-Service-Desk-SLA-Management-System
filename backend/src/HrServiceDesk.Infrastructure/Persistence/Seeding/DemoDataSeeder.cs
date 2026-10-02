@@ -1,4 +1,5 @@
 using HrServiceDesk.Application.Abstractions;
+using HrServiceDesk.Domain.Integration;
 using HrServiceDesk.Domain.Teams;
 using HrServiceDesk.Domain.Tenants;
 using HrServiceDesk.Domain.Users;
@@ -16,6 +17,7 @@ namespace HrServiceDesk.Infrastructure.Persistence.Seeding;
 internal sealed partial class DemoDataSeeder(
     AppDbContext db,
     IPasswordHasher hasher,
+    IWebhookSecretProtector secretProtector,
     IOptions<SeedOptions> options,
     ILogger<DemoDataSeeder> logger)
 {
@@ -41,6 +43,31 @@ internal sealed partial class DemoDataSeeder(
         await SeedEscalationsAsync(cancellationToken);
         await SeedConfidentialityAsync(cancellationToken);
         await SeedKnowledgeAsync(cancellationToken);
+        await SeedPayrollIntegrationAsync(seed, cancellationToken);
+    }
+
+    /// <summary>Acme's payroll connector: an API key and a webhook to the mock payroll container, when configured.</summary>
+    private async Task SeedPayrollIntegrationAsync(SeedOptions seed, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(seed.PayrollApiKey) || string.IsNullOrWhiteSpace(seed.PayrollWebhookUrl) || string.IsNullOrWhiteSpace(seed.PayrollWebhookSecret))
+            return;
+        var acme = await db.Tenants.SingleOrDefaultAsync(t => t.Slug == "acme-tn", cancellationToken);
+        if (acme is null || await db.ApiKeys.IgnoreQueryFilters().AnyAsync(k => k.TenantId == acme.Id, cancellationToken))
+            return;
+
+        const string name = "Payroll connector";
+        var serviceUser = await Application.Integration.ApiKeyServiceAccount.CreateAsync(db, hasher, acme.Id, name, cancellationToken);
+        var key = ApiKey.FromSecret(name, ApiScopes.All, serviceUser.Id, createdById: null, seed.PayrollApiKey);
+        key.TenantId = acme.Id;
+        db.ApiKeys.Add(key);
+
+        var webhook = WebhookSubscription.Create(
+            "Payroll system", seed.PayrollWebhookUrl,
+            [WebhookEvents.TicketStatusChanged, WebhookEvents.TicketApprovalDecided],
+            secretProtector.Protect(seed.PayrollWebhookSecret), allowInsecureUrls: true);
+        webhook.TenantId = acme.Id;
+        db.WebhookSubscriptions.Add(webhook);
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     private async Task SeedTenantsAndUsersAsync(string demoPassword, CancellationToken cancellationToken)

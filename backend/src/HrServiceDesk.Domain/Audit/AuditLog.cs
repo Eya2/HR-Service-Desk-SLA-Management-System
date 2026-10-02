@@ -14,6 +14,9 @@ public enum AuditAction
     PasswordReset,
     RetentionPolicyChanged,
     CaseAnonymized,
+    ApiKeyCreated,
+    ApiKeyRevoked,
+    WebhookChanged,
 }
 
 /// <summary>

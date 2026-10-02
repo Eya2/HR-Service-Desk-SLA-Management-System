@@ -54,6 +54,24 @@ builder.Services.AddSwaggerGen(options =>
         Version = "v1",
         Description = "HR case management with approval workflows, SLAs and escalation.",
     });
+    options.SwaggerDoc("integration", new OpenApiInfo
+    {
+        Title = "HR Service Desk Integration API",
+        Version = "v1",
+        Description = "For external systems (payroll, HRIS). Authenticate with the X-Api-Key header. "
+            + "Webhooks are signed: X-HrDesk-Signature: t=<unix>,v1=<hex HMAC-SHA256(secret, \"t.body\")>.",
+    });
+    options.DocInclusionPredicate((document, api) => (api.GroupName ?? "v1") == document);
+    var apiKey = new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.ApiKey,
+        In = ParameterLocation.Header,
+        Name = "X-Api-Key",
+        Description = "Integration key created by an HR Admin (Administration > Integrations).",
+        Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "ApiKey" },
+    };
+    options.AddSecurityDefinition("ApiKey", apiKey);
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement { [apiKey] = [] });
     var bearer = new OpenApiSecurityScheme
     {
         Type = SecuritySchemeType.Http,
@@ -90,7 +108,12 @@ app.UseStatusCodePages();
 if (app.Configuration.GetValue<bool>("Swagger:Enabled"))
 {
     app.UseSwagger();
-    app.UseSwaggerUI(options => options.DocumentTitle = "HR Service Desk API");
+    app.UseSwaggerUI(options =>
+    {
+        options.DocumentTitle = "HR Service Desk API";
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Desk API");
+        options.SwaggerEndpoint("/swagger/integration/swagger.json", "Integration API");
+    });
 }
 
 app.UseCors();

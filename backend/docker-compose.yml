@@ -33,6 +33,12 @@ services:
       Smtp__Port: "1025"
       Smtp__AppUrl: http://localhost:${WEB_PORT:-8080}
       Swagger__Enabled: "true"
+      Integration__SecretKey: ${INTEGRATION_SECRET_KEY:?Set INTEGRATION_SECRET_KEY in .env}
+      Integration__AllowInsecureWebhookUrls: "true"
+      Integration__AllowPrivateNetworks: "true"
+      Seed__PayrollApiKey: ${PAYROLL_API_KEY:-}
+      Seed__PayrollWebhookSecret: ${PAYROLL_WEBHOOK_SECRET:-}
+      Seed__PayrollWebhookUrl: http://mock-payroll:8080/webhooks
       Logging__Json: "true"
       Cors__AllowedOrigins__0: http://localhost:4200
       Cors__AllowedOrigins__1: http://localhost:8080
@@ -43,6 +49,19 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  # Stand-in for an external payroll system: receives signed webhooks, resolves payroll cases via the integration API.
+  mock-payroll:
+    build:
+      context: .
+      dockerfile: tools/MockPayroll/Dockerfile
+    environment:
+      Payroll__DeskApiUrl: http://api:8080
+      Payroll__ApiKey: ${PAYROLL_API_KEY:-}
+      Payroll__WebhookSecret: ${PAYROLL_WEBHOOK_SECRET:-}
+      Payroll__ProcessingDelaySeconds: "5"
+    ports:
+      - "${MOCK_PAYROLL_PORT:-8090}:8080"
 
   mailhog:
     image: mailhog/mailhog:v1.0.1

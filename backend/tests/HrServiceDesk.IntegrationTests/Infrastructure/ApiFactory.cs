@@ -23,6 +23,8 @@ public class ApiFactory(string connectionString, IReadOnlyDictionary<string, str
         builder.UseSetting("Seed:DemoPassword", DemoUsers.Password);
         builder.UseSetting("RateLimiting:Auth:PermitLimit", "10000");
         builder.UseSetting("Storage:RootPath", StorageRoot);
+        builder.UseSetting("Integration:SecretKey", "integration-tests-webhook-secret-key");
+        builder.UseSetting("Integration:AllowInsecureWebhookUrls", "true");
 
         foreach (var (key, value) in overrides ?? new Dictionary<string, string>())
             builder.UseSetting(key, value);
