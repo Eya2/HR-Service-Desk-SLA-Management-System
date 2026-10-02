@@ -27,7 +27,10 @@ public sealed class RefreshToken : Entity, ITenantOwned
 
     public Guid? ReplacedByTokenId { get; private set; }
 
-    public static RefreshToken Issue(User user, string tokenHash, DateTimeOffset now, TimeSpan lifetime, Guid? familyId = null)
+    /// <summary>"Remember me": the cookie survives browser restarts. Successors keep the choice.</summary>
+    public bool IsPersistent { get; private set; }
+
+    public static RefreshToken Issue(User user, string tokenHash, DateTimeOffset now, TimeSpan lifetime, Guid? familyId = null, bool isPersistent = false)
     {
         ArgumentNullException.ThrowIfNull(user);
         return new RefreshToken
@@ -38,6 +41,7 @@ public sealed class RefreshToken : Entity, ITenantOwned
             FamilyId = familyId ?? Guid.NewGuid(),
             CreatedAt = now,
             ExpiresAt = now + lifetime,
+            IsPersistent = isPersistent,
         };
     }
 

@@ -86,6 +86,12 @@ public sealed class Ticket : Entity, ITenantOwned, IAuditable
 
     public DateTimeOffset? FirstRespondedAt { get; private set; }
 
+    /// <summary>When HR last resolved the case (cleared if it is reopened).</summary>
+    public DateTimeOffset? ResolvedAt { get; private set; }
+
+    /// <summary>How many times the employee reopened the case after resolution.</summary>
+    public int ReopenCount { get; private set; }
+
     /// <summary>Computed deadline; null while the clock is paused.</summary>
     public DateTimeOffset? FirstResponseDueAt { get; private set; }
 
@@ -177,6 +183,14 @@ public sealed class Ticket : Entity, ITenantOwned, IAuditable
         Record(TicketEventType.StatusChanged, actorId, now, data);
         var from = Status;
         Status = to;
+        if (to == TicketStatus.Resolved)
+            ResolvedAt = now;
+        else if (to == TicketStatus.Reopened)
+        {
+            ResolvedAt = null;
+            ReopenCount++;
+        }
+
         MoveSlaClock(from, to, now);
 
         // Steps still waiting are moot once the case is rejected or withdrawn.
@@ -358,13 +372,21 @@ public sealed class Ticket : Entity, ITenantOwned, IAuditable
     /// <summary>Business minutes since submission without any HR response (pauses excluded); null once answered.</summary>
     public int? BusinessMinutesWithoutResponse(IBusinessTimeCalculator calculator, DateTimeOffset now)
     {
-        ArgumentNullException.ThrowIfNull(calculator);
-        if (SlaStartedAt is not { } start || FirstRespondedAt is not null)
+        if (FirstRespondedAt is not null)
             return null;
         var end = SlaStoppedAt is { } stopped && stopped < now ? stopped : now;
-        var paused = _slaPauses.Where(p => p.From < end)
-            .Sum(p => calculator.BusinessMinutesBetween(p.From, p.To is { } to && to < end ? to : end));
-        return calculator.BusinessMinutesBetween(start, end) - paused;
+        return ElapsedBusinessMinutes(calculator, end);
+    }
+
+    /// <summary>Business minutes from submission to <paramref name="until"/>, pauses excluded (null without SLA clock).</summary>
+    public int? ElapsedBusinessMinutes(IBusinessTimeCalculator calculator, DateTimeOffset until)
+    {
+        ArgumentNullException.ThrowIfNull(calculator);
+        if (SlaStartedAt is not { } start)
+            return null;
+        var paused = _slaPauses.Where(p => p.From < until)
+            .Sum(p => calculator.BusinessMinutesBetween(p.From, p.To is { } to && to < until ? to : until));
+        return Math.Max(0, calculator.BusinessMinutesBetween(start, until) - paused);
     }
 
     /// <summary>Raises the priority one level (no-op at Critical). Returns whether it changed.</summary>

@@ -129,7 +129,10 @@ public class TicketSlaClockTests
         ticket.RecalculateSla(Clock, At(1000)).Current.Should().Be(SlaState.OnTrack, "resolved after 100 of 240 minutes");
         ticket.FirstRespondedAt.Should().Be(At(100), "resolving answers the employee");
 
+        ticket.ResolvedAt.Should().Be(At(100));
         ticket.ChangeStatus(Reopened, TransitionActor.Requester, ticket.RequesterId, At(1000));
+        ticket.ResolvedAt.Should().BeNull();
+        ticket.ReopenCount.Should().Be(1);
         ticket.RecalculateSla(Clock, At(1000)).Current.Should().Be(SlaState.OnTrack);
         ticket.ResolutionDueAt.Should().Be(At(1140), "140 minutes were left");
     }
