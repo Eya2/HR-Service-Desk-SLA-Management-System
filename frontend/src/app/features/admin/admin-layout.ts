@@ -1,0 +1,25 @@
+import { Component } from '@angular/core';
+import { MatTabsModule } from '@angular/material/tabs';
+import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+
+/** HR Admin area. More sections (users, catalog, SLA policies) are added by later phases. */
+@Component({
+  selector: 'app-admin-layout',
+  imports: [MatTabsModule, RouterLink, RouterLinkActive, RouterOutlet],
+  template: `
+    <nav mat-tab-nav-bar [tabPanel]="panel" class="tabs">
+      <a mat-tab-link routerLink="workflows" routerLinkActive #workflows="routerLinkActive" [active]="workflows.isActive">
+        Approval workflows
+      </a>
+    </nav>
+    <mat-tab-nav-panel #panel>
+      <router-outlet />
+    </mat-tab-nav-panel>
+  `,
+  styles: `
+    .tabs {
+      margin-bottom: 24px;
+    }
+  `,
+})
+export class AdminLayout {}

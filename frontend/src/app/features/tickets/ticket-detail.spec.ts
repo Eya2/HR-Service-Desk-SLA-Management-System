@@ -39,14 +39,14 @@ describe('TicketDetail', () => {
 
     TestBed.resetTestingModule();
     el = await render(
-      ticketDetails({ permissions: { canComment: true, canCommentInternally: true, canEdit: true, canChangePriority: true, canAttach: true, availableTransitions: [] } }),
+      ticketDetails({ permissions: { canComment: true, canCommentInternally: true, canEdit: true, canChangePriority: true, canAttach: true, availableTransitions: [], decidableApprovalId: null } }),
     );
     expect(el.querySelector('[data-testid="internal-toggle"]')).not.toBeNull();
   });
 
   it('hides the reply box for read-only viewers', async () => {
     const el = await render(
-      ticketDetails({ permissions: { canComment: false, canCommentInternally: false, canEdit: false, canChangePriority: false, canAttach: false, availableTransitions: [] } }),
+      ticketDetails({ permissions: { canComment: false, canCommentInternally: false, canEdit: false, canChangePriority: false, canAttach: false, availableTransitions: [], decidableApprovalId: null } }),
     );
 
     expect(el.querySelector('[data-testid="comment-body"]')).toBeNull();
@@ -64,6 +64,7 @@ describe('TicketDetail', () => {
           canChangePriority: true,
           canAttach: true,
           availableTransitions: ['InProgress', 'Rejected'],
+          decidableApprovalId: null,
         },
       }),
     );
@@ -99,6 +100,42 @@ describe('TicketDetail', () => {
     expect(entries[0]).toContain('Amira Ben Salah submitted the request');
     expect(entries[1]).toContain('Leila Mansour changed the status from Open to Rejected');
     expect(entries[1]).toContain('Already paid');
+  });
+
+  it('lets the current approver approve, and shows every step', async () => {
+    const el = await render(
+      ticketDetails({
+        status: 'PendingApproval',
+        approvals: [
+          { id: 'a1', stepOrder: 1, stepName: 'Manager approval', approverRole: 'Manager', approverName: 'Youssef Haddad', decision: 'Pending', decidedByName: null, decidedAt: null, comment: null },
+          { id: 'a2', stepOrder: 2, stepName: 'Payroll validation', approverRole: 'PayrollSpecialist', approverName: null, decision: 'Pending', decidedByName: null, decidedAt: null, comment: null },
+        ],
+        permissions: { canComment: true, canCommentInternally: false, canEdit: false, canChangePriority: false, canAttach: false, availableTransitions: [], decidableApprovalId: 'a1' },
+      }),
+    );
+
+    expect(el.querySelector('[data-testid="approvals"]')?.textContent).toContain('Youssef Haddad');
+    expect(el.querySelector('[data-testid="approvals"]')?.textContent).toContain('Payroll specialist');
+
+    (el.querySelector('[data-testid="approve"]') as HTMLButtonElement).click();
+    const req = http.expectOne('/api/tickets/t-1/approvals/a1/decision');
+    expect(req.request.body).toEqual({ approve: true, comment: null });
+    req.flush(null, { status: 204, statusText: 'No Content' });
+    TestBed.tick();
+    http.expectOne('/api/tickets/t-1').flush(ticketDetails({ status: 'PendingApproval' }));
+  });
+
+  it('hides approval buttons from people who cannot decide', async () => {
+    const el = await render(
+      ticketDetails({
+        status: 'PendingApproval',
+        approvals: [
+          { id: 'a1', stepOrder: 1, stepName: 'Manager approval', approverRole: 'Manager', approverName: 'Youssef Haddad', decision: 'Pending', decidedByName: null, decidedAt: null, comment: null },
+        ],
+      }),
+    );
+
+    expect(el.querySelector('[data-testid="approve"]')).toBeNull();
   });
 
   it('appends a sent reply to the conversation', async () => {

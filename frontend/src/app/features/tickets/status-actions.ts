@@ -51,6 +51,10 @@ export function describeEvent(type: string, data: Record<string, unknown> | null
       return d['isInternal'] ? 'added an internal note' : 'replied';
     case 'AttachmentAdded':
       return `added the document ${d['fileName']}`;
+    case 'ApprovalRequested':
+      return `requested approval: ${d['step']}`;
+    case 'ApprovalDecided':
+      return `${`${d['decision']}`.toLowerCase()} the step ${d['step']}`;
     default:
       return humanize(type).toLowerCase();
   }

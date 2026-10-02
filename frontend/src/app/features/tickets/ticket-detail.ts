@@ -12,12 +12,13 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { AttachmentInfo, FormAnswer, PRIORITIES, TicketDetails } from '../../core/api/api.models';
+import { ApprovalInfo, AttachmentInfo, FormAnswer, PRIORITIES, TicketDetails } from '../../core/api/api.models';
+import { ApprovalsApi } from '../../core/api/approvals.api';
 import { TicketsApi } from '../../core/api/tickets.api';
 import { problemOf } from '../../core/http/error.interceptor';
-import { fileSize } from '../../shared/ui/labels';
+import { fileSize, humanize } from '../../shared/ui/labels';
 import { StatusChip } from '../../shared/ui/status-chip';
-import { ReasonDialog } from './reason-dialog';
+import { ReasonDialog, ReasonRequest } from './reason-dialog';
 import { StatusAction, describeEvent, statusAction } from './status-actions';
 
 /** A case: answers, documents and the conversation. Actions follow the permissions sent by the API. */
@@ -136,6 +137,44 @@ import { StatusAction, describeEvent, statusAction } from './status-actions';
                     </dd>
                   }
                 </dl>
+              </mat-card-content>
+            </mat-card>
+          }
+
+          @if (t.approvals.length > 0) {
+            <mat-card appearance="outlined" data-testid="approvals">
+              <mat-card-header><mat-card-title>Approvals</mat-card-title></mat-card-header>
+              <mat-card-content>
+                <ol class="approvals">
+                  @for (step of t.approvals; track step.id) {
+                    <li [attr.data-decision]="step.decision">
+                      <mat-icon fontSet="material-symbols-outlined">{{ decisionIcon(step) }}</mat-icon>
+                      <div>
+                        <strong>{{ step.stepName }}</strong>
+                        <span class="approver">· {{ step.approverName ?? humanize(step.approverRole) }}</span>
+                        <div class="decision">
+                          {{ humanize(step.decision) }}
+                          @if (step.decidedByName) {
+                            by {{ step.decidedByName }} · {{ step.decidedAt | date: 'medium' }}
+                          }
+                        </div>
+                        @if (step.comment) {
+                          <q>{{ step.comment }}</q>
+                        }
+                      </div>
+                    </li>
+                  }
+                </ol>
+                @if (t.permissions.decidableApprovalId; as approvalId) {
+                  <div class="actions">
+                    <button mat-stroked-button type="button" (click)="decide(t, approvalId, false)" [disabled]="changing()" data-testid="reject-approval">
+                      <mat-icon fontSet="material-symbols-outlined">block</mat-icon>Reject
+                    </button>
+                    <button mat-flat-button type="button" (click)="decide(t, approvalId, true)" [disabled]="changing()" data-testid="approve">
+                      <mat-icon fontSet="material-symbols-outlined">check</mat-icon>Approve
+                    </button>
+                  </div>
+                }
               </mat-card-content>
             </mat-card>
           }
@@ -293,6 +332,33 @@ import { StatusAction, describeEvent, statusAction } from './status-actions';
       display: block;
       color: var(--mat-sys-on-surface-variant);
     }
+    .approvals {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 12px;
+      display: grid;
+      gap: 12px;
+    }
+    .approvals li {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .approvals li[data-decision='Approved'] mat-icon {
+      color: var(--mat-sys-primary);
+    }
+    .approvals li[data-decision='Rejected'] mat-icon {
+      color: var(--mat-sys-error);
+    }
+    .approvals .approver,
+    .approvals .decision {
+      color: var(--mat-sys-on-surface-variant);
+      font: var(--mat-sys-body-small);
+    }
+    .approvals q {
+      display: block;
+      font-style: italic;
+    }
     .layout {
       display: grid;
       grid-template-columns: minmax(0, 1fr) 300px;
@@ -410,6 +476,8 @@ export class TicketDetail {
   protected readonly changing = signal(false);
   protected readonly describe = describeEvent;
   private readonly dialog = inject(MatDialog);
+  private readonly approvalsApi = inject(ApprovalsApi);
+  protected readonly humanize = humanize;
 
   protected readonly actions = computed<StatusAction[]>(() => {
     const t = this.ticket.value();
@@ -440,7 +508,7 @@ export class TicketDetail {
       return;
     }
     this.dialog
-      .open<ReasonDialog, StatusAction, string>(ReasonDialog, { data: action })
+      .open<ReasonDialog, ReasonRequest, string>(ReasonDialog, { data: action })
       .afterClosed()
       .subscribe((reason) => {
         if (reason !== undefined) this.applyStatus(ticket, action, reason || null);
@@ -461,6 +529,42 @@ export class TicketDetail {
         this.ticket.reload();
       },
     });
+  }
+
+  protected decisionIcon(step: ApprovalInfo): string {
+    return { Approved: 'check_circle', Rejected: 'cancel', Skipped: 'remove_circle_outline', Pending: 'hourglass_empty' }[step.decision];
+  }
+
+  /** Approving needs no message; rejecting asks for the reason the employee will read. */
+  protected decide(ticket: TicketDetails, approvalId: string, approve: boolean): void {
+    const send = (comment: string | null) => {
+      this.changing.set(true);
+      this.approvalsApi.decide(ticket.id, approvalId, approve, comment).subscribe({
+        next: () => {
+          this.changing.set(false);
+          this.snackBar.open(approve ? 'Request approved.' : 'Request rejected.', undefined, { duration: 3000 });
+          this.ticket.reload();
+        },
+        error: (error: unknown) => {
+          this.changing.set(false);
+          this.snackBar.open(problemOf(error)?.title ?? 'The decision could not be recorded.', 'Dismiss', { duration: 6000 });
+          this.ticket.reload();
+        },
+      });
+    };
+
+    if (approve) {
+      send(null);
+      return;
+    }
+    this.dialog
+      .open<ReasonDialog, ReasonRequest, string>(ReasonDialog, {
+        data: { label: 'Reject request', reasonLabel: 'Reason (sent to the employee)', reason: 'required' },
+      })
+      .afterClosed()
+      .subscribe((reason) => {
+        if (reason) send(reason);
+      });
   }
 
   protected download(ticket: TicketDetails, file: AttachmentInfo): void {

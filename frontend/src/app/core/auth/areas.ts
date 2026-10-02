@@ -21,8 +21,8 @@ export const AREAS: readonly Area[] = [
     path: 'manager',
     label: 'Approvals',
     icon: 'fact_check',
-    description: "Approve your team's requests and follow team activity.",
-    roles: ['Manager'],
+    description: 'Decide on requests waiting for your approval and follow your team.',
+    roles: ['Manager', 'HrOfficer', 'PayrollSpecialist', 'HrAdmin'],
   },
   {
     path: 'agent',

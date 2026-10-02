@@ -33,6 +33,7 @@ describe('Shell', () => {
   it('shows every area an HR admin may open', async () => {
     expect(navItems(await renderAs(['Employee', 'HrAdmin']))).toEqual([
       'nav-portal',
+      'nav-manager',
       'nav-agent',
       'nav-dashboard',
       'nav-admin',

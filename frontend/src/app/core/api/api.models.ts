@@ -103,7 +103,61 @@ export interface TicketPermissions {
   canAttach: boolean;
   /** Statuses the caller may move the case to, according to the API's status machine. */
   availableTransitions: string[];
+  /** The approval step the caller can decide now, if any. */
+  decidableApprovalId: string | null;
 }
+
+export interface ApprovalInfo {
+  id: string;
+  stepOrder: number;
+  stepName: string;
+  approverRole: string;
+  approverName: string | null;
+  decision: 'Pending' | 'Approved' | 'Rejected' | 'Skipped';
+  decidedByName: string | null;
+  decidedAt: string | null;
+  comment: string | null;
+}
+
+export interface PendingApproval {
+  approvalId: string;
+  ticketId: string;
+  reference: string;
+  title: string;
+  requestTypeName: string;
+  requesterName: string;
+  stepName: string;
+  stepOrder: number;
+  stepCount: number;
+  submittedAt: string;
+}
+
+export interface WorkflowStepInfo {
+  order: number;
+  name: string;
+  approverRole: string;
+}
+
+export interface WorkflowInfo {
+  requestTypeId: string;
+  requestTypeName: string;
+  requestTypeIsConfidential: boolean;
+  isConfigured: boolean;
+  isActive: boolean;
+  version: number;
+  steps: WorkflowStepInfo[];
+}
+
+export interface TeamStats {
+  teamSize: number;
+  openCases: number;
+  submittedLast30Days: number;
+  pendingMyApproval: number;
+  byStatus: { status: string; count: number }[];
+}
+
+/** Roles that can be asked to approve; "Manager" means the requester's own manager. */
+export const APPROVER_ROLES = ['Manager', 'HrOfficer', 'PayrollSpecialist', 'HrAdmin'] as const;
 
 /** One entry of a case's audit trail. `actorName` is null for system actions. */
 export interface TimelineEntry {
@@ -131,6 +185,7 @@ export interface TicketDetails {
   attachments: AttachmentInfo[];
   comments: CommentInfo[];
   timeline: TimelineEntry[];
+  approvals: ApprovalInfo[];
   permissions: TicketPermissions;
   createdAt: string;
   updatedAt: string | null;

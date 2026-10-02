@@ -4,9 +4,14 @@ import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { StatusAction } from './status-actions';
+/** What the dialog asks for: a title, the field label and whether a message is mandatory. */
+export interface ReasonRequest {
+  label: string;
+  reasonLabel?: string;
+  reason: 'required' | 'optional' | 'none';
+}
 
-/** Asks for the message that accompanies a status change. Closes with the text, or undefined if cancelled. */
+/** Asks for the message that accompanies a decision. Closes with the text, or undefined if cancelled. */
 @Component({
   selector: 'app-reason-dialog',
   imports: [ReactiveFormsModule, MatButtonModule, MatDialogModule, MatFormFieldModule, MatInputModule],
@@ -36,7 +41,7 @@ import { StatusAction } from './status-actions';
   `,
 })
 export class ReasonDialog {
-  protected readonly action = inject<StatusAction>(MAT_DIALOG_DATA);
+  protected readonly action = inject<ReasonRequest>(MAT_DIALOG_DATA);
   private readonly ref = inject(MatDialogRef<ReasonDialog, string>);
 
   protected readonly reason = new FormControl('', {

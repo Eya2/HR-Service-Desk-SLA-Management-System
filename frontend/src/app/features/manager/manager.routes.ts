@@ -1,14 +1,24 @@
 import { Routes } from '@angular/router';
-import { areaByPath } from '../../core/auth/areas';
-import { ComingSoon } from '../../shared/ui/coming-soon';
-
-const area = areaByPath('manager');
+import { roleGuard } from '../../core/auth/auth.guards';
+import { ManagerLayout } from './manager-layout';
 
 export const routes: Routes = [
   {
     path: '',
-    component: ComingSoon,
-    title: `${area.label} · HR Service Desk`,
-    data: { title: area.label, description: area.description, phase: 5 },
+    component: ManagerLayout,
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'queue' },
+      {
+        path: 'queue',
+        loadComponent: () => import('./approvals-queue').then((m) => m.ApprovalsQueue),
+        title: 'Pending approvals · HR Service Desk',
+      },
+      {
+        path: 'team',
+        canActivate: [roleGuard(['Manager'])],
+        loadComponent: () => import('./team').then((m) => m.Team),
+        title: 'My team · HR Service Desk',
+      },
+    ],
   },
 ];
