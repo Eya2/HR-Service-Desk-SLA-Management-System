@@ -9,7 +9,8 @@ using Microsoft.Extensions.Options;
 
 namespace HrServiceDesk.Application.Auth.Commands;
 
-public sealed record LoginCommand(string Email, string Password) : IRequest<Result<AuthSession>>;
+/// <summary>Signs in. <see cref="RememberMe"/> keeps the session across browser restarts.</summary>
+public sealed record LoginCommand(string Email, string Password, bool RememberMe = false) : IRequest<Result<AuthSession>>;
 
 internal sealed class LoginValidator : AbstractValidator<LoginCommand>
 {
@@ -62,7 +63,7 @@ internal sealed class LoginHandler(
             user.SetPasswordHash(hasher.Hash(request.Password));
 
         user.RegisterSuccessfulLogin(now);
-        var session = sessions.Issue(user, tenant, familyId: null, out _);
+        var session = sessions.Issue(user, tenant, familyId: null, request.RememberMe, out _);
         await db.SaveChangesAsync(cancellationToken);
         return session;
     }

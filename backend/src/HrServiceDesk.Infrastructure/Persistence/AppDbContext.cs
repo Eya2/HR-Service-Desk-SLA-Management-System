@@ -49,6 +49,8 @@ public class AppDbContext : DbContext, IAppDbContext
 
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+
     public DbSet<RequestType> RequestTypes => Set<RequestType>();
 
     public DbSet<Ticket> Tickets => Set<Ticket>();

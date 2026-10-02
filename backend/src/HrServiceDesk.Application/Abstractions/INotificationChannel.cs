@@ -14,3 +14,17 @@ public interface IEmailSender
 {
     Task SendAsync(EmailMessage message, CancellationToken cancellationToken);
 }
+
+/// <summary>Sends e-mails off the request path (a background job when jobs run). Never throws for delivery problems.</summary>
+public interface IEmailOutbox
+{
+    Task SendAsync(EmailMessage message, CancellationToken cancellationToken);
+}
+
+/// <summary>Absolute links into the web application, for e-mails.</summary>
+public interface IAppLinks
+{
+    string Ticket(Guid ticketId);
+
+    string PasswordReset(string email, string token);
+}

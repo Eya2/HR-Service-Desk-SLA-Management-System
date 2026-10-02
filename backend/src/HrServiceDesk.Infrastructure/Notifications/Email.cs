@@ -61,14 +61,56 @@ public sealed class SendEmailJob(IEmailSender sender)
     public Task SendAsync(EmailMessage message) => sender.SendAsync(message, CancellationToken.None);
 }
 
-/// <summary>E-mails each notification to its recipient (queued in Hangfire when background jobs run).</summary>
-internal sealed partial class EmailNotificationChannel(
-    Persistence.AppDbContext db,
+/// <summary>Queues e-mails in Hangfire when background jobs run; otherwise sends them right away. Never throws.</summary>
+internal sealed partial class EmailOutbox(
     IEmailSender sender,
     IOptions<SmtpOptions> options,
     IOptions<BackgroundJobOptions> jobs,
     IServiceProvider services,
-    ILogger<EmailNotificationChannel> logger) : INotificationChannel
+    ILogger<EmailOutbox> logger) : IEmailOutbox
+{
+    public async Task SendAsync(EmailMessage message, CancellationToken cancellationToken)
+    {
+        if (!options.Value.Enabled)
+            return;
+        if (jobs.Value.Enabled)
+        {
+            ((IBackgroundJobClient)services.GetService(typeof(IBackgroundJobClient))!).Enqueue<SendEmailJob>(j => j.SendAsync(message));
+            return;
+        }
+
+        try
+        {
+            await sender.SendAsync(message, cancellationToken);
+        }
+#pragma warning disable CA1031 // A mail server outage must not fail the request.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            LogSendFailed(logger, ex);
+        }
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "E-mail could not be sent")]
+    private static partial void LogSendFailed(ILogger logger, Exception exception);
+}
+
+internal sealed class AppLinks(IOptions<SmtpOptions> options) : IAppLinks
+{
+    private string Base => options.Value.AppUrl.TrimEnd('/');
+
+    public string Ticket(Guid ticketId) => $"{Base}/tickets/{ticketId}";
+
+    public string PasswordReset(string email, string token) =>
+        $"{Base}/reset-password?email={Uri.EscapeDataString(email)}&token={Uri.EscapeDataString(token)}";
+}
+
+/// <summary>E-mails each notification to its recipient through the outbox.</summary>
+internal sealed class EmailNotificationChannel(
+    Persistence.AppDbContext db,
+    IEmailOutbox outbox,
+    IAppLinks links,
+    IOptions<SmtpOptions> options) : INotificationChannel
 {
     public async Task DeliverAsync(IReadOnlyList<Notification> notifications, CancellationToken cancellationToken)
     {
@@ -84,30 +126,8 @@ internal sealed partial class EmailNotificationChannel(
         {
             if (!emails.TryGetValue(n.UserId, out var to))
                 continue;
-            var link = n.TicketId is { } ticketId ? $"\n\n{options.Value.AppUrl.TrimEnd('/')}/tickets/{ticketId}" : string.Empty;
-            var message = new EmailMessage(to, n.Title, $"{n.Message}{link}\n\n— HR Service Desk");
-
-            if (jobs.Value.Enabled)
-                ((IBackgroundJobClient)services.GetService(typeof(IBackgroundJobClient))!).Enqueue<SendEmailJob>(j => j.SendAsync(message));
-            else
-                await SendInlineAsync(message, cancellationToken);
+            var link = n.TicketId is { } ticketId ? $"\n\n{links.Ticket(ticketId)}" : string.Empty;
+            await outbox.SendAsync(new EmailMessage(to, n.Title, $"{n.Message}{link}\n\n— HR Service Desk"), cancellationToken);
         }
     }
-
-    private async Task SendInlineAsync(EmailMessage message, CancellationToken cancellationToken)
-    {
-        try
-        {
-            await sender.SendAsync(message, cancellationToken);
-        }
-#pragma warning disable CA1031 // A mail server outage must not fail the request.
-        catch (Exception ex)
-#pragma warning restore CA1031
-        {
-            LogSendFailed(logger, ex);
-        }
-    }
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "E-mail could not be sent")]
-    private static partial void LogSendFailed(ILogger logger, Exception exception);
 }

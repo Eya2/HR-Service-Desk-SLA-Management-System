@@ -9,8 +9,9 @@ internal static class RefreshTokenCookie
     public const string Name = "hrdesk_rt";
     private const string Path = "/api/auth";
 
-    public static void Write(HttpResponse response, string token, DateTimeOffset expiresAt) =>
-        response.Cookies.Append(Name, token, Options(expiresAt));
+    /// <summary>A persistent cookie when the user chose "remember me", otherwise a session cookie (gone when the browser closes).</summary>
+    public static void Write(HttpResponse response, string token, DateTimeOffset expiresAt, bool persistent) =>
+        response.Cookies.Append(Name, token, Options(persistent ? expiresAt : null));
 
     public static void Clear(HttpResponse response) =>
         response.Cookies.Delete(Name, Options(expiresAt: null));

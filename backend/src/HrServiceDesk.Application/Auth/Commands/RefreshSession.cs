@@ -46,7 +46,7 @@ internal sealed class RefreshSessionHandler(
             return AuthErrors.InvalidRefreshToken;
         }
 
-        var session = sessions.Issue(user, tenant, token.FamilyId, out var successor);
+        var session = sessions.Issue(user, tenant, token.FamilyId, token.IsPersistent, out var successor);
         token.Revoke(now, successor.Id);
         await db.SaveChangesAsync(cancellationToken);
         return session;

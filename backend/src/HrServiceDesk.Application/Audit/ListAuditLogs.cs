@@ -28,9 +28,9 @@ internal sealed class ListAuditLogsHandler(IAppDbContext db) : IRequestHandler<L
     public async Task<PagedResult<AuditLogDto>> Handle(ListAuditLogsQuery request, CancellationToken cancellationToken)
     {
         var query = db.AuditLogs.AsNoTracking();
-        if (request.From is { } from)
+        if (request.From?.ToUniversalTime() is { } from)
             query = query.Where(l => l.OccurredAt >= from);
-        if (request.To is { } to)
+        if (request.To?.ToUniversalTime() is { } to)
             query = query.Where(l => l.OccurredAt < to);
         if (request.Action is not null)
         {

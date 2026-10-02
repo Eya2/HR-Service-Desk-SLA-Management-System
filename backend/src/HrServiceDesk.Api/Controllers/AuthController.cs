@@ -13,7 +13,11 @@ namespace HrServiceDesk.Api.Controllers;
 [Route("api/auth")]
 public sealed class AuthController : ApiControllerBase
 {
-    public sealed record LoginRequest(string Email, string Password);
+    public sealed record LoginRequest(string Email, string Password, bool RememberMe = false);
+
+    public sealed record ForgotPasswordRequest(string Email);
+
+    public sealed record ResetWithLinkRequest(string Email, string Token, string NewPassword);
 
     public sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword);
 
@@ -28,7 +32,7 @@ public sealed class AuthController : ApiControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<SessionResponse>> Login(LoginRequest request, CancellationToken cancellationToken)
     {
-        var result = await Sender.Send(new LoginCommand(request.Email, request.Password), cancellationToken);
+        var result = await Sender.Send(new LoginCommand(request.Email, request.Password, request.RememberMe), cancellationToken);
         return ToSessionResponse(result);
     }
 
@@ -57,6 +61,26 @@ public sealed class AuthController : ApiControllerBase
         return NoContent();
     }
 
+    /// <summary>E-mails a password reset link if the address belongs to an active account (always 202).</summary>
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting(AuthSetup.AuthRateLimitPolicy)]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    public async Task<ActionResult> ForgotPassword(ForgotPasswordRequest request, CancellationToken cancellationToken)
+    {
+        await Sender.Send(new ForgotPasswordCommand(request.Email), cancellationToken);
+        return Accepted();
+    }
+
+    /// <summary>Chooses a new password with the token from the e-mailed link.</summary>
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting(AuthSetup.AuthRateLimitPolicy)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> ResetPassword(ResetWithLinkRequest request, CancellationToken cancellationToken) =>
+        FromResult(await Sender.Send(new ResetPasswordCommand(request.Email, request.Token, request.NewPassword), cancellationToken));
+
     /// <summary>The signed-in user's profile.</summary>
     [HttpGet("me")]
     [ProducesResponseType<UserProfileDto>(StatusCodes.Status200OK)]
@@ -81,7 +105,7 @@ public sealed class AuthController : ApiControllerBase
             return Problem(result.Error!);
 
         var session = result.Value;
-        RefreshTokenCookie.Write(Response, session.RefreshToken, session.RefreshTokenExpiresAt);
+        RefreshTokenCookie.Write(Response, session.RefreshToken, session.RefreshTokenExpiresAt, session.IsPersistent);
         return Ok(new SessionResponse(session.AccessToken, session.AccessTokenExpiresAt, session.User));
     }
 }

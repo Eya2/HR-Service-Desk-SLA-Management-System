@@ -40,6 +40,8 @@ public static class DependencyInjection
         services.AddScoped<NotificationInterceptor>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
         services.AddScoped<SendEmailJob>();
+        services.AddScoped<IEmailOutbox, EmailOutbox>();
+        services.AddScoped<IAppLinks, AppLinks>();
         services.AddScoped<INotificationChannel, EmailNotificationChannel>();
     }
 

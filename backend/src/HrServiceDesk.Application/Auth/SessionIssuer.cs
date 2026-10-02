@@ -8,15 +8,15 @@ namespace HrServiceDesk.Application.Auth;
 /// <summary>Creates an access token and a new refresh token (optionally continuing a token family).</summary>
 internal sealed class SessionIssuer(IAppDbContext db, ITokenService tokens, TimeProvider clock, IOptions<AuthOptions> options)
 {
-    public AuthSession Issue(User user, Tenant tenant, Guid? familyId, out RefreshToken refreshToken)
+    public AuthSession Issue(User user, Tenant tenant, Guid? familyId, bool isPersistent, out RefreshToken refreshToken)
     {
         var now = clock.GetUtcNow();
         var access = tokens.CreateAccessToken(user, tenant);
         var raw = tokens.GenerateRefreshToken();
-        refreshToken = RefreshToken.Issue(user, tokens.HashRefreshToken(raw), now, options.Value.RefreshTokenLifetime, familyId);
+        refreshToken = RefreshToken.Issue(user, tokens.HashRefreshToken(raw), now, options.Value.RefreshTokenLifetime, familyId, isPersistent);
         db.RefreshTokens.Add(refreshToken);
 
-        return new AuthSession(access.Token, access.ExpiresAt, raw, refreshToken.ExpiresAt, ToProfile(user, tenant));
+        return new AuthSession(access.Token, access.ExpiresAt, raw, refreshToken.ExpiresAt, isPersistent, ToProfile(user, tenant));
     }
 
     public static UserProfileDto ToProfile(User user, Tenant tenant) => new(

@@ -16,4 +16,5 @@ public sealed record AuthSession(
     DateTimeOffset AccessTokenExpiresAt,
     string RefreshToken,
     DateTimeOffset RefreshTokenExpiresAt,
+    bool IsPersistent,
     UserProfileDto User);

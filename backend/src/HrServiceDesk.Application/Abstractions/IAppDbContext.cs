@@ -22,6 +22,8 @@ public interface IAppDbContext
 
     DbSet<RefreshToken> RefreshTokens { get; }
 
+    DbSet<PasswordResetToken> PasswordResetTokens { get; }
+
     DbSet<RequestType> RequestTypes { get; }
 
     DbSet<Ticket> Tickets { get; }

@@ -12,4 +12,6 @@ public sealed class AuthOptions
     public int MaxFailedLoginAttempts { get; set; } = 5;
 
     public TimeSpan LockoutDuration { get; set; } = TimeSpan.FromMinutes(15);
+
+    public TimeSpan PasswordResetLifetime { get; set; } = TimeSpan.FromHours(1);
 }
