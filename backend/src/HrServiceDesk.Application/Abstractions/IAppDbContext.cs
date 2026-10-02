@@ -24,6 +24,8 @@ public interface IAppDbContext
 
     DbSet<Attachment> Attachments { get; }
 
+    DbSet<TicketEvent> TicketEvents { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Starts a transaction spanning raw SQL (e.g. reference allocation) and <see cref="SaveChangesAsync"/>.</summary>

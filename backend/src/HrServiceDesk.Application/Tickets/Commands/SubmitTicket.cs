@@ -60,8 +60,9 @@ internal sealed class SubmitTicketHandler(
         // The reference counter row stays locked until commit: numbers are sequential and gap-free.
         await using var transaction = await db.BeginTransactionAsync(cancellationToken);
         var reference = await references.NextTicketReferenceAsync(tenantId, cancellationToken);
-        var ticket = Ticket.Submit(reference, type, requesterId, request.Title, request.Description, "{}");
-        var attachments = await TicketFiles.StoreAsync(storage, tenantId, ticket, files, requesterId, clock.GetUtcNow(), cancellationToken);
+        var now = clock.GetUtcNow();
+        var ticket = Ticket.Submit(reference, type, requesterId, request.Title, request.Description, "{}", now);
+        var attachments = await TicketFiles.StoreAsync(storage, tenantId, ticket, files, requesterId, now, cancellationToken);
 
         // File fields are answered by the ids of their attachments.
         var values = submission.Values;

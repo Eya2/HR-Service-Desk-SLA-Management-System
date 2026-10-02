@@ -19,6 +19,7 @@ internal sealed class GetTicketHandler(IAppDbContext db, ICurrentUser currentUse
             .VisibleTo(currentUser)
             .Include(t => t.Comments)
             .Include(t => t.Attachments)
+            .Include(t => t.Events)
             .SingleOrDefaultAsync(t => t.Id == request.Id, cancellationToken);
         if (ticket is null)
             return TicketErrors.NotFound;
@@ -26,12 +27,14 @@ internal sealed class GetTicketHandler(IAppDbContext db, ICurrentUser currentUse
         var type = await db.RequestTypes.AsNoTracking().SingleAsync(t => t.Id == ticket.RequestTypeId, cancellationToken);
         var seesInternal = TicketAccess.SeesAllCases(currentUser);
         var comments = ticket.Comments.Where(c => seesInternal || !c.IsInternal).OrderBy(c => c.CreatedAt).ToList();
+        var events = ticket.Events.Where(e => seesInternal || !e.IsInternal).OrderBy(e => e.OccurredAt).ToList();
 
         var personIds = new HashSet<Guid> { ticket.RequesterId };
         if (ticket.AssigneeId is { } assigneeId)
             personIds.Add(assigneeId);
         personIds.UnionWith(comments.Select(c => c.AuthorId));
         personIds.UnionWith(ticket.Attachments.Select(a => a.UploadedById));
+        personIds.UnionWith(events.Where(e => e.ActorId.HasValue).Select(e => e.ActorId!.Value));
         var people = await db.Users.AsNoTracking()
             .Where(u => personIds.Contains(u.Id))
             .Select(u => new PersonDto(u.Id, u.FirstName + " " + u.LastName, u.Email))
@@ -59,6 +62,8 @@ internal sealed class GetTicketHandler(IAppDbContext db, ICurrentUser currentUse
             BuildAnswers(type.Schema, ticket.FormData, attachments),
             attachments,
             comments.Select(c => new CommentDto(c.Id, c.AuthorId, NameOf(c.AuthorId), c.Body, c.IsInternal, c.CreatedAt)).ToList(),
+            events.Select(e => new TimelineEntryDto(
+                e.Id, e.Type.ToString(), e.ActorId is { } actor ? NameOf(actor) : null, e.OccurredAt, JsonNode.Parse(e.Data))).ToList(),
             Permissions(ticket),
             ticket.CreatedAt,
             ticket.UpdatedAt);
@@ -74,7 +79,9 @@ internal sealed class GetTicketHandler(IAppDbContext db, ICurrentUser currentUse
             CanCommentInternally: participates && isStaff,
             CanEdit: participates && (isStaff || (isRequester && ticket.Status == TicketStatus.New)),
             CanChangePriority: participates && isStaff,
-            CanAttach: participates);
+            CanAttach: participates,
+            AvailableTransitions: TicketStatusMachine.AvailableTo(ticket.Status, TicketAccess.ActorFor(ticket, currentUser))
+                .Select(s => s.ToString()).ToList());
     }
 
     /// <summary>Labels the stored answers with the current form definition; answers to removed fields are kept under their key.</summary>

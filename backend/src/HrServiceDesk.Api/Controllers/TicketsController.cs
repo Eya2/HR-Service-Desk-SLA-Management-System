@@ -30,6 +30,8 @@ public sealed class TicketsController : ApiControllerBase
 
     public sealed record AddCommentRequest(string Body, bool IsInternal);
 
+    public sealed record ChangeStatusRequest(string Status, string? Reason);
+
     /// <summary>
     /// Submits a request. Send <c>multipart/form-data</c> with a <c>payload</c> part (JSON: requestTypeId,
     /// title, description, values) and one file part per uploaded document, named after its form field key.
@@ -78,6 +80,14 @@ public sealed class TicketsController : ApiControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Update(Guid id, UpdateTicketRequest request, CancellationToken cancellationToken) =>
         FromResult(await Sender.Send(new UpdateTicketCommand(id, request.Title, request.Description, request.Priority), cancellationToken));
+
+    /// <summary>Moves the case to another status, if the status machine allows it for the caller.</summary>
+    [HttpPost("{id:guid}/status")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> ChangeStatus(Guid id, ChangeStatusRequest request, CancellationToken cancellationToken) =>
+        FromResult(await Sender.Send(new ChangeTicketStatusCommand(id, request.Status, request.Reason), cancellationToken));
 
     [HttpPost("{id:guid}/comments")]
     [ProducesResponseType<CommentDto>(StatusCodes.Status200OK)]

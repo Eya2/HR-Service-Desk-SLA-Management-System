@@ -35,7 +35,16 @@ public sealed record FormAnswerDto(
     string Key, string Label, FormFieldType Type, JsonNode? Value, string? DisplayValue, IReadOnlyList<AttachmentDto> Files);
 
 /// <summary>What the caller may do on the case, so the UI shows only the actions the API will accept.</summary>
-public sealed record TicketPermissionsDto(bool CanComment, bool CanCommentInternally, bool CanEdit, bool CanChangePriority, bool CanAttach);
+public sealed record TicketPermissionsDto(
+    bool CanComment,
+    bool CanCommentInternally,
+    bool CanEdit,
+    bool CanChangePriority,
+    bool CanAttach,
+    IReadOnlyList<string> AvailableTransitions);
+
+/// <summary>One entry of the case history (audit trail). <see cref="ActorName"/> is null for system actions.</summary>
+public sealed record TimelineEntryDto(Guid Id, string Type, string? ActorName, DateTimeOffset OccurredAt, JsonNode? Data);
 
 public sealed record TicketDetailsDto(
     Guid Id,
@@ -53,6 +62,7 @@ public sealed record TicketDetailsDto(
     IReadOnlyList<FormAnswerDto> Answers,
     IReadOnlyList<AttachmentDto> Attachments,
     IReadOnlyList<CommentDto> Comments,
+    IReadOnlyList<TimelineEntryDto> Timeline,
     TicketPermissionsDto Permissions,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt);

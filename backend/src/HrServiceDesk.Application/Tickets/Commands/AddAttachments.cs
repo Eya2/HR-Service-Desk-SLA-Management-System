@@ -37,7 +37,6 @@ internal sealed class AddAttachmentsHandler(
         var uploaderId = currentUser.UserId!.Value;
         var attachments = await TicketFiles.StoreAsync(
             storage, tenantContext.TenantId!.Value, ticket, checkedFiles, uploaderId, clock.GetUtcNow(), cancellationToken);
-        db.Attachments.AddRange(attachments);
         try
         {
             await db.SaveChangesAsync(cancellationToken);

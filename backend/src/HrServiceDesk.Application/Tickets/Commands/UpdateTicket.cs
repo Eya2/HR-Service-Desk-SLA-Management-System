@@ -24,7 +24,8 @@ internal sealed class UpdateTicketValidator : AbstractValidator<UpdateTicketComm
     }
 }
 
-internal sealed class UpdateTicketHandler(IAppDbContext db, ICurrentUser currentUser) : IRequestHandler<UpdateTicketCommand, Result>
+internal sealed class UpdateTicketHandler(IAppDbContext db, ICurrentUser currentUser, TimeProvider clock)
+    : IRequestHandler<UpdateTicketCommand, Result>
 {
     public async Task<Result> Handle(UpdateTicketCommand request, CancellationToken cancellationToken)
     {
@@ -37,6 +38,8 @@ internal sealed class UpdateTicketHandler(IAppDbContext db, ICurrentUser current
             return TicketErrors.NotEditable;
 
         var isStaff = TicketAccess.IsStaff(currentUser);
+        var actorId = currentUser.UserId!.Value;
+        var now = clock.GetUtcNow();
         if (!isStaff && ticket.Status != TicketStatus.New)
             return TicketErrors.NotEditable;
 
@@ -47,11 +50,11 @@ internal sealed class UpdateTicketHandler(IAppDbContext db, ICurrentUser current
             {
                 if (!isStaff)
                     return TicketErrors.PriorityForbidden;
-                ticket.ChangePriority(priority);
+                ticket.ChangePriority(priority, actorId, now);
             }
         }
 
-        ticket.UpdateDetails(request.Title, request.Description);
+        ticket.UpdateDetails(request.Title, request.Description, actorId, now);
         await db.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }

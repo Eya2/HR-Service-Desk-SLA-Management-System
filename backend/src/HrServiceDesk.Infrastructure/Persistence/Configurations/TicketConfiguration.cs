@@ -31,6 +31,19 @@ internal sealed class TicketConfiguration : IEntityTypeConfiguration<Ticket>
 
         builder.HasMany(t => t.Comments).WithOne().HasForeignKey(c => c.TicketId).OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(t => t.Attachments).WithOne().HasForeignKey(a => a.TicketId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(t => t.Events).WithOne().HasForeignKey(e => e.TicketId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class TicketEventConfiguration : IEntityTypeConfiguration<TicketEvent>
+{
+    public void Configure(EntityTypeBuilder<TicketEvent> builder)
+    {
+        builder.HasKey(e => e.Id);
+        builder.Property(e => e.Type).HasConversion<string>().HasMaxLength(32);
+        builder.Property(e => e.Data).HasColumnType("jsonb").IsRequired();
+        builder.HasIndex(e => new { e.TicketId, e.OccurredAt });
+        builder.HasOne<User>().WithMany().HasForeignKey(e => e.ActorId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 

@@ -33,6 +33,17 @@ internal static class TicketAccess
         return tickets.Where(t => t.RequesterId == userId || (seesAll && (!t.IsConfidential || seesConfidential)));
     }
 
+    /// <summary>The status-machine roles the user holds on this case.</summary>
+    public static TransitionActor ActorFor(Ticket ticket, ICurrentUser user)
+    {
+        var actor = TransitionActor.None;
+        if (ticket.RequesterId == user.UserId)
+            actor |= TransitionActor.Requester;
+        if (IsStaff(user))
+            actor |= TransitionActor.Agent;
+        return actor;
+    }
+
     /// <summary>The requester and HR staff take part in a case; auditors only read.</summary>
     public static bool CanParticipate(Ticket ticket, ICurrentUser user) =>
         ticket.RequesterId == user.UserId || IsStaff(user);

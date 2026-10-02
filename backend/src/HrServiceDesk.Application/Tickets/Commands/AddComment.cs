@@ -31,8 +31,13 @@ internal sealed class AddCommentHandler(IAppDbContext db, ICurrentUser currentUs
             return TicketErrors.NotEditable;
 
         var authorId = currentUser.UserId!.Value;
-        var comment = ticket.AddComment(authorId, request.Body, request.IsInternal, clock.GetUtcNow());
-        db.Comments.Add(comment);
+        var now = clock.GetUtcNow();
+        var comment = ticket.AddComment(authorId, request.Body, request.IsInternal, now);
+
+        // The employee answered the question HR asked: work (and the SLA clock) resumes.
+        if (ticket.Status == TicketStatus.WaitingOnEmployee && ticket.RequesterId == authorId && !request.IsInternal)
+            ticket.ChangeStatus(TicketStatus.InProgress, TransitionActor.Requester, authorId, now);
+
         await db.SaveChangesAsync(cancellationToken);
 
         var author = await db.Users.AsNoTracking().Where(u => u.Id == authorId)
