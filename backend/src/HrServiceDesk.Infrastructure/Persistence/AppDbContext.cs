@@ -2,6 +2,7 @@ using System.Reflection;
 using HrServiceDesk.Application.Abstractions;
 using HrServiceDesk.Domain.Common;
 using HrServiceDesk.Domain.Tenants;
+using HrServiceDesk.Domain.Users;
 using Microsoft.EntityFrameworkCore;
 
 namespace HrServiceDesk.Infrastructure.Persistence;
@@ -33,6 +34,10 @@ public class AppDbContext : DbContext, IAppDbContext
     public Guid? CurrentTenantId => _tenantContext.TenantId;
 
     public DbSet<Tenant> Tenants => Set<Tenant>();
+
+    public DbSet<User> Users => Set<User>();
+
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
