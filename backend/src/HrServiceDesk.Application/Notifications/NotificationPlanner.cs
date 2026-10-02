@@ -81,8 +81,11 @@ public sealed class NotificationPlanner(IAppDbContext db)
         if (step.ApproverUserId is { } named)
             return [named];
 
-        var role = ticket.IsConfidential ? Role.HrAdmin : step.ApproverRole;
-        return await UsersWithRoleAsync(tenantId, role, cancellationToken);
+        var holders = await UsersWithRoleAsync(tenantId, step.ApproverRole, cancellationToken);
+        if (!ticket.IsConfidential)
+            return holders;
+        var group = await ConfidentialGroupAsync(tenantId, cancellationToken);
+        return holders.Intersect(group).ToList();
     }
 
     /// <summary>The assignee, or the members of the case's team when nobody is assigned.</summary>
@@ -90,6 +93,8 @@ public sealed class NotificationPlanner(IAppDbContext db)
     {
         if (ticket.AssigneeId is { } assignee)
             return [assignee];
+        if (ticket.IsConfidential)
+            return await ConfidentialGroupAsync(tenantId, cancellationToken);
         if (ticket.TeamId is not { } teamId)
             return await UsersWithRoleAsync(tenantId, Role.HrAdmin, cancellationToken);
 
@@ -105,12 +110,22 @@ public sealed class NotificationPlanner(IAppDbContext db)
             var managerId = ticket.AssigneeId is { } assignee
                 ? await db.Users.IgnoreQueryFilters().Where(u => u.Id == assignee).Select(u => u.ManagerId).SingleOrDefaultAsync(cancellationToken)
                 : null;
+            // A line manager outside the restricted group must not hear about a confidential case.
+            if (ticket.IsConfidential)
+                return await ConfidentialGroupAsync(tenantId, cancellationToken);
             return managerId is { } manager ? [manager] : await UsersWithRoleAsync(tenantId, Role.HrAdmin, cancellationToken);
         }
 
         // Other actions (notify, raise priority, reassign) are reported to whoever handles the case now.
         return await HandlersAsync(ticket, tenantId, cancellationToken);
     }
+
+    private Task<List<Guid>> ConfidentialGroupAsync(Guid tenantId, CancellationToken cancellationToken) =>
+        db.Teams.IgnoreQueryFilters().AsNoTracking()
+            .Where(t => t.TenantId == tenantId && t.IsConfidentialGroup)
+            .SelectMany(t => t.Members.Select(m => m.UserId))
+            .Distinct()
+            .ToListAsync(cancellationToken);
 
     private Task<List<Guid>> UsersWithRoleAsync(Guid tenantId, Role role, CancellationToken cancellationToken) =>
         db.Users.IgnoreQueryFilters().AsNoTracking()

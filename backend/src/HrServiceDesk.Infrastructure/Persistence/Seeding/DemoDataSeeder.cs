@@ -39,6 +39,7 @@ internal sealed partial class DemoDataSeeder(
         await SeedTeamsAsync(cancellationToken);
         await SeedSlaAsync(cancellationToken);
         await SeedEscalationsAsync(cancellationToken);
+        await SeedConfidentialityAsync(cancellationToken);
     }
 
     private async Task SeedTenantsAndUsersAsync(string demoPassword, CancellationToken cancellationToken)
@@ -207,6 +208,23 @@ internal sealed partial class DemoDataSeeder(
                 rule.TenantId = tenantId;
                 db.EscalationRules.Add(rule);
             }
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>Confidential HR is the restricted group; types holding sensitive personal data are audited.</summary>
+    private async Task SeedConfidentialityAsync(CancellationToken cancellationToken)
+    {
+        string[] sensitive = ["Change of bank details", "Leave request", "Harassment report"];
+        var flagged = await db.Teams.IgnoreQueryFilters().Where(t => t.IsConfidentialGroup).Select(t => t.TenantId).ToListAsync(cancellationToken);
+        foreach (var team in await db.Teams.IgnoreQueryFilters()
+                     .Where(t => t.Name == "Confidential HR" && !flagged.Contains(t.TenantId)).ToListAsync(cancellationToken))
+        {
+            team.SetConfidentialGroup(true);
+            foreach (var type in await db.RequestTypes.IgnoreQueryFilters()
+                         .Where(t => t.TenantId == team.TenantId && sensitive.Contains(t.Name)).ToListAsync(cancellationToken))
+                type.MarkSensitive(true);
         }
 
         await db.SaveChangesAsync(cancellationToken);

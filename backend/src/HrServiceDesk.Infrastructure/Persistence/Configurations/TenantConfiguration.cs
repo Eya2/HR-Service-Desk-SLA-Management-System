@@ -14,5 +14,7 @@ internal sealed class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         builder.Property(t => t.TimeZoneId).HasMaxLength(64).IsRequired();
         builder.Property(t => t.DefaultCulture).HasMaxLength(10).IsRequired();
         builder.HasIndex(t => t.Slug).IsUnique();
+        // Existing organisations get the safe default, never 0 (which would anonymize every closed case).
+        builder.Property(t => t.RetentionMonths).HasDefaultValue(24).HasSentinel(0);
     }
 }

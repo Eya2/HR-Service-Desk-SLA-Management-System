@@ -18,6 +18,7 @@ internal sealed class ListPendingApprovalsHandler(IAppDbContext db, ICurrentUser
     {
         var userId = currentUser.UserId ?? Guid.Empty;
         var roles = currentUser.Roles.ToList();
+        var confidentialGroup = Tickets.TicketAccess.ConfidentialGroupMembers(db);
 
         var query =
             from a in db.TicketApprovals.AsNoTracking()
@@ -30,8 +31,8 @@ internal sealed class ListPendingApprovalsHandler(IAppDbContext db, ICurrentUser
                   && !db.TicketApprovals.Any(p => p.TicketId == a.TicketId && p.Decision == ApprovalDecision.Pending && p.StepOrder < a.StepOrder)
                   && t.RequesterId != userId
                   && (a.ApproverUserId == userId || (a.ApproverUserId == null && roles.Contains(a.ApproverRole)))
-                  // role-based steps on confidential cases are limited to people who may see them
-                  && (!t.IsConfidential || a.ApproverUserId == userId || currentUser.IsInRole(Domain.Users.Role.HrAdmin))
+                  // confidential cases are decided only within the restricted HR group
+                  && (!t.IsConfidential || confidentialGroup.Contains(userId))
             orderby t.CreatedAt
             select new PendingApprovalDto(
                 a.Id,

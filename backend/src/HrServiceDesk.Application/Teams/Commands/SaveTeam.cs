@@ -12,7 +12,8 @@ using Microsoft.EntityFrameworkCore;
 namespace HrServiceDesk.Application.Teams.Commands;
 
 /// <summary>Creates (<see cref="Id"/> null) or updates a team. Members must be active HR staff.</summary>
-public sealed record SaveTeamCommand(Guid? Id, string Name, string Strategy, IReadOnlyList<Guid> MemberIds) : IRequest<Result<TeamDto>>;
+public sealed record SaveTeamCommand(Guid? Id, string Name, string Strategy, IReadOnlyList<Guid> MemberIds, bool IsConfidentialGroup = false)
+    : IRequest<Result<TeamDto>>;
 
 internal sealed class SaveTeamValidator : AbstractValidator<SaveTeamCommand>
 {
@@ -55,6 +56,7 @@ internal sealed class SaveTeamHandler(IAppDbContext db, ISender sender) : IReque
             db.Teams.Add(team);
         }
 
+        team.SetConfidentialGroup(request.IsConfidentialGroup);
         await db.SaveChangesAsync(cancellationToken);
         var teams = await sender.Send(new ListTeamsQuery(), cancellationToken);
         return teams.Single(t => t.Id == team.Id);

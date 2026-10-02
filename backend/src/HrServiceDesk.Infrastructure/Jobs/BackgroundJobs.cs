@@ -1,6 +1,7 @@
 using Hangfire;
 using Hangfire.PostgreSql;
 using HrServiceDesk.Application.Escalations;
+using HrServiceDesk.Application.Gdpr;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
@@ -27,12 +28,20 @@ public sealed class SlaMonitorJob(ISender sender)
     public Task RunAsync() => sender.Send(new RunSlaMonitorCommand());
 }
 
+/// <summary>Anonymizes closed cases past their organisation's retention period (daily, 02:00 UTC).</summary>
+public sealed class RetentionJob(ISender sender)
+{
+    [DisableConcurrentExecution(timeoutInSeconds: 600)]
+    public Task RunAsync() => sender.Send(new RunRetentionCommand(TenantId: null));
+}
+
 public static class BackgroundJobsSetup
 {
     internal static void AddBackgroundJobs(IServiceCollection services, IConfiguration configuration)
     {
         var options = configuration.GetSection(BackgroundJobOptions.SectionName).Get<BackgroundJobOptions>() ?? new BackgroundJobOptions();
         services.AddScoped<SlaMonitorJob>();
+        services.AddScoped<RetentionJob>();
         if (!options.Enabled)
             return;
 
@@ -55,6 +64,8 @@ public static class BackgroundJobsSetup
 
         app.Services.GetRequiredService<IRecurringJobManager>()
             .AddOrUpdate<SlaMonitorJob>("sla-monitor", job => job.RunAsync(), Cron.Minutely());
+        app.Services.GetRequiredService<IRecurringJobManager>()
+            .AddOrUpdate<RetentionJob>("retention", job => job.RunAsync(), Cron.Daily(2));
 
         if (options.Dashboard)
             app.UseHangfireDashboard("/hangfire", new DashboardOptions { Authorization = [new Hangfire.Dashboard.LocalRequestsOnlyAuthorizationFilter()] });

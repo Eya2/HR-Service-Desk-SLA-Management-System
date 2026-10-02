@@ -2,6 +2,7 @@ using HrServiceDesk.Application.Abstractions;
 using HrServiceDesk.Application.Auth;
 using HrServiceDesk.Domain.Tickets;
 using HrServiceDesk.Domain.Users;
+using Microsoft.EntityFrameworkCore;
 
 namespace HrServiceDesk.Application.Tickets;
 
@@ -19,27 +20,31 @@ internal static class TicketAccess
     /// <summary>Staff and auditors see every non-confidential case and internal comments.</summary>
     public static bool SeesAllCases(ICurrentUser user) => IsStaff(user) || user.IsInRole(Role.Auditor);
 
-    /// <summary>
-    /// Interim rule until the restricted HR group (phase 9): confidential cases are visible to the requester
-    /// and HR Admins only.
-    /// </summary>
-    public static bool SeesConfidential(ICurrentUser user) => user.IsInRole(Role.HrAdmin);
+    /// <summary>Members of the organisation's restricted HR group(s), who alone (with the requester) see confidential cases.</summary>
+    public static IQueryable<Guid> ConfidentialGroupMembers(IAppDbContext db) =>
+        db.Teams.Where(t => t.IsConfidentialGroup).SelectMany(t => t.Members.Select(m => m.UserId));
+
+    public static Task<bool> IsInConfidentialGroupAsync(IAppDbContext db, Guid userId, CancellationToken cancellationToken) =>
+        ConfidentialGroupMembers(db).AnyAsync(id => id == userId, cancellationToken);
 
     /// <summary>
     /// Requesters see their own cases; staff and auditors the organisation's non-confidential cases;
-    /// managers their direct reports' non-confidential cases; a named approver the cases they must decide.
+    /// managers their direct reports' non-confidential cases; a named approver the non-confidential cases
+    /// they must decide. Confidential cases: the requester and the restricted HR group only.
     /// </summary>
     public static IQueryable<Ticket> VisibleTo(this IQueryable<Ticket> tickets, IAppDbContext db, ICurrentUser user)
     {
         var userId = user.UserId ?? Guid.Empty;
         var seesAll = SeesAllCases(user);
-        var seesConfidential = SeesConfidential(user);
         var isManager = user.IsInRole(Role.Manager);
+        var confidentialGroup = ConfidentialGroupMembers(db);
         return tickets.Where(t =>
             t.RequesterId == userId
-            || (seesAll && (!t.IsConfidential || seesConfidential))
-            || (isManager && !t.IsConfidential && db.Users.Any(u => u.Id == t.RequesterId && u.ManagerId == userId))
-            || db.TicketApprovals.Any(a => a.TicketId == t.Id && a.ApproverUserId == userId));
+            || (t.IsConfidential
+                ? confidentialGroup.Contains(userId)
+                : seesAll
+                  || (isManager && db.Users.Any(u => u.Id == t.RequesterId && u.ManagerId == userId))
+                  || db.TicketApprovals.Any(a => a.TicketId == t.Id && a.ApproverUserId == userId)));
     }
 
     /// <summary>The status-machine roles the user holds on this case.</summary>

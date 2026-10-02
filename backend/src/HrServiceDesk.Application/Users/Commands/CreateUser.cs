@@ -28,7 +28,7 @@ internal sealed class CreateUserValidator : AbstractValidator<CreateUserCommand>
     }
 }
 
-internal sealed class CreateUserHandler(IAppDbContext db, ICurrentUser currentUser, IPasswordHasher hasher)
+internal sealed class CreateUserHandler(IAppDbContext db, ICurrentUser currentUser, IPasswordHasher hasher, Audit.AuditTrail audit)
     : IRequestHandler<CreateUserCommand, Result<UserDetailsDto>>
 {
     public async Task<Result<UserDetailsDto>> Handle(CreateUserCommand request, CancellationToken cancellationToken)
@@ -46,6 +46,7 @@ internal sealed class CreateUserHandler(IAppDbContext db, ICurrentUser currentUs
         user.SetManager(request.ManagerId);
         user.SetPasswordHash(hasher.Hash(request.Password));
         db.Users.Add(user);
+        audit.Add(Domain.Audit.AuditAction.UserCreated, "User", user.Id, $"User created with roles {string.Join(", ", user.Roles)}");
         await db.SaveChangesAsync(cancellationToken);
 
         return await db.Users.AsNoTracking().Where(u => u.Id == user.Id).ProjectDetails(db).SingleAsync(cancellationToken);

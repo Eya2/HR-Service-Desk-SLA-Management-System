@@ -1,5 +1,6 @@
 using System.Reflection;
 using HrServiceDesk.Application.Abstractions;
+using HrServiceDesk.Domain.Audit;
 using HrServiceDesk.Domain.Catalog;
 using HrServiceDesk.Domain.Common;
 using HrServiceDesk.Domain.Escalations;
@@ -73,6 +74,8 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<EscalationRule> EscalationRules => Set<EscalationRule>();
 
     public DbSet<EscalationExecution> EscalationExecutions => Set<EscalationExecution>();
+
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     internal DbSet<ReferenceCounter> ReferenceCounters => Set<ReferenceCounter>();
 

@@ -1,3 +1,4 @@
+using HrServiceDesk.Domain.Audit;
 using HrServiceDesk.Domain.Catalog;
 using HrServiceDesk.Domain.Escalations;
 using HrServiceDesk.Domain.Notifications;
@@ -46,6 +47,8 @@ public interface IAppDbContext
     DbSet<EscalationRule> EscalationRules { get; }
 
     DbSet<EscalationExecution> EscalationExecutions { get; }
+
+    DbSet<AuditLog> AuditLogs { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

@@ -1,3 +1,4 @@
+using HrServiceDesk.Domain.Audit;
 using HrServiceDesk.Domain.Catalog;
 using HrServiceDesk.Domain.Escalations;
 using HrServiceDesk.Domain.Notifications;
@@ -46,5 +47,19 @@ internal sealed class EscalationExecutionConfiguration : IEntityTypeConfiguratio
         builder.HasIndex(x => new { x.TicketId, x.RuleId }).IsUnique();
         builder.HasOne<Ticket>().WithMany().HasForeignKey(x => x.TicketId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne<EscalationRule>().WithMany().HasForeignKey(x => x.RuleId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
+{
+    public void Configure(EntityTypeBuilder<AuditLog> builder)
+    {
+        builder.HasKey(l => l.Id);
+        builder.Property(l => l.Action).HasConversion<string>().HasMaxLength(48);
+        builder.Property(l => l.EntityType).HasMaxLength(32).IsRequired();
+        builder.Property(l => l.Summary).HasMaxLength(AuditLog.SummaryMaxLength).IsRequired();
+        builder.HasIndex(l => new { l.TenantId, l.OccurredAt });
+        builder.HasIndex(l => new { l.TenantId, l.UserId });
+        // No foreign key to users: the log must outlive the accounts it mentions.
     }
 }

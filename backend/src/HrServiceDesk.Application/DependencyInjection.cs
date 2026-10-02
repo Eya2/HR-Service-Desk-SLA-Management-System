@@ -21,6 +21,7 @@ public static class DependencyInjection
         services.AddScoped<Tickets.Assignment.AutoAssigner>();
         services.AddScoped<Sla.SlaService>();
         services.AddScoped<Notifications.NotificationPlanner>();
+        services.AddScoped<Audit.AuditTrail>();
 
         return services;
     }

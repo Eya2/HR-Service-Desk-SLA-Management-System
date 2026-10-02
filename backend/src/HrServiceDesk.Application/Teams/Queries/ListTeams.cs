@@ -31,6 +31,7 @@ internal sealed class ListTeamsHandler(IAppDbContext db) : IRequestHandler<ListT
             team.Id,
             team.Name,
             team.Strategy.ToString(),
+            team.IsConfidentialGroup,
             team.OrderedMemberIds.Where(names.ContainsKey)
                 .Select(id => new TeamMemberDto(id, names[id], load.GetValueOrDefault(id)))
                 .ToList(),

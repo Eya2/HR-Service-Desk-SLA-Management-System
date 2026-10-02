@@ -26,7 +26,7 @@ internal sealed class UpdateUserValidator : AbstractValidator<UpdateUserCommand>
     }
 }
 
-internal sealed class UpdateUserHandler(IAppDbContext db, ICurrentUser currentUser, TimeProvider clock)
+internal sealed class UpdateUserHandler(IAppDbContext db, ICurrentUser currentUser, Audit.AuditTrail audit, TimeProvider clock)
     : IRequestHandler<UpdateUserCommand, Result<UserDetailsDto>>
 {
     public async Task<Result<UserDetailsDto>> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
@@ -46,6 +46,7 @@ internal sealed class UpdateUserHandler(IAppDbContext db, ICurrentUser currentUs
         if (await UserRules.CheckAsync(db, currentUser, granted, request.ManagerId, cancellationToken) is { } error)
             return error;
 
+        var previousRoles = string.Join(", ", user.Roles);
         user.Rename(request.FirstName, request.LastName);
         user.SetRoles(roles);
         user.SetManager(request.ManagerId);
@@ -59,6 +60,13 @@ internal sealed class UpdateUserHandler(IAppDbContext db, ICurrentUser currentUs
         {
             user.Activate();
         }
+
+        var newRoles = string.Join(", ", user.Roles);
+        if (previousRoles != newRoles)
+            audit.Add(Domain.Audit.AuditAction.UserRolesChanged, "User", user.Id, $"Roles changed from {previousRoles} to {newRoles}");
+        if (!request.IsActive && !user.IsActive)
+            audit.Add(Domain.Audit.AuditAction.UserDeactivated, "User", user.Id, "User deactivated");
+        audit.Add(Domain.Audit.AuditAction.UserUpdated, "User", user.Id, "User details updated");
 
         await db.SaveChangesAsync(cancellationToken);
         return await db.Users.AsNoTracking().Where(u => u.Id == user.Id).ProjectDetails(db).SingleAsync(cancellationToken);

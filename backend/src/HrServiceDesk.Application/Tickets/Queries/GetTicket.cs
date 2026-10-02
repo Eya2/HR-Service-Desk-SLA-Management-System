@@ -10,7 +10,7 @@ namespace HrServiceDesk.Application.Tickets.Queries;
 
 public sealed record GetTicketQuery(Guid Id) : IRequest<Result<TicketDetailsDto>>;
 
-internal sealed class GetTicketHandler(IAppDbContext db, ICurrentUser currentUser)
+internal sealed class GetTicketHandler(IAppDbContext db, ICurrentUser currentUser, Audit.AuditTrail audit)
     : IRequestHandler<GetTicketQuery, Result<TicketDetailsDto>>
 {
     public async Task<Result<TicketDetailsDto>> Handle(GetTicketQuery request, CancellationToken cancellationToken)
@@ -24,6 +24,10 @@ internal sealed class GetTicketHandler(IAppDbContext db, ICurrentUser currentUse
             .SingleOrDefaultAsync(t => t.Id == request.Id, cancellationToken);
         if (ticket is null)
             return TicketErrors.NotFound;
+
+        // Who opened a confidential or sensitive case is recorded (the requester reading their own case is not).
+        if (ticket.IsSensitive && ticket.RequesterId != currentUser.UserId)
+            await audit.WriteAsync(Domain.Audit.AuditAction.SensitiveCaseViewed, "Ticket", ticket.Id, $"{ticket.Reference} viewed", cancellationToken);
 
         var type = await db.RequestTypes.AsNoTracking().SingleAsync(t => t.Id == ticket.RequestTypeId, cancellationToken);
         var team = ticket.TeamId is { } teamId

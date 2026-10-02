@@ -15,7 +15,7 @@ internal sealed class ResetUserPasswordValidator : AbstractValidator<ResetUserPa
     public ResetUserPasswordValidator() => RuleFor(c => c.NewPassword).MustSatisfyPasswordPolicy();
 }
 
-internal sealed class ResetUserPasswordHandler(IAppDbContext db, IPasswordHasher hasher, TimeProvider clock)
+internal sealed class ResetUserPasswordHandler(IAppDbContext db, IPasswordHasher hasher, Audit.AuditTrail audit, TimeProvider clock)
     : IRequestHandler<ResetUserPasswordCommand, Result>
 {
     public async Task<Result> Handle(ResetUserPasswordCommand request, CancellationToken cancellationToken)
@@ -27,6 +27,7 @@ internal sealed class ResetUserPasswordHandler(IAppDbContext db, IPasswordHasher
         user.SetPasswordHash(hasher.Hash(request.NewPassword));
         user.RegisterSuccessfulLogin(clock.GetUtcNow()); // clears any lockout
         await SessionRevoker.RevokeAllAsync(db, user.Id, clock.GetUtcNow(), cancellationToken);
+        audit.Add(Domain.Audit.AuditAction.PasswordReset, "User", user.Id, "Password reset by an HR Admin");
         await db.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }

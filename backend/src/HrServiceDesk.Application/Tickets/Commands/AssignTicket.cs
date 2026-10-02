@@ -52,7 +52,13 @@ internal sealed class AssignmentHandlers(IAppDbContext db, ICurrentUser currentU
             return TicketErrors.AssigneeNotStaff;
         }
 
-        ticket!.Assign(request.AssigneeId, currentUser.UserId, clock.GetUtcNow());
+        if (ticket!.IsConfidential && request.AssigneeId is { } confidentialAssignee
+            && !await TicketAccess.IsInConfidentialGroupAsync(db, confidentialAssignee, cancellationToken))
+        {
+            return TicketErrors.AssigneeNotInConfidentialGroup;
+        }
+
+        ticket.Assign(request.AssigneeId, currentUser.UserId, clock.GetUtcNow());
         await db.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }
