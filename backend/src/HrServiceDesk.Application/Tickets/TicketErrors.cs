@@ -1,0 +1,14 @@
+using HrServiceDesk.Application.Common.Results;
+
+namespace HrServiceDesk.Application.Tickets;
+
+public static class TicketErrors
+{
+    public static readonly Error NotFound = Error.NotFound("ticket.not_found", "Case not found.");
+    public static readonly Error AttachmentNotFound = Error.NotFound("attachment.not_found", "Attachment not found.");
+    public static readonly Error RequestTypeNotFound = Error.NotFound("request_type.not_found", "Request type not found.");
+    public static readonly Error ReadOnly = Error.Forbidden("ticket.read_only", "You can view this case but not change it.");
+    public static readonly Error InternalCommentForbidden = Error.Forbidden("comment.internal_forbidden", "Only HR staff can write internal notes.");
+    public static readonly Error PriorityForbidden = Error.Forbidden("ticket.priority_forbidden", "Only HR staff can change the priority.");
+    public static readonly Error NotEditable = Error.DomainRule("ticket.not_editable", "This case can no longer be edited.");
+}
