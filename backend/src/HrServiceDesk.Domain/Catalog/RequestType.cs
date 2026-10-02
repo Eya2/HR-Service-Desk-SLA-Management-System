@@ -32,6 +32,9 @@ public sealed class RequestType : Entity, ITenantOwned, IAuditable
     /// <summary>The team that handles cases of this type; null leaves them in the general HR queue.</summary>
     public Guid? ResponsibleTeamId { get; private set; }
 
+    /// <summary>The SLA policy of this type; null means the tenant's default policy.</summary>
+    public Guid? SlaPolicyId { get; private set; }
+
     public DateTimeOffset CreatedAt { get; set; }
 
     public DateTimeOffset? UpdatedAt { get; set; }
@@ -67,6 +70,8 @@ public sealed class RequestType : Entity, ITenantOwned, IAuditable
     }
 
     public void SetResponsibleTeam(Guid? teamId) => ResponsibleTeamId = teamId;
+
+    public void SetSlaPolicy(Guid? policyId) => SlaPolicyId = policyId;
 
     public void Deactivate() => IsActive = false;
 

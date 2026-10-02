@@ -1,6 +1,7 @@
 using System.Text.Json;
 using HrServiceDesk.Domain.Catalog;
 using HrServiceDesk.Domain.Common;
+using HrServiceDesk.Domain.Sla;
 using HrServiceDesk.Domain.Users;
 using HrServiceDesk.Domain.Workflows;
 
@@ -19,6 +20,7 @@ public sealed class Ticket : Entity, ITenantOwned, IAuditable
     private readonly List<Attachment> _attachments = [];
     private readonly List<TicketEvent> _events = [];
     private readonly List<TicketApproval> _approvals = [];
+    private readonly List<SlaPause> _slaPauses = [];
 
     // Last timestamp handed out by this instance (see Record).
     private DateTimeOffset _lastEventAt = DateTimeOffset.MinValue;
@@ -54,6 +56,42 @@ public sealed class Ticket : Entity, ITenantOwned, IAuditable
 
     /// <summary>Closed, cancelled or rejected cases accept no further changes.</summary>
     public bool IsFinal => TicketStatusMachine.IsTerminal(Status);
+
+    // ---- SLA (targets are copied from the policy when the clock starts) ----
+
+    public Guid? SlaPolicyId { get; private set; }
+
+    public int? FirstResponseTargetMinutes { get; private set; }
+
+    public int? ResolutionTargetMinutes { get; private set; }
+
+    public int SlaAtRiskPercent { get; private set; } = 80;
+
+    public TicketStatus[] SlaPauseStatuses { get; private set; } = [];
+
+    /// <summary>When the clock started (submission); null when no SLA applies.</summary>
+    public DateTimeOffset? SlaStartedAt { get; private set; }
+
+    /// <summary>When the clock stopped for good (closed, cancelled or rejected).</summary>
+    public DateTimeOffset? SlaStoppedAt { get; private set; }
+
+    public IReadOnlyCollection<SlaPause> SlaPauses => _slaPauses.AsReadOnly();
+
+    public DateTimeOffset? FirstRespondedAt { get; private set; }
+
+    /// <summary>Computed deadline; null while the clock is paused.</summary>
+    public DateTimeOffset? FirstResponseDueAt { get; private set; }
+
+    /// <summary>Computed deadline; null while the clock is paused (including while resolved).</summary>
+    public DateTimeOffset? ResolutionDueAt { get; private set; }
+
+    public SlaState SlaState { get; private set; } = SlaState.None;
+
+    public bool FirstResponseBreached { get; private set; }
+
+    public bool ResolutionBreached { get; private set; }
+
+    public bool IsSlaPaused => _slaPauses.Any(p => p.To is null) && SlaStoppedAt is null;
 
     public IReadOnlyCollection<Comment> Comments => _comments.AsReadOnly();
 
@@ -129,7 +167,9 @@ public sealed class Ticket : Entity, ITenantOwned, IAuditable
             ? (object)new { from = Status.ToString(), to = to.ToString() }
             : new { from = Status.ToString(), to = to.ToString(), reason = reason.Trim() };
         Record(TicketEventType.StatusChanged, actorId, now, data);
+        var from = Status;
         Status = to;
+        MoveSlaClock(from, to, now);
 
         // Steps still waiting are moot once the case is rejected or withdrawn.
         if (to is TicketStatus.Rejected or TicketStatus.Cancelled)
@@ -233,6 +273,107 @@ public sealed class Ticket : Entity, ITenantOwned, IAuditable
         Record(TicketEventType.Assigned, actorId, now, new { from = AssigneeId, to = (Guid?)null, fromTeamId = TeamId, teamId });
         TeamId = teamId;
         AssigneeId = null;
+    }
+
+    /// <summary>Starts the SLA clock with the policy's targets for the current priority. Paused at once in a pause status.</summary>
+    public void StartSla(SlaPolicy policy, DateTimeOffset startedAt)
+    {
+        ArgumentNullException.ThrowIfNull(policy);
+        if (SlaStartedAt is not null)
+            throw new DomainException("sla.already_started", "The SLA clock has already started.");
+
+        SlaPolicyId = policy.Id;
+        SlaAtRiskPercent = policy.AtRiskThresholdPercent;
+        SlaPauseStatuses = [.. policy.PauseStatuses];
+        Retarget(policy);
+        SlaStartedAt = startedAt;
+        if (StopsClock(Status))
+            _slaPauses.Add(new SlaPause(startedAt, null));
+    }
+
+    /// <summary>Takes the targets of the current priority (after a priority change).</summary>
+    public void Retarget(SlaPolicy policy)
+    {
+        ArgumentNullException.ThrowIfNull(policy);
+        var target = policy.TargetFor(Priority);
+        FirstResponseTargetMinutes = target.FirstResponseMinutes;
+        ResolutionTargetMinutes = target.ResolutionMinutes;
+    }
+
+    /// <summary>HR's first public reply stops the first-response clock.</summary>
+    public void RecordFirstResponse(DateTimeOffset now) => FirstRespondedAt ??= now;
+
+    /// <summary>
+    /// Recomputes deadlines and the SLA state. A change of state is added to the audit trail and returned,
+    /// so callers can notify and escalate.
+    /// </summary>
+    public (SlaState Previous, SlaState Current) RecalculateSla(IBusinessTimeCalculator calculator, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(calculator);
+        var previous = SlaState;
+        if (SlaStartedAt is not { } start || ResolutionTargetMinutes is not { } resolutionTarget || FirstResponseTargetMinutes is not { } responseTarget)
+            return (previous, SlaState);
+
+        var end = SlaStoppedAt is { } stopped && stopped < now ? stopped : now;
+        var paused = IsSlaPaused || (SlaStoppedAt is not null && _slaPauses.Any(p => p.To is null));
+
+        // Elapsed time excludes every pause; deadlines are only pushed back by pauses that are over
+        // (an open pause - waiting, resolved - stops the clock without moving the deadline).
+        int PausedUntil(DateTimeOffset until, bool completedOnly) => _slaPauses
+            .Where(p => p.From < until && (!completedOnly || p.To is not null))
+            .Sum(p => calculator.BusinessMinutesBetween(p.From, p.To is { } to && to < until ? to : until));
+
+        // Resolution clock.
+        var resolutionElapsed = calculator.BusinessMinutesBetween(start, end) - PausedUntil(end, completedOnly: false);
+        ResolutionDueAt = paused && SlaStoppedAt is null
+            ? null
+            : calculator.AddBusinessMinutes(start, resolutionTarget + PausedUntil(end, completedOnly: true));
+        var resolutionState = StateFor(resolutionElapsed, resolutionTarget);
+        ResolutionBreached = resolutionState == SlaState.Breached;
+
+        // First-response clock (stops at the first response).
+        var responseEnd = FirstRespondedAt is { } responded && responded < end ? responded : end;
+        var responseElapsed = calculator.BusinessMinutesBetween(start, responseEnd) - PausedUntil(responseEnd, completedOnly: false);
+        FirstResponseDueAt = paused && FirstRespondedAt is null && SlaStoppedAt is null
+            ? null
+            : calculator.AddBusinessMinutes(start, responseTarget + PausedUntil(responseEnd, completedOnly: true));
+        var responseState = StateFor(responseElapsed, responseTarget);
+        FirstResponseBreached = responseState == SlaState.Breached;
+
+        SlaState = FirstRespondedAt is null && responseState > resolutionState ? responseState : resolutionState;
+        if (SlaState != previous && previous != SlaState.None)
+            Record(TicketEventType.SlaStateChanged, null, now, new { from = previous.ToString(), to = SlaState.ToString() });
+        return (previous, SlaState);
+    }
+
+    private SlaState StateFor(int elapsedMinutes, int targetMinutes) =>
+        elapsedMinutes >= targetMinutes ? SlaState.Breached
+        : elapsedMinutes * 100L >= (long)targetMinutes * SlaAtRiskPercent ? SlaState.AtRisk
+        : SlaState.OnTrack;
+
+    /// <summary>The policy's pause statuses stop the clock, and so does Resolved (until reopened).</summary>
+    private bool StopsClock(TicketStatus status) => status == TicketStatus.Resolved || SlaPauseStatuses.Contains(status);
+
+    private void MoveSlaClock(TicketStatus from, TicketStatus to, DateTimeOffset now)
+    {
+        if (SlaStartedAt is null || SlaStoppedAt is not null)
+            return;
+
+        if (to == TicketStatus.InProgress || to == TicketStatus.Resolved)
+            RecordFirstResponse(now);
+
+        if (TicketStatusMachine.IsTerminal(to))
+        {
+            // Final: the clock stops where it is (an open pause, e.g. since resolution, stays open).
+            SlaStoppedAt = now;
+            return;
+        }
+
+        var open = _slaPauses.FindIndex(p => p.To is null);
+        if (StopsClock(to) && open < 0)
+            _slaPauses.Add(new SlaPause(now, null));
+        else if (!StopsClock(to) && open >= 0)
+            _slaPauses[open] = _slaPauses[open] with { To = now };
     }
 
     /// <summary>Appends an entry to the audit trail.</summary>
