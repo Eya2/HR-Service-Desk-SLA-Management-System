@@ -195,6 +195,12 @@ The Hangfire dashboard is exposed at `/hangfire`, restricted to SuperAdmin.
 | 32 | An impossible transition is 422 `ticket.invalid_transition`; an allowed one requested by the wrong actor is 403 `ticket.transition_not_permitted` | Distinguishes "never possible" from "not for you" |
 | 33 | A reply from the employee on a WaitingOnEmployee case moves it back to InProgress automatically | Resumes work and, from phase 7, the SLA clock |
 | 34 | `ticket_events` is the case audit trail (append-only, jsonb data); events about internal notes are flagged internal and hidden from employees | Spec: every transition writes an audit event; the same trail feeds the timeline |
+| 35 | Workflow steps are copied onto the case at submission (`ticket_approvals`); editing a workflow bumps its version and never changes cases in flight | Spec: approval records per case; predictable behaviour for HR |
+| 36 | A "Manager" step goes to the requester's direct manager; without a manager it falls back to HR Admins. Other roles: anyone holding the role decides | Approval must never be silently skipped |
+| 37 | Nobody approves their own request; confidential request types may only use HR Admin steps (until the restricted group of phase 9) | Segregation of duties; a harassment report must never reach the line manager |
+| 38 | Managers see their direct reports' non-confidential cases; a named approver sees the case they must decide | Needed for the manager view and for informed decisions |
+| 39 | Events recorded within one operation get strictly increasing timestamps (1 µs apart) | EF Core sorts inserts by key, so insertion order cannot order the timeline |
+| 40 | Demo workflows: payslip correction and leave → manager; salary advance → manager, payroll; training → manager, HR officer | Matches the spec's demo scenario (manager approves, then payroll) |
 
 ## 7. Testing strategy
 
