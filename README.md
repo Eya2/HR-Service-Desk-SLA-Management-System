@@ -138,7 +138,7 @@ docker compose up -d --build
 |---|---|
 | API (Swagger) | http://localhost:5080/swagger |
 | Health | http://localhost:5080/health/ready |
-| MailHog | http://localhost:8025 |
+| MailHog (e-mails sent by the app) | http://localhost:8025 |
 
 ### 2. Start the frontend
 
@@ -200,8 +200,8 @@ The project is delivered in 13 phases. Each phase ends with a green build and te
 | 5 | **Approval workflows** | Workflow engine, admin workflow editor, manager approval queue | backend · frontend | ✅ Done |
 | 6 | **Teams & assignment** | Teams, manual / round-robin / least-loaded strategies, optimistic concurrency, agent queue | backend · frontend | ✅ Done |
 | 7 | **SLA foundations** | Business calendars and holidays (TN/FR), business-time calculator, SLA policies, pause/resume | backend · frontend | ✅ Done |
-| 8 | **SLA monitor & escalation** | Hangfire job every minute, escalation rules (idempotent), in-app and email notifications | backend · frontend | ⏳ Next |
-| 9 | **Confidentiality & GDPR** | Restricted HR group, sensitive-access audit log, retention and anonymization job, audit viewer | backend · frontend | 🔲 Planned |
+| 8 | **SLA monitor & escalation** | Hangfire job every minute, escalation rules (idempotent), in-app and email notifications | backend · frontend | ✅ Done |
+| 9 | **Confidentiality & GDPR** | Restricted HR group, sensitive-access audit log, retention and anonymization job, audit viewer | backend · frontend | ⏳ Next |
 | 10 | **Dashboards** | KPIs, charts, date and team filters, CSV export | backend · frontend | 🔲 Planned |
 | 11 | **Knowledge base, CSAT & i18n** | FAQ with suggestions while typing, satisfaction ratings, FR / EN / AR with RTL | backend · frontend | 🔲 Planned |
 | 12 | **Integration** | API keys, integration endpoints, HMAC-signed webhooks with retry, mock payroll container | backend | 🔲 Planned |
