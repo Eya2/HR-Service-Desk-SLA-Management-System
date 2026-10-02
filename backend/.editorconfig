@@ -33,6 +33,8 @@ dotnet_diagnostic.CA2234.severity = none
 # xUnit disposes fixtures via IAsyncLifetime; collection definitions are named *Collection by convention.
 dotnet_diagnostic.CA1001.severity = none
 dotnet_diagnostic.CA1711.severity = none
+# Inline arrays in request bodies keep tests readable.
+dotnet_diagnostic.CA1861.severity = none
 
 [**/Migrations/**.cs]
 generated_code = true

@@ -5,24 +5,14 @@ using HrServiceDesk.IntegrationTests.Infrastructure;
 namespace HrServiceDesk.IntegrationTests.Api;
 
 [Collection(PostgresCollection.Name)]
-public sealed class HostTests(PostgresFixture postgres) : IAsyncLifetime
+public sealed class HostTests(PostgresFixture postgres)
 {
-    private ApiFactory _factory = null!;
-    private HttpClient _client = null!;
-
-    public Task InitializeAsync()
-    {
-        _factory = new ApiFactory(postgres);
-        _client = _factory.CreateClient();
-        return Task.CompletedTask;
-    }
-
-    public async Task DisposeAsync() => await _factory.DisposeAsync();
+    private readonly HttpClient _client = postgres.Api.CreateApiClient();
 
     [Theory]
     [InlineData("/health/live")]
     [InlineData("/health/ready")]
-    public async Task Health_endpoints_report_healthy(string path)
+    public async Task Health_endpoints_report_healthy_without_authentication(string path)
     {
         var response = await _client.GetAsync(path);
 
@@ -31,7 +21,7 @@ public sealed class HostTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task System_info_returns_service_metadata()
+    public async Task System_info_is_public_and_returns_service_metadata()
     {
         var info = await _client.GetFromJsonAsync<SystemInfo>("/api/system/info");
 
@@ -40,12 +30,17 @@ public sealed class HostTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Unknown_route_returns_problem_details()
+    public async Task Unknown_route_is_401_for_anonymous_callers_and_404_once_signed_in()
     {
-        var response = await _client.GetAsync("/api/does-not-exist");
+        var anonymous = await _client.GetAsync("/api/does-not-exist");
+        anonymous.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        anonymous.Content.Headers.ContentType!.MediaType.Should().Be("application/problem+json");
 
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-        response.Content.Headers.ContentType!.MediaType.Should().Be("application/problem+json");
+        var client = postgres.Api.CreateApiClient();
+        client.Authorize(await client.LoginAsync(DemoUsers.AcmeEmployee));
+        var signedIn = await client.GetAsync("/api/does-not-exist");
+        signedIn.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        signedIn.Content.Headers.ContentType!.MediaType.Should().Be("application/problem+json");
     }
 
     [Fact]
@@ -71,12 +66,13 @@ public sealed class HostTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Swagger_document_is_served()
+    public async Task Swagger_document_is_served_with_bearer_scheme()
     {
         var response = await _client.GetAsync("/swagger/v1/swagger.json");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        (await response.Content.ReadAsStringAsync()).Should().Contain("/api/system/info");
+        var json = await response.Content.ReadAsStringAsync();
+        json.Should().Contain("/api/auth/login").And.Contain("\"bearer\"");
     }
 
     private sealed record SystemInfo(string Name, string Version, string Environment);
