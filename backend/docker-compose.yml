@@ -23,6 +23,9 @@ services:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
       ConnectionStrings__Default: Host=postgres;Port=5432;Database=${POSTGRES_DB:-hrdesk};Username=${POSTGRES_USER:-hrdesk};Password=${POSTGRES_PASSWORD}
       Database__MigrateOnStartup: "true"
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:?Set JWT_SIGNING_KEY in .env (at least 32 characters)}
+      Seed__Enabled: "true"
+      Seed__DemoPassword: ${SEED_PASSWORD:?Set SEED_PASSWORD in .env}
       Swagger__Enabled: "true"
       Logging__Json: "true"
       Cors__AllowedOrigins__0: http://localhost:4200
