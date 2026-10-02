@@ -19,6 +19,7 @@ public sealed record ListArticlesQuery(string? Query, bool IncludeUnpublished = 
 /// <summary>Up to five published articles matching what the employee is typing (deflection).</summary>
 public sealed record SuggestArticlesQuery(string Text) : IRequest<IReadOnlyList<ArticleSummaryDto>>;
 
+/// <summary>One article; the read counts as a view unless the reader is an HR Admin.</summary>
 public sealed record GetArticleQuery(Guid Id) : IRequest<Result<ArticleDto>>;
 
 /// <summary>"This answered my question."</summary>
@@ -73,8 +74,13 @@ internal sealed class KnowledgeHandlers(IAppDbContext db, ICurrentUser currentUs
         if (article is null || (!article.IsPublished && !SeesUnpublished))
             return NotFound;
 
-        article.RecordView();
-        await db.SaveChangesAsync(cancellationToken);
+        // Reads by HR Admins (editing, reviewing) would inflate the statistics: only the others count.
+        if (!SeesUnpublished)
+        {
+            article.RecordView();
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
         return ToDto(article);
     }
 

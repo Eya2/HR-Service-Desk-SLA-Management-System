@@ -66,7 +66,7 @@ public sealed class KnowledgeTests(PostgresFixture postgres)
     }
 
     [Fact]
-    public async Task Reading_and_helpful_votes_are_counted_and_drafts_are_hidden_from_employees()
+    public async Task Employee_reads_and_helpful_votes_are_counted_and_drafts_are_hidden_from_employees()
     {
         var admin = await SignedInAs(DemoUsers.AcmeHrAdmin);
         var draft = await SaveAsync(admin, "Snorkelwacker policy", "Draft.", publish: false);
@@ -83,7 +83,7 @@ public sealed class KnowledgeTests(PostgresFixture postgres)
 
         var read = await admin.GetFromJsonAsync<Article>($"/api/knowledge/{draft.Id}");
         read!.Body.Should().Be("Now live.");
-        read.ViewCount.Should().Be(2);
+        read.ViewCount.Should().Be(1, "only the employee's read counts, not the HR Admin's");
         read.HelpfulCount.Should().Be(1);
     }
 
