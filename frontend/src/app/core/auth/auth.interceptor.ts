@@ -3,7 +3,13 @@ import { inject } from '@angular/core';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from './auth.service';
 
-const SESSION_ENDPOINTS = ['/api/auth/login', '/api/auth/refresh', '/api/auth/logout'];
+const SESSION_ENDPOINTS = [
+  '/api/auth/login',
+  '/api/auth/refresh',
+  '/api/auth/logout',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+];
 
 function withToken(request: HttpRequest<unknown>, token: string | null): HttpRequest<unknown> {
   return token ? request.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : request;

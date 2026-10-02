@@ -30,7 +30,7 @@ describe('AuthService', () => {
     auth.login('amira.bensalah@acme.example', 'secret').subscribe();
 
     const req = http.expectOne('/api/auth/login');
-    expect(req.request.body).toEqual({ email: 'amira.bensalah@acme.example', password: 'secret' });
+    expect(req.request.body).toEqual({ email: 'amira.bensalah@acme.example', password: 'secret', rememberMe: false });
     req.flush(session('abc', ['Employee', 'Manager']));
 
     expect(auth.isAuthenticated()).toBeTrue();

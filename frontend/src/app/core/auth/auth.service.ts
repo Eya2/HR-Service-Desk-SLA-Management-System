@@ -20,8 +20,8 @@ export class AuthService {
   readonly isAuthenticated = computed(() => this.session() !== null);
   readonly accessToken = computed(() => this.session()?.accessToken ?? null);
 
-  login(email: string, password: string): Observable<UserProfile> {
-    return this.http.post<Session>('/api/auth/login', { email, password }).pipe(
+  login(email: string, password: string, rememberMe = false): Observable<UserProfile> {
+    return this.http.post<Session>('/api/auth/login', { email, password, rememberMe }).pipe(
       tap((session) => this.session.set(session)),
       map((session) => session.user),
     );
@@ -59,6 +59,15 @@ export class AuthService {
         this.session.set(null);
         void this.router.navigate(['/login']);
       });
+  }
+
+  /** Always succeeds from the user's point of view: the API never says whether the address exists. */
+  requestPasswordReset(email: string): Observable<void> {
+    return this.http.post<void>('/api/auth/forgot-password', { email });
+  }
+
+  resetPassword(email: string, token: string, newPassword: string): Observable<void> {
+    return this.http.post<void>('/api/auth/reset-password', { email, token, newPassword });
   }
 
   /** The refresh token was rejected: drop the session and send the user to sign in again. */

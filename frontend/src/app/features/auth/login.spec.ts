@@ -47,7 +47,9 @@ describe('Login', () => {
     fixture.componentRef.setInput('returnUrl', '/admin');
     await fillAndSubmit('nadia.jaziri@acme.example', 'Demo-Passw0rd!');
 
-    http.expectOne('/api/auth/login').flush(session());
+    const req = http.expectOne('/api/auth/login');
+    expect(req.request.body.rememberMe).toBeFalse();
+    req.flush(session());
 
     expect(router.navigateByUrl).toHaveBeenCalledWith('/admin');
   });

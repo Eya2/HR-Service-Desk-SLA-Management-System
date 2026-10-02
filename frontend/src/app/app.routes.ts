@@ -10,6 +10,18 @@ export const routes: Routes = [
     title: 'Sign in · HR Service Desk',
   },
   {
+    path: 'forgot-password',
+    canActivate: [guestGuard],
+    loadComponent: () => import('./features/auth/forgot-password').then((m) => m.ForgotPassword),
+    title: 'Forgot password · HR Service Desk',
+  },
+  {
+    path: 'reset-password',
+    canActivate: [guestGuard],
+    loadComponent: () => import('./features/auth/reset-password').then((m) => m.ResetPassword),
+    title: 'Choose a new password · HR Service Desk',
+  },
+  {
     path: '',
     loadComponent: () => import('./core/layout/shell').then((m) => m.Shell),
     canActivate: [authGuard],
