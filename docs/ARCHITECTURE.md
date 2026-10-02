@@ -219,6 +219,11 @@ The Hangfire dashboard is exposed at `/hangfire`, restricted to SuperAdmin.
 | 56 | Escalation rules: trigger (AtRisk, Breached, NoResponseFor N business hours) + action (NotifyAssignee, NotifyManager = the assignee's manager or HR Admins, BumpPriority, ReassignToTeam), optionally per request type; `escalation_executions (ticket, rule)` is unique | Spec rules; idempotent even if two monitors race |
 | 57 | Background jobs and SMTP are configuration switches; tests run jobs directly and record e-mails; the Hangfire dashboard is local-only (bearer tokens cannot reach it from a browser) | Deterministic tests; no unauthenticated dashboard |
 | 58 | Child entities of a case (events, comments, attachments, approvals) take the case's tenant in the aggregate | Background jobs run without a tenant context |
+| 59 | The restricted HR group is a team flagged `IsConfidentialGroup` (seed: Confidential HR). Confidential cases are visible to the requester and its members only, whatever their role; the rule is applied in queries, approvals, notifications and assignment | Replaces the interim HR Admin rule (decision 26) with the spec's restricted group |
+| 60 | `audit_logs` records sensitive reads (views and downloads of confidential or sensitive cases by anyone but the requester) and account administration (creation, role changes, deactivation, password resets), with summaries that never contain the sensitive values; no foreign key so entries outlive accounts | Spec: audit who viewed or changed sensitive data |
+| 61 | A request type can be flagged sensitive (seed: bank details, leave with medical certificates, harassment); cases copy the flag at submission | Not every case needs read auditing |
+| 62 | Retention is per organisation (6–120 months, default 24, database default 24 for existing rows). A daily job anonymizes closed, cancelled or rejected cases older than that: texts, answers, documents and notifications are removed, free text in the trail is dropped, and the requester becomes an inactive "Former employee" placeholder; statuses, dates and SLA results remain for statistics | GDPR storage limitation while keeping dashboards meaningful |
+| 63 | HR Admins can run retention on demand for their organisation; every anonymization is audited | Demo and operational control |
 
 ## 7. Testing strategy
 
