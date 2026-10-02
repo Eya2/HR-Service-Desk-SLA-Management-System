@@ -16,7 +16,7 @@ public class TicketTests
     {
         var requester = Guid.NewGuid();
 
-        var ticket = Ticket.Submit("HR-2026-000001", Type(), requester, "  March payslip ", null, "{}");
+        var ticket = Ticket.Submit("HR-2026-000001", Type(), requester, "  March payslip ", null, "{}", Now);
 
         ticket.Status.Should().Be(TicketStatus.New);
         ticket.Priority.Should().Be(TicketPriority.High);
@@ -33,7 +33,7 @@ public class TicketTests
         var type = Type(RequestCategory.Confidential, confidential: false);
 
         type.IsConfidential.Should().BeTrue();
-        Ticket.Submit("HR-2026-000002", type, Guid.NewGuid(), "Report", null, "{}").IsConfidential.Should().BeTrue();
+        Ticket.Submit("HR-2026-000002", type, Guid.NewGuid(), "Report", null, "{}", Now).IsConfidential.Should().BeTrue();
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class TicketTests
         var type = Type();
         type.Deactivate();
 
-        var act = () => Ticket.Submit("HR-2026-000003", type, Guid.NewGuid(), "Title", null, "{}");
+        var act = () => Ticket.Submit("HR-2026-000003", type, Guid.NewGuid(), "Title", null, "{}", Now);
 
         act.Should().Throw<DomainException>().Which.Code.Should().Be("ticket.request_type_inactive");
     }
@@ -52,7 +52,7 @@ public class TicketTests
     [InlineData("   ")]
     public void Title_is_required(string title)
     {
-        var act = () => Ticket.Submit("HR-2026-000004", Type(), Guid.NewGuid(), title, null, "{}");
+        var act = () => Ticket.Submit("HR-2026-000004", Type(), Guid.NewGuid(), title, null, "{}", Now);
 
         act.Should().Throw<DomainException>().Which.Code.Should().Be("ticket.invalid_title");
     }
@@ -60,7 +60,7 @@ public class TicketTests
     [Fact]
     public void Comments_are_trimmed_and_must_not_be_empty()
     {
-        var ticket = Ticket.Submit("HR-2026-000005", Type(), Guid.NewGuid(), "Title", null, "{}");
+        var ticket = Ticket.Submit("HR-2026-000005", Type(), Guid.NewGuid(), "Title", null, "{}", Now);
 
         var comment = ticket.AddComment(Guid.NewGuid(), "  Please check  ", isInternal: true, Now);
 
@@ -75,7 +75,7 @@ public class TicketTests
     [Fact]
     public void Attachments_belong_to_the_ticket()
     {
-        var ticket = Ticket.Submit("HR-2026-000006", Type(), Guid.NewGuid(), "Title", null, "{}");
+        var ticket = Ticket.Submit("HR-2026-000006", Type(), Guid.NewGuid(), "Title", null, "{}", Now);
 
         var attachment = ticket.AddAttachment("payslip.pdf", "application/pdf", 1234, "key", Guid.NewGuid(), "payslip", Now);
 
