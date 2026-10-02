@@ -29,7 +29,7 @@ export const AREAS: readonly Area[] = [
     label: 'HR queue',
     icon: 'support_agent',
     description: 'Work on assigned cases and keep SLAs on track.',
-    roles: ['HrOfficer', 'PayrollSpecialist', 'HrAdmin'],
+    roles: ['HrOfficer', 'PayrollSpecialist', 'HrAdmin', 'Auditor'],
   },
   {
     path: 'dashboard',

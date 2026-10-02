@@ -45,6 +45,6 @@ describe('Shell', () => {
 
     expect(el.textContent).toContain('Amira Ben Salah');
     expect(el.textContent).toContain('Acme Tunisie');
-    expect(navItems(el)).toEqual(['nav-dashboard']);
+    expect(navItems(el)).toEqual(['nav-agent', 'nav-dashboard']);
   });
 });

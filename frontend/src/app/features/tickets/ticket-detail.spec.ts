@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { TicketDetails } from '../../core/api/api.models';
+import { TeamInfo, TicketDetails } from '../../core/api/api.models';
 import { ticketDetails } from '../../testing/catalog-fixtures';
 import { TicketDetail } from './ticket-detail';
 
@@ -9,13 +9,25 @@ describe('TicketDetail', () => {
   let fixture: ComponentFixture<TicketDetail>;
   let http: HttpTestingController;
 
-  async function render(ticket: TicketDetails): Promise<HTMLElement> {
+  /** Renders the page; when the caller may assign, the teams list it then loads is answered with <paramref name="teams"/>. */
+  async function render(ticket: TicketDetails, teams: TeamInfo[] = []): Promise<HTMLElement> {
     TestBed.configureTestingModule({ imports: [TicketDetail], providers: [provideHttpClient(), provideHttpClientTesting()] });
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(TicketDetail);
     fixture.componentRef.setInput('id', ticket.id);
     fixture.detectChanges();
     http.expectOne(`/api/tickets/${ticket.id}`).flush(ticket);
+    if (ticket.permissions.canAssign) {
+      // The teams request starts once the case is loaded; whenStable() would wait for it, so answer it first.
+      let pending = http.match('/api/teams');
+      for (let i = 0; i < 5 && pending.length === 0; i++) {
+        await Promise.resolve();
+        TestBed.tick();
+        pending = http.match('/api/teams');
+      }
+      expect(pending.length).withContext('teams request').toBe(1);
+      pending[0].flush(teams);
+    }
     await fixture.whenStable();
     return fixture.nativeElement as HTMLElement;
   }
@@ -39,14 +51,14 @@ describe('TicketDetail', () => {
 
     TestBed.resetTestingModule();
     el = await render(
-      ticketDetails({ permissions: { canComment: true, canCommentInternally: true, canEdit: true, canChangePriority: true, canAttach: true, availableTransitions: [], decidableApprovalId: null } }),
+      ticketDetails({ permissions: { canComment: true, canCommentInternally: true, canEdit: true, canChangePriority: true, canAttach: true, availableTransitions: [], decidableApprovalId: null, canAssign: false, canClaim: false } }),
     );
     expect(el.querySelector('[data-testid="internal-toggle"]')).not.toBeNull();
   });
 
   it('hides the reply box for read-only viewers', async () => {
     const el = await render(
-      ticketDetails({ permissions: { canComment: false, canCommentInternally: false, canEdit: false, canChangePriority: false, canAttach: false, availableTransitions: [], decidableApprovalId: null } }),
+      ticketDetails({ permissions: { canComment: false, canCommentInternally: false, canEdit: false, canChangePriority: false, canAttach: false, availableTransitions: [], decidableApprovalId: null, canAssign: false, canClaim: false } }),
     );
 
     expect(el.querySelector('[data-testid="comment-body"]')).toBeNull();
@@ -65,6 +77,8 @@ describe('TicketDetail', () => {
           canAttach: true,
           availableTransitions: ['InProgress', 'Rejected'],
           decidableApprovalId: null,
+          canAssign: false,
+          canClaim: false,
         },
       }),
     );
@@ -110,7 +124,7 @@ describe('TicketDetail', () => {
           { id: 'a1', stepOrder: 1, stepName: 'Manager approval', approverRole: 'Manager', approverName: 'Youssef Haddad', decision: 'Pending', decidedByName: null, decidedAt: null, comment: null },
           { id: 'a2', stepOrder: 2, stepName: 'Payroll validation', approverRole: 'PayrollSpecialist', approverName: null, decision: 'Pending', decidedByName: null, decidedAt: null, comment: null },
         ],
-        permissions: { canComment: true, canCommentInternally: false, canEdit: false, canChangePriority: false, canAttach: false, availableTransitions: [], decidableApprovalId: 'a1' },
+        permissions: { canComment: true, canCommentInternally: false, canEdit: false, canChangePriority: false, canAttach: false, availableTransitions: [], decidableApprovalId: 'a1', canAssign: false, canClaim: false },
       }),
     );
 
@@ -136,6 +150,48 @@ describe('TicketDetail', () => {
     );
 
     expect(el.querySelector('[data-testid="approve"]')).toBeNull();
+  });
+
+  it('lets an agent take an unassigned case and shows its team', async () => {
+    const el = await render(
+      ticketDetails({
+        team: { id: 'team-1', name: 'HR Service Center' },
+        permissions: {
+          canComment: true,
+          canCommentInternally: true,
+          canEdit: true,
+          canChangePriority: true,
+          canAttach: true,
+          availableTransitions: [],
+          decidableApprovalId: null,
+          canAssign: true,
+          canClaim: true,
+        },
+      }),
+      [
+        {
+          id: 'team-1',
+          name: 'HR Service Center',
+          strategy: 'RoundRobin',
+          members: [{ id: 'u-2', fullName: 'Leila Mansour', activeCases: 2 }],
+          requestTypes: [],
+        },
+      ],
+    );
+
+    expect(el.querySelector('[data-testid="team"]')?.textContent).toContain('HR Service Center');
+    expect(el.querySelector('[data-testid="assign-select"]')).not.toBeNull();
+
+    (el.querySelector('[data-testid="take"]') as HTMLButtonElement).click();
+    http.expectOne('/api/tickets/t-1/claim').flush(null, { status: 204, statusText: 'No Content' });
+  });
+
+  it('shows no assignment controls to the employee', async () => {
+    const el = await render(ticketDetails({ team: { id: 'team-1', name: 'HR Service Center' } }));
+
+    expect(el.querySelector('[data-testid="take"]')).toBeNull();
+    expect(el.querySelector('[data-testid="assign-select"]')).toBeNull();
+    http.expectNone('/api/teams');
   });
 
   it('appends a sent reply to the conversation', async () => {

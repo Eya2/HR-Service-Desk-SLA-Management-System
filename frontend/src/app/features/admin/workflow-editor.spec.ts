@@ -13,6 +13,7 @@ describe('WorkflowEditor', () => {
     requestTypeId: 'rt-1',
     requestTypeName: 'Salary advance',
     requestTypeIsConfidential: false,
+    responsibleTeamId: null,
     isConfigured: true,
     isActive: true,
     version: 1,
@@ -33,6 +34,7 @@ describe('WorkflowEditor', () => {
     fixture.componentRef.setInput('requestTypeId', workflow.requestTypeId);
     fixture.detectChanges();
     http.expectOne(`/api/workflows/${workflow.requestTypeId}`).flush(workflow);
+    http.expectOne('/api/teams').flush([]);
     await fixture.whenStable();
     return fixture.nativeElement as HTMLElement;
   }

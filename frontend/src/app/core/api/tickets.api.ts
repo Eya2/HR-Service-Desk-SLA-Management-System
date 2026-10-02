@@ -20,6 +20,13 @@ export interface TicketListQuery {
   pageSize: number;
 }
 
+export type TicketScope = 'Mine' | 'MyTeams' | 'Unassigned' | 'All';
+
+export interface QueueQuery extends TicketListQuery {
+  scope: TicketScope;
+  activeOnly: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class TicketsApi {
   private readonly http = inject(HttpClient);
@@ -42,6 +49,30 @@ export class TicketsApi {
     if (query.status) params = params.set('status', query.status);
     if (query.search) params = params.set('search', query.search);
     return this.http.get<Paged<TicketSummary>>('/api/tickets/mine', { params });
+  }
+
+  /** HR staff and auditors: cases by scope (mine, my teams, unassigned, all). */
+  queue(query: QueueQuery): Observable<Paged<TicketSummary>> {
+    let params = new HttpParams()
+      .set('page', query.page)
+      .set('pageSize', query.pageSize)
+      .set('scope', query.scope)
+      .set('activeOnly', query.activeOnly);
+    if (query.status) params = params.set('status', query.status);
+    if (query.search) params = params.set('search', query.search);
+    return this.http.get<Paged<TicketSummary>>('/api/tickets', { params });
+  }
+
+  claim(id: string): Observable<void> {
+    return this.http.post<void>(`/api/tickets/${encodeURIComponent(id)}/claim`, null);
+  }
+
+  assign(id: string, assigneeId: string | null): Observable<void> {
+    return this.http.put<void>(`/api/tickets/${encodeURIComponent(id)}/assignee`, { assigneeId });
+  }
+
+  moveToTeam(id: string, teamId: string): Observable<void> {
+    return this.http.put<void>(`/api/tickets/${encodeURIComponent(id)}/team`, { teamId });
   }
 
   get(id: string): Observable<TicketDetails> {

@@ -11,6 +11,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
       <a mat-tab-link routerLink="workflows" routerLinkActive #workflows="routerLinkActive" [active]="workflows.isActive">
         Approval workflows
       </a>
+      <a mat-tab-link routerLink="teams" routerLinkActive #teams="routerLinkActive" [active]="teams.isActive">Teams</a>
     </nav>
     <mat-tab-nav-panel #panel>
       <router-outlet />

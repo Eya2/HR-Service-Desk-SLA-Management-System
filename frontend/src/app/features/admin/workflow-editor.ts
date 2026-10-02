@@ -11,7 +11,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterLink } from '@angular/router';
 import { APPROVER_ROLES } from '../../core/api/api.models';
-import { WorkflowsApi } from '../../core/api/approvals.api';
+import { TeamsApi, WorkflowsApi } from '../../core/api/approvals.api';
 import { problemOf } from '../../core/http/error.interceptor';
 import { humanize } from '../../shared/ui/labels';
 
@@ -40,6 +40,21 @@ const MAX_STEPS = 5;
       @if (w.requestTypeIsConfidential) {
         <p class="note" role="note">Confidential requests can only be approved by HR Admins.</p>
       }
+      <mat-card appearance="outlined" class="routing">
+        <mat-card-content>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Handled by team</mat-label>
+            <mat-select [value]="w.responsibleTeamId" (selectionChange)="setTeam(w.requestTypeId, $event.value)" data-testid="routing-team">
+              <mat-option [value]="null">No team (general queue)</mat-option>
+              @for (team of teams.value() ?? []; track team.id) {
+                <mat-option [value]="team.id">{{ team.name }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </mat-card-content>
+      </mat-card>
+
+      <h2>Approval chain</h2>
       <mat-card appearance="outlined">
         <mat-card-content>
           <ol class="steps">
@@ -97,6 +112,12 @@ const MAX_STEPS = 5;
     mat-card {
       max-width: 820px;
     }
+    .routing {
+      margin-bottom: 16px;
+    }
+    h2 {
+      font: var(--mat-sys-title-medium);
+    }
     .steps {
       list-style: none;
       padding: 0;
@@ -136,6 +157,9 @@ export class WorkflowEditor {
   private readonly api = inject(WorkflowsApi);
   private readonly snackBar = inject(MatSnackBar);
   private readonly router = inject(Router);
+  private readonly teamsApi = inject(TeamsApi);
+
+  protected readonly teams = rxResource({ stream: () => this.teamsApi.list() });
 
   /** Route parameter. */
   readonly requestTypeId = input.required<string>();
@@ -159,6 +183,13 @@ export class WorkflowEditor {
       const initial = w.steps.length > 0 ? w.steps : [{ name: 'Manager approval', approverRole: this.roles()[0] }];
       initial.forEach((s) => this.steps.push(this.stepForm(s.name, s.approverRole)));
       this.isActive.setValue(w.isConfigured ? w.isActive : true);
+    });
+  }
+
+  protected setTeam(requestTypeId: string, teamId: string | null): void {
+    this.teamsApi.setResponsibleTeam(requestTypeId, teamId).subscribe({
+      next: () => this.snackBar.open('Routing saved.', undefined, { duration: 3000 }),
+      error: (error: unknown) => this.snackBar.open(problemOf(error)?.title ?? 'Routing could not be saved.', 'Dismiss', { duration: 6000 }),
     });
   }
 

@@ -12,8 +12,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { ApprovalInfo, AttachmentInfo, FormAnswer, PRIORITIES, TicketDetails } from '../../core/api/api.models';
-import { ApprovalsApi } from '../../core/api/approvals.api';
+import { ApprovalInfo, AttachmentInfo, FormAnswer, PRIORITIES, TeamInfo, TicketDetails } from '../../core/api/api.models';
+import { Observable } from 'rxjs';
+import { ApprovalsApi, TeamsApi } from '../../core/api/approvals.api';
 import { TicketsApi } from '../../core/api/tickets.api';
 import { problemOf } from '../../core/http/error.interceptor';
 import { fileSize, humanize } from '../../shared/ui/labels';
@@ -223,11 +224,41 @@ import { StatusAction, describeEvent, statusAction } from './status-actions';
               <dl class="facts">
                 <dt>Requester</dt>
                 <dd>{{ t.requester.fullName }}</dd>
+                <dt>Team</dt>
+                <dd data-testid="team">{{ t.team?.name ?? '—' }}</dd>
                 <dt>Assignee</dt>
-                <dd>{{ t.assignee?.fullName ?? 'Not assigned yet' }}</dd>
+                <dd data-testid="assignee">{{ t.assignee?.fullName ?? 'Not assigned yet' }}</dd>
                 <dt>Submitted</dt>
                 <dd>{{ t.createdAt | date: 'medium' }}</dd>
               </dl>
+              @if (t.permissions.canClaim && !t.assignee) {
+                <button mat-flat-button type="button" class="take" (click)="claim(t)" [disabled]="changing()" data-testid="take">
+                  <mat-icon fontSet="material-symbols-outlined">front_hand</mat-icon> Take this case
+                </button>
+              }
+              @if (t.permissions.canAssign) {
+                @if (teams.value(); as teamList) {
+                  <div class="assign">
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                      <mat-label>Assign to</mat-label>
+                      <mat-select [value]="t.assignee?.id ?? null" (selectionChange)="assign(t, $event.value)" data-testid="assign-select">
+                        <mat-option [value]="null">Nobody (team queue)</mat-option>
+                        @for (member of membersOf(t, teamList); track member.id) {
+                          <mat-option [value]="member.id">{{ member.fullName }} ({{ member.activeCases }} active)</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                      <mat-label>Team</mat-label>
+                      <mat-select [value]="t.team?.id ?? null" (selectionChange)="moveToTeam(t, $event.value)" data-testid="team-select">
+                        @for (team of teamList; track team.id) {
+                          <mat-option [value]="team.id">{{ team.name }}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
+                }
+              }
             </mat-card-content>
           </mat-card>
 
@@ -331,6 +362,15 @@ import { StatusAction, describeEvent, statusAction } from './status-actions';
     .timeline time {
       display: block;
       color: var(--mat-sys-on-surface-variant);
+    }
+    .take {
+      width: 100%;
+      margin-top: 16px;
+    }
+    .assign {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
     }
     .approvals {
       list-style: none;
@@ -477,6 +517,13 @@ export class TicketDetail {
   protected readonly describe = describeEvent;
   private readonly dialog = inject(MatDialog);
   private readonly approvalsApi = inject(ApprovalsApi);
+  private readonly teamsApi = inject(TeamsApi);
+
+  /** Loaded only for people who can assign (the teams endpoint is for HR staff). */
+  protected readonly teams = rxResource({
+    params: () => (this.ticket.value()?.permissions.canAssign ? true : undefined),
+    stream: () => this.teamsApi.list(),
+  });
   protected readonly humanize = humanize;
 
   protected readonly actions = computed<StatusAction[]>(() => {
@@ -526,6 +573,42 @@ export class TicketDetail {
       error: (error: unknown) => {
         this.changing.set(false);
         this.snackBar.open(problemOf(error)?.title ?? 'The status could not be changed.', 'Dismiss', { duration: 6000 });
+        this.ticket.reload();
+      },
+    });
+  }
+
+  /** Members of the case's team first; every other HR staff member after them. */
+  protected membersOf(ticket: TicketDetails, teams: TeamInfo[]): TeamInfo['members'] {
+    const own = teams.find((t) => t.id === ticket.team?.id)?.members ?? [];
+    const others = teams.flatMap((t) => t.members).filter((m) => !own.some((o) => o.id === m.id));
+    return [...own, ...others.filter((m, i) => others.findIndex((o) => o.id === m.id) === i)];
+  }
+
+  protected claim(ticket: TicketDetails): void {
+    this.run(this.api.claim(ticket.id), 'The case is now yours.');
+  }
+
+  protected assign(ticket: TicketDetails, assigneeId: string | null): void {
+    this.run(this.api.assign(ticket.id, assigneeId), assigneeId ? 'Case assigned.' : 'Case returned to the team queue.');
+  }
+
+  protected moveToTeam(ticket: TicketDetails, teamId: string): void {
+    this.run(this.api.moveToTeam(ticket.id, teamId), 'Case moved to the other team.');
+  }
+
+  private run(action: Observable<void>, success: string): void {
+    this.changing.set(true);
+    action.subscribe({
+      next: () => {
+        this.changing.set(false);
+        this.snackBar.open(success, undefined, { duration: 3000 });
+        this.ticket.reload();
+        this.teams.reload();
+      },
+      error: (error: unknown) => {
+        this.changing.set(false);
+        this.snackBar.open(problemOf(error)?.title ?? 'The change could not be saved.', 'Dismiss', { duration: 6000 });
         this.ticket.reload();
       },
     });

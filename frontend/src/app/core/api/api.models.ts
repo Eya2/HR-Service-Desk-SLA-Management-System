@@ -56,6 +56,10 @@ export interface TicketSummary {
   isConfidential: boolean;
   requesterId: string;
   requesterName: string;
+  teamId: string | null;
+  teamName: string | null;
+  assigneeId: string | null;
+  assigneeName: string | null;
   createdAt: string;
   updatedAt: string | null;
 }
@@ -105,7 +109,19 @@ export interface TicketPermissions {
   availableTransitions: string[];
   /** The approval step the caller can decide now, if any. */
   decidableApprovalId: string | null;
+  canAssign: boolean;
+  canClaim: boolean;
 }
+
+export interface TeamInfo {
+  id: string;
+  name: string;
+  strategy: 'Manual' | 'RoundRobin' | 'LeastLoaded';
+  members: { id: string; fullName: string; activeCases: number }[];
+  requestTypes: string[];
+}
+
+export const STRATEGIES = ['Manual', 'RoundRobin', 'LeastLoaded'] as const;
 
 export interface ApprovalInfo {
   id: string;
@@ -142,6 +158,7 @@ export interface WorkflowInfo {
   requestTypeId: string;
   requestTypeName: string;
   requestTypeIsConfidential: boolean;
+  responsibleTeamId: string | null;
   isConfigured: boolean;
   isActive: boolean;
   version: number;
@@ -181,6 +198,7 @@ export interface TicketDetails {
   isConfidential: boolean;
   requester: Person;
   assignee: Person | null;
+  team: { id: string; name: string } | null;
   answers: FormAnswer[];
   attachments: AttachmentInfo[];
   comments: CommentInfo[];

@@ -13,6 +13,11 @@ export const routes: Routes = [
         title: 'Approval workflows · HR Service Desk',
       },
       {
+        path: 'teams',
+        loadComponent: () => import('./teams-admin').then((m) => m.TeamsAdmin),
+        title: 'Teams · HR Service Desk',
+      },
+      {
         path: 'workflows/:requestTypeId',
         loadComponent: () => import('./workflow-editor').then((m) => m.WorkflowEditor),
         title: 'Edit workflow · HR Service Desk',

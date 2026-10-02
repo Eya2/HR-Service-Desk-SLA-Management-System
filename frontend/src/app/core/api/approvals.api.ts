@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
-import { Paged, PendingApproval, TeamStats, TicketSummary, WorkflowInfo } from './api.models';
+import { Observable, map } from 'rxjs';
+import { Paged, PendingApproval, TeamInfo, TeamStats, TicketSummary, WorkflowInfo } from './api.models';
 
 @Injectable({ providedIn: 'root' })
 export class ApprovalsApi {
@@ -43,5 +43,35 @@ export class WorkflowsApi {
 
   save(requestTypeId: string, isActive: boolean, steps: { name: string; approverRole: string }[]): Observable<WorkflowInfo> {
     return this.http.put<WorkflowInfo>(`/api/workflows/${encodeURIComponent(requestTypeId)}`, { isActive, steps });
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class TeamsApi {
+  private readonly http = inject(HttpClient);
+
+  list(): Observable<TeamInfo[]> {
+    return this.http.get<TeamInfo[]>('/api/teams');
+  }
+
+  save(id: string | null, team: { name: string; strategy: string; memberIds: string[] }): Observable<TeamInfo> {
+    return id
+      ? this.http.put<TeamInfo>(`/api/teams/${encodeURIComponent(id)}`, team)
+      : this.http.post<TeamInfo>('/api/teams', team);
+  }
+
+  setResponsibleTeam(requestTypeId: string, teamId: string | null): Observable<void> {
+    return this.http.put<void>(`/api/request-types/${encodeURIComponent(requestTypeId)}/team`, { teamId });
+  }
+
+  /** HR staff accounts, for team membership (HR Admin only). */
+  staff(): Observable<{ id: string; fullName: string; roles: string[] }[]> {
+    return this.http
+      .get<Paged<{ id: string; fullName: string; roles: string[]; isActive: boolean }>>('/api/users', { params: { pageSize: 100 } })
+      .pipe(
+        map((page) =>
+          page.items.filter((u) => u.isActive && u.roles.some((r) => ['HrOfficer', 'PayrollSpecialist', 'HrAdmin'].includes(r))),
+        ),
+      );
   }
 }
