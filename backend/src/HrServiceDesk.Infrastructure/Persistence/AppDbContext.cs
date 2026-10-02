@@ -2,6 +2,8 @@ using System.Reflection;
 using HrServiceDesk.Application.Abstractions;
 using HrServiceDesk.Domain.Catalog;
 using HrServiceDesk.Domain.Common;
+using HrServiceDesk.Domain.Escalations;
+using HrServiceDesk.Domain.Notifications;
 using HrServiceDesk.Domain.Sla;
 using HrServiceDesk.Domain.Teams;
 using HrServiceDesk.Domain.Tenants;
@@ -65,6 +67,12 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<BusinessCalendar> BusinessCalendars => Set<BusinessCalendar>();
 
     public DbSet<SlaPolicy> SlaPolicies => Set<SlaPolicy>();
+
+    public DbSet<Notification> Notifications => Set<Notification>();
+
+    public DbSet<EscalationRule> EscalationRules => Set<EscalationRule>();
+
+    public DbSet<EscalationExecution> EscalationExecutions => Set<EscalationExecution>();
 
     internal DbSet<ReferenceCounter> ReferenceCounters => Set<ReferenceCounter>();
 

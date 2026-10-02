@@ -20,6 +20,7 @@ public static class DependencyInjection
         services.AddScoped<Auth.SessionIssuer>();
         services.AddScoped<Tickets.Assignment.AutoAssigner>();
         services.AddScoped<Sla.SlaService>();
+        services.AddScoped<Notifications.NotificationPlanner>();
 
         return services;
     }

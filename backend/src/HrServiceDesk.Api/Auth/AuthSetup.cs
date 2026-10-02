@@ -25,6 +25,17 @@ internal static class AuthSetup
             {
                 var jwt = jwtOptions.Value;
                 bearer.MapInboundClaims = false;
+                // Browsers cannot set headers on WebSocket connections: the hub gets the token from the query string.
+                bearer.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var token = context.Request.Query["access_token"];
+                        if (!string.IsNullOrEmpty(token) && context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                            context.Token = token;
+                        return Task.CompletedTask;
+                    },
+                };
                 bearer.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidIssuer = jwt.Issuer,

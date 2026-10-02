@@ -1,4 +1,6 @@
 using HrServiceDesk.Domain.Catalog;
+using HrServiceDesk.Domain.Escalations;
+using HrServiceDesk.Domain.Notifications;
 using HrServiceDesk.Domain.Sla;
 using HrServiceDesk.Domain.Teams;
 using HrServiceDesk.Domain.Tenants;
@@ -38,6 +40,12 @@ public interface IAppDbContext
     DbSet<BusinessCalendar> BusinessCalendars { get; }
 
     DbSet<SlaPolicy> SlaPolicies { get; }
+
+    DbSet<Notification> Notifications { get; }
+
+    DbSet<EscalationRule> EscalationRules { get; }
+
+    DbSet<EscalationExecution> EscalationExecutions { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

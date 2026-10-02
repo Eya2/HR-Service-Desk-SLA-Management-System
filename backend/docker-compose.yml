@@ -27,6 +27,11 @@ services:
       Seed__Enabled: "true"
       Seed__DemoPassword: ${SEED_PASSWORD:?Set SEED_PASSWORD in .env}
       Storage__RootPath: /app/data/attachments
+      BackgroundJobs__Enabled: "true"
+      Smtp__Enabled: "true"
+      Smtp__Host: mailhog
+      Smtp__Port: "1025"
+      Smtp__AppUrl: http://localhost:${WEB_PORT:-8080}
       Swagger__Enabled: "true"
       Logging__Json: "true"
       Cors__AllowedOrigins__0: http://localhost:4200

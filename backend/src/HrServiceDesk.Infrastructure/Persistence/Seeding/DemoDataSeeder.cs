@@ -38,6 +38,7 @@ internal sealed partial class DemoDataSeeder(
         await SeedWorkflowsAsync(cancellationToken);
         await SeedTeamsAsync(cancellationToken);
         await SeedSlaAsync(cancellationToken);
+        await SeedEscalationsAsync(cancellationToken);
     }
 
     private async Task SeedTenantsAndUsersAsync(string demoPassword, CancellationToken cancellationToken)
@@ -189,6 +190,23 @@ internal sealed partial class DemoDataSeeder(
                 .ToListAsync(cancellationToken);
             foreach (var type in payrollTypes)
                 type.SetSlaPolicy(payroll.Id);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task SeedEscalationsAsync(CancellationToken cancellationToken)
+    {
+        var configured = await db.EscalationRules.IgnoreQueryFilters().Select(r => r.TenantId).Distinct().ToListAsync(cancellationToken);
+        var tenants = await db.Tenants.Where(t => (t.Slug == "acme-tn" || t.Slug == "globex-fr") && !configured.Contains(t.Id))
+            .Select(t => t.Id).ToListAsync(cancellationToken);
+        foreach (var tenantId in tenants)
+        {
+            foreach (var rule in DemoEscalations.Create())
+            {
+                rule.TenantId = tenantId;
+                db.EscalationRules.Add(rule);
+            }
         }
 
         await db.SaveChangesAsync(cancellationToken);

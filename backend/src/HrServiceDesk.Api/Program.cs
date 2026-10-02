@@ -2,9 +2,11 @@ using HrServiceDesk.Api.Auth;
 using HrServiceDesk.Api.Common;
 using HrServiceDesk.Api.ErrorHandling;
 using HrServiceDesk.Api.Middleware;
+using HrServiceDesk.Api.Notifications;
 using HrServiceDesk.Application;
 using HrServiceDesk.Application.Abstractions;
 using HrServiceDesk.Infrastructure;
+using HrServiceDesk.Infrastructure.Jobs;
 using HrServiceDesk.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.OpenApi.Models;
@@ -28,7 +30,7 @@ builder.Host.UseSerilog((context, services, logger) =>
 
 builder.Services
     .AddApplication()
-    .AddInfrastructure();
+    .AddInfrastructure(builder.Configuration);
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ITenantContext, HttpTenantContext>();
@@ -36,6 +38,9 @@ builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddApiAuth();
 
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<Microsoft.AspNetCore.SignalR.IUserIdProvider, SubjectUserIdProvider>();
+builder.Services.AddScoped<HrServiceDesk.Application.Abstractions.INotificationChannel, HubNotificationChannel>();
 builder.Services.AddProblemDetails(options =>
     options.CustomizeProblemDetails = ctx => ctx.ProblemDetails.Extensions["traceId"] = ctx.HttpContext.TraceIdentifier);
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -94,6 +99,8 @@ app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<NotificationsHub>(NotificationsHub.Path);
+app.UseBackgroundJobs();
 app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();
 app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") }).AllowAnonymous();
 

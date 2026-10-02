@@ -3,6 +3,8 @@ using HrServiceDesk.Application.Auth;
 using HrServiceDesk.Application.Tickets.Files;
 using HrServiceDesk.Infrastructure.Auth;
 using HrServiceDesk.Infrastructure.Files;
+using HrServiceDesk.Infrastructure.Jobs;
+using HrServiceDesk.Infrastructure.Notifications;
 using HrServiceDesk.Infrastructure.Persistence;
 using HrServiceDesk.Infrastructure.Persistence.Interceptors;
 using HrServiceDesk.Infrastructure.Persistence.Seeding;
@@ -18,15 +20,27 @@ public static class DependencyInjection
 {
     public const string ConnectionStringName = "Default";
 
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services)
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.TryAddSingleton(TimeProvider.System);
 
         AddPersistence(services);
         AddAuth(services);
         AddTickets(services);
+        AddNotifications(services);
+        BackgroundJobsSetup.AddBackgroundJobs(services, configuration);
 
         return services;
+    }
+
+    private static void AddNotifications(IServiceCollection services)
+    {
+        services.AddOptions<SmtpOptions>().BindConfiguration(SmtpOptions.SectionName);
+        services.AddOptions<BackgroundJobOptions>().BindConfiguration(BackgroundJobOptions.SectionName);
+        services.AddScoped<NotificationInterceptor>();
+        services.AddScoped<IEmailSender, SmtpEmailSender>();
+        services.AddScoped<SendEmailJob>();
+        services.AddScoped<INotificationChannel, EmailNotificationChannel>();
     }
 
     private static void AddPersistence(IServiceCollection services)
@@ -39,6 +53,7 @@ public static class DependencyInjection
             .UseNpgsql(GetConnectionString(sp))
             .UseSnakeCaseNamingConvention()
             .AddInterceptors(
+                sp.GetRequiredService<NotificationInterceptor>(),
                 sp.GetRequiredService<TenantStampingInterceptor>(),
                 sp.GetRequiredService<AuditableInterceptor>()));
 
