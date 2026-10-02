@@ -8,12 +8,13 @@
 
 A multi-tenant **HR case management platform** in the style of the HR service delivery suites used by large employers. Employees submit HR requests (payslip corrections, certificates, leave, bank detail changes…) from a catalog. Requests go through configurable **approval workflows**, are routed to the right HR team, and are tracked against **business-hours-aware SLAs** with automatic **escalation**. HR leadership follows everything on **dashboards**, and external systems such as payroll integrate through a **REST API and signed webhooks**.
 
-> **Status:** in active development, delivered phase by phase. See the [roadmap](#roadmap).
+> **Status:** complete — all 13 phases delivered, 612 backend and 107 frontend tests green in CI. See the [roadmap](#roadmap) and the [demo guide](https://github.com/Eya2/HR-Service-Desk-SLA-Management-System/blob/backend/docs/DEMO.md).
 
 ---
 
 ## Table of contents
 
+- [Screenshots](#screenshots)
 - [Why this project](#why-this-project)
 - [Features](#features)
 - [Tech stack](#tech-stack)
@@ -22,9 +23,20 @@ A multi-tenant **HR case management platform** in the style of the HR service de
 - [Getting started](#getting-started)
 - [Roadmap](#roadmap)
 - [Demo scenario](#demo-scenario)
+- [Integration API and webhooks](#integration-api-and-webhooks)
 - [Engineering principles](#engineering-principles)
 
 ---
+
+## Screenshots
+
+| | |
+|---|---|
+| ![Dashboard](https://raw.githubusercontent.com/Eya2/HR-Service-Desk-SLA-Management-System/frontend/frontend/docs/screenshots/03-dashboard.jpg) **HR dashboard** — SLA compliance, volume, backlog, workload and satisfaction, with table views and CSV export | ![Dashboard, dark theme](https://raw.githubusercontent.com/Eya2/HR-Service-Desk-SLA-Management-System/frontend/frontend/docs/screenshots/04-dashboard-dark.jpg) **Dark theme** — every chart follows the theme with a colour-blind-safe palette |
+| ![HR queue](https://raw.githubusercontent.com/Eya2/HR-Service-Desk-SLA-Management-System/frontend/frontend/docs/screenshots/05-hr-queue.jpg) **HR queue** — SLA badges with deadlines in business hours | ![Case](https://raw.githubusercontent.com/Eya2/HR-Service-Desk-SLA-Management-System/frontend/frontend/docs/screenshots/06-case.jpg) **A case** — approvals, conversation, SLA, documents, history and the employee's rating |
+| ![Suggestions](https://raw.githubusercontent.com/Eya2/HR-Service-Desk-SLA-Management-System/frontend/frontend/docs/screenshots/07-new-request-suggestions.jpg) **Deflection** — help articles suggested while the employee types | ![Arabic](https://raw.githubusercontent.com/Eya2/HR-Service-Desk-SLA-Management-System/frontend/frontend/docs/screenshots/08-help-center-arabic.jpg) **Arabic, right to left** — also French and English |
+| ![Integrations](https://raw.githubusercontent.com/Eya2/HR-Service-Desk-SLA-Management-System/frontend/frontend/docs/screenshots/09-integrations.jpg) **Integrations** — API keys and signed webhooks with delivery history | ![Approvals in French](https://raw.githubusercontent.com/Eya2/HR-Service-Desk-SLA-Management-System/frontend/frontend/docs/screenshots/11-approvals-fr.jpg) **Manager approvals** (in French) |
+| ![Sign in](https://raw.githubusercontent.com/Eya2/HR-Service-Desk-SLA-Management-System/frontend/frontend/docs/screenshots/01-sign-in.jpg) **Sign in** with remember-me and password reset | ![Users](https://raw.githubusercontent.com/Eya2/HR-Service-Desk-SLA-Management-System/frontend/frontend/docs/screenshots/10-users.jpg) **User administration** — roles, manager, activation |
 
 ## Why this project
 
@@ -46,9 +58,11 @@ This system brings IT-service-management discipline (catalog, workflows, SLAs, e
 | **Notifications** | Real-time in-app bell (SignalR) and email |
 | **Confidentiality & GDPR** | Confidential cases (e.g. harassment reports) visible only to a restricted HR group, enforced in database queries; audit log of sensitive reads; automatic anonymization after a retention period |
 | **Dashboards** | SLA compliance, response and resolution times, backlog, volume over time (pay-day peaks), agent workload, reopen rate, CSV export |
-| **Employee portal** | Catalog search, dynamic forms, "My requests" with a status timeline, knowledge base with article suggestions while typing, satisfaction rating |
+| **Employee portal** | Catalog search, dynamic forms, "My requests" with a status timeline, satisfaction rating (1–5 stars) on closed cases |
+| **Help center** | Knowledge base with accent-insensitive full-text search (PostgreSQL), article suggestions while typing a request (deflection), views and "this answered my question" statistics, admin editor |
 | **Manager view** | Pending approvals queue, team requests and stats |
-| **Integration** | Per-tenant API keys, REST endpoints, HMAC-signed outgoing webhooks with retry, and a mock payroll system for demos |
+| **Integration** | Scoped API keys (hashed, shown once), a versioned integration API, outbox-based webhooks signed with HMAC-SHA256 and retried for 9 hours, SSRF protection, and a mock payroll system that closes the loop |
+| **Administration** | Users and roles, approval workflows, teams, SLA calendars and policies, escalation rules, data retention, help-center articles, integrations |
 | **Multi-tenancy** | Every business row carries a `TenantId`, enforced by a global EF Core query filter |
 | **i18n** | French, English and Arabic (right-to-left layout) |
 
@@ -60,7 +74,7 @@ This system brings IT-service-management discipline (catalog, workflows, SLAs, e
 
 | Layer | Technologies |
 |---|---|
-| **Backend** | .NET 8, ASP.NET Core Web API, Entity Framework Core 8, PostgreSQL (Npgsql), MediatR (CQRS), FluentValidation, Mapperly, Serilog, Swagger/OpenAPI |
+| **Backend** | .NET 8, ASP.NET Core Web API, Entity Framework Core 8, PostgreSQL (Npgsql), MediatR (CQRS), FluentValidation, Serilog, Swagger/OpenAPI |
 | **Background jobs** | Hangfire (PostgreSQL storage) |
 | **Auth** | JWT access tokens + rotating refresh tokens, role- and policy-based authorization |
 | **Frontend** | Angular 22 (standalone components, signals, lazy-loaded routes), Angular Material 3 with light and dark themes, Reactive Forms, RxJS, Chart.js, ngx-translate |
@@ -130,7 +144,7 @@ Each folder is self-contained, and the branches share nothing but this README, s
 ```bash
 git clone -b backend https://github.com/Eya2/HR-Service-Desk-SLA-Management-System.git hr-backend
 cd hr-backend/backend
-cp .env.example .env        # then set POSTGRES_PASSWORD, JWT_SIGNING_KEY and SEED_PASSWORD
+cp .env.example .env        # then set the secrets: each line of the file explains how to generate it
 docker compose up -d --build
 ```
 
@@ -139,6 +153,8 @@ docker compose up -d --build
 | API (Swagger) | http://localhost:5080/swagger |
 | Health | http://localhost:5080/health/ready |
 | MailHog (e-mails sent by the app) | http://localhost:8025 |
+| Mock payroll system (webhooks received) | http://localhost:8090 |
+| Background jobs (Hangfire, local requests only) | http://localhost:5080/hangfire |
 
 ### 2. Start the frontend
 
@@ -152,7 +168,7 @@ The app is served at http://localhost:8080 and forwards `/api` to the backend on
 
 ### Demo accounts
 
-On first start the API seeds two organisations and one account per role. Every account uses the password you set in `SEED_PASSWORD`.
+On first start the API seeds two organisations, one account per role plus six more employees each, and **six weeks of history** (about 110 cases in every status, approvals, ratings, late and at-risk cases, a confidential report), so queues and dashboards are alive from the first minute. Every account uses the password you set in `SEED_PASSWORD`.
 
 | Organisation | Role | E-mail |
 |---|---|---|
@@ -183,8 +199,8 @@ npm start                                         # http://localhost:4200
 ### Running the tests
 
 ```bash
-cd backend && dotnet test          # unit + integration (Testcontainers needs Docker running)
-cd frontend && npm run test:ci     # Karma, headless Chrome
+cd backend && dotnet test          # 435 domain, 42 application, 135 integration tests (Testcontainers needs Docker running)
+cd frontend && npm run test:ci     # 107 specs, Karma with headless Chrome
 ```
 
 ## Roadmap
@@ -205,7 +221,7 @@ The project is delivered in 13 phases. Each phase ends with a green build and te
 | 10 | **Dashboards** | KPIs, charts, date and team filters, CSV export | backend · frontend | ✅ Done |
 | 11 | **Knowledge base, CSAT & i18n** | FAQ with suggestions while typing, satisfaction ratings, FR / EN / AR with RTL | backend · frontend | ✅ Done |
 | 12 | **Integration** | API keys, integration endpoints, HMAC-signed webhooks with retry, mock payroll container | backend | ✅ Done |
-| 13 | **Demo & polish** | Full seed (2 tenants, every role), end-to-end demo script, final documentation | backend · frontend | ⏳ Next |
+| 13 | **Demo & polish** | Six weeks of demo history, end-to-end demo script and test, user administration, screenshots, final documentation | backend · frontend | ✅ Done |
 
 ### Definition of done
 
@@ -215,12 +231,39 @@ The project is delivered in 13 phases. Each phase ends with a green build and te
 
 ## Demo scenario
 
-1. An **employee** submits a *payslip correction* through the portal's dynamic form.
-2. Their **manager** approves it from the approval queue.
-3. The case is routed to the **payroll** team; its SLA deadline is computed in business hours and **skips a public holiday**.
-4. Time passes: the case turns **AtRisk**, then **Breached**, and the escalation rules notify the manager and reassign it to a higher tier.
-5. The **dashboard** reflects the breach, and the full **audit trail** is visible on the case.
-6. Meanwhile, a **confidential** harassment report stays invisible to a regular HR agent.
+1. An **employee** submits a *payslip correction* through the portal's dynamic form (related help articles are suggested as she types).
+2. Her **manager** approves it from the approval queue; the SLA clock was paused meanwhile.
+3. The case is routed to the **Payroll** team; its deadline is computed in business hours and **skips a public holiday** (Evacuation Day, 15 October, in Tunisia).
+4. The **payroll system** receives a signed webhook and answers through the integration API.
+5. Time passes: the case turns **AtRisk** (the assignee is warned), then **Breached** (the manager is alerted, the priority raised).
+6. The **dashboard** shows the breach; the **audit log** shows who opened sensitive cases.
+7. A **confidential** harassment report stays invisible to a regular HR officer.
+8. Payroll resolves the case; the employee closes it and **rates** the service.
+
+Three ways to see it:
+
+- **Script** — `cd backend && ./scripts/demo.sh` plays the story against the running stack and prints each step.
+- **Guided tour** — [`docs/DEMO.md`](https://github.com/Eya2/HR-Service-Desk-SLA-Management-System/blob/backend/docs/DEMO.md) walks through the web app with each demo account.
+- **Automated** — [`DemoScenarioTests`](https://github.com/Eya2/HR-Service-Desk-SLA-Management-System/blob/backend/backend/tests/HrServiceDesk.IntegrationTests/Demo/DemoScenarioTests.cs) runs the whole story with a simulated clock on every push.
+
+## Integration API and webhooks
+
+External systems call `/api/integration/v1` with an `X-Api-Key` header (keys are created by an HR Admin, scoped to `tickets:read` / `tickets:write`, and write as their own service account):
+
+```bash
+curl -H "X-Api-Key: $KEY" "http://localhost:5080/api/integration/v1/tickets?category=Payroll&updatedSince=2026-10-01T00:00:00Z"
+curl -H "X-Api-Key: $KEY" -H "Content-Type: application/json" \
+     -d '{"status":"Resolved","reason":"Booked as PAY-202610-0042."}' \
+     http://localhost:5080/api/integration/v1/tickets/{id}/status
+```
+
+Webhooks carry thin payloads (identifiers, statuses, request type — never titles, comments or confidential cases), an `X-HrDesk-Delivery` id for idempotency and a signature to verify:
+
+```text
+X-HrDesk-Signature: t=1791000000,v1=<hex HMAC-SHA256(secret, "1791000000." + body)>
+```
+
+Failed deliveries are retried after 1 min, 5 min, 30 min, 2 h and 6 h, then marked failed and can be sent again from the admin screen. The [mock payroll](https://github.com/Eya2/HR-Service-Desk-SLA-Management-System/tree/backend/backend/tools/MockPayroll) is a complete receiver example.
 
 ## Engineering principles
 
