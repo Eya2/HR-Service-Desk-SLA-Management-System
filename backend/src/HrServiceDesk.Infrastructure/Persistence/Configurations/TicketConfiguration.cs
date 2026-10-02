@@ -1,4 +1,5 @@
 using HrServiceDesk.Domain.Catalog;
+using HrServiceDesk.Domain.Teams;
 using HrServiceDesk.Domain.Tickets;
 using HrServiceDesk.Domain.Users;
 using HrServiceDesk.Infrastructure.Tickets;
@@ -20,10 +21,15 @@ internal sealed class TicketConfiguration : IEntityTypeConfiguration<Ticket>
         builder.Property(t => t.FormData).HasColumnType("jsonb").IsRequired();
         builder.Ignore(t => t.IsFinal);
 
+        // Optimistic concurrency on PostgreSQL's xmin: two agents cannot both claim or move the same case.
+        builder.Property<uint>("Version").IsRowVersion();
+
         builder.HasIndex(t => new { t.TenantId, t.Reference }).IsUnique();
         builder.HasIndex(t => new { t.TenantId, t.Status });
         builder.HasIndex(t => new { t.TenantId, t.AssigneeId });
         builder.HasIndex(t => new { t.TenantId, t.RequesterId });
+        builder.HasIndex(t => new { t.TenantId, t.TeamId });
+        builder.HasOne<Team>().WithMany().HasForeignKey(t => t.TeamId).OnDelete(DeleteBehavior.SetNull);
 
         builder.HasOne<RequestType>().WithMany().HasForeignKey(t => t.RequestTypeId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<User>().WithMany().HasForeignKey(t => t.RequesterId).OnDelete(DeleteBehavior.Restrict);

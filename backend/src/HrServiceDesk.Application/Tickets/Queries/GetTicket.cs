@@ -26,6 +26,9 @@ internal sealed class GetTicketHandler(IAppDbContext db, ICurrentUser currentUse
             return TicketErrors.NotFound;
 
         var type = await db.RequestTypes.AsNoTracking().SingleAsync(t => t.Id == ticket.RequestTypeId, cancellationToken);
+        var team = ticket.TeamId is { } teamId
+            ? await db.Teams.AsNoTracking().Where(t => t.Id == teamId).Select(t => new TeamRefDto(t.Id, t.Name)).SingleOrDefaultAsync(cancellationToken)
+            : null;
         var seesInternal = TicketAccess.SeesAllCases(currentUser);
         var comments = ticket.Comments.Where(c => seesInternal || !c.IsInternal).OrderBy(c => c.CreatedAt).ToList();
         var events = ticket.Events.Where(e => seesInternal || !e.IsInternal).OrderBy(e => e.OccurredAt).ToList();
@@ -61,6 +64,7 @@ internal sealed class GetTicketHandler(IAppDbContext db, ICurrentUser currentUse
             ticket.IsConfidential,
             people[ticket.RequesterId],
             ticket.AssigneeId is { } a2 && people.TryGetValue(a2, out var assignee) ? assignee : null,
+            team,
             BuildAnswers(type.Schema, ticket.FormData, attachments),
             attachments,
             comments.Select(c => new CommentDto(c.Id, c.AuthorId, NameOf(c.AuthorId), c.Body, c.IsInternal, c.CreatedAt)).ToList(),
@@ -94,7 +98,9 @@ internal sealed class GetTicketHandler(IAppDbContext db, ICurrentUser currentUse
             DecidableApprovalId: ticket.CurrentApproval is { } current
                 && currentUser.UserId is { } me && me != ticket.RequesterId && current.IsApprover(me, currentUser.Roles)
                 ? current.Id
-                : null);
+                : null,
+            CanAssign: isStaff && !ticket.IsFinal,
+            CanClaim: isStaff && !ticket.IsFinal && ticket.AssigneeId != currentUser.UserId);
     }
 
     /// <summary>Labels the stored answers with the current form definition; answers to removed fields are kept under their key.</summary>

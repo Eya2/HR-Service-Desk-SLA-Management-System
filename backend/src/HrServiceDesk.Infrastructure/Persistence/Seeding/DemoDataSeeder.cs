@@ -1,4 +1,5 @@
 using HrServiceDesk.Application.Abstractions;
+using HrServiceDesk.Domain.Teams;
 using HrServiceDesk.Domain.Tenants;
 using HrServiceDesk.Domain.Users;
 using HrServiceDesk.Domain.Workflows;
@@ -35,6 +36,7 @@ internal sealed partial class DemoDataSeeder(
 
         await SeedCatalogAsync(cancellationToken);
         await SeedWorkflowsAsync(cancellationToken);
+        await SeedTeamsAsync(cancellationToken);
     }
 
     private async Task SeedTenantsAndUsersAsync(string demoPassword, CancellationToken cancellationToken)
@@ -133,6 +135,31 @@ internal sealed partial class DemoDataSeeder(
             var workflow = WorkflowDefinition.Create(type.Id, type.IsConfidential, steps);
             workflow.TenantId = type.TenantId;
             db.WorkflowDefinitions.Add(workflow);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task SeedTeamsAsync(CancellationToken cancellationToken)
+    {
+        string[] demoSlugs = ["acme-tn", "globex-fr"];
+        var tenantsWithTeams = await db.Teams.IgnoreQueryFilters().Select(t => t.TenantId).Distinct().ToListAsync(cancellationToken);
+        var tenants = await db.Tenants.Where(t => demoSlugs.Contains(t.Slug) && !tenantsWithTeams.Contains(t.Id)).ToListAsync(cancellationToken);
+
+        foreach (var tenant in tenants)
+        {
+            var users = await db.Users.IgnoreQueryFilters().Where(u => u.TenantId == tenant.Id).ToListAsync(cancellationToken);
+            var types = await db.RequestTypes.IgnoreQueryFilters().Where(t => t.TenantId == tenant.Id).ToListAsync(cancellationToken);
+
+            foreach (var definition in DemoTeams.All)
+            {
+                var members = users.Where(u => u.Roles.Any(r => definition.MemberRoles.Contains(r.ToString()))).Select(u => u.Id);
+                var team = Team.Create(definition.Name, definition.Strategy, members);
+                team.TenantId = tenant.Id;
+                db.Teams.Add(team);
+                foreach (var type in types.Where(t => definition.RequestTypes.Contains(t.Name)))
+                    type.SetResponsibleTeam(team.Id);
+            }
         }
 
         await db.SaveChangesAsync(cancellationToken);

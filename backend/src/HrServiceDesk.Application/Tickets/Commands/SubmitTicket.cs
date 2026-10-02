@@ -39,6 +39,7 @@ internal sealed class SubmitTicketHandler(
     ITenantContext tenantContext,
     IReferenceNumberGenerator references,
     IFileStorage storage,
+    Assignment.AutoAssigner autoAssigner,
     TimeProvider clock,
     IOptions<AttachmentOptions> attachmentOptions) : IRequestHandler<SubmitTicketCommand, Result<TicketCreatedDto>>
 {
@@ -68,6 +69,11 @@ internal sealed class SubmitTicketHandler(
         {
             var managerId = await db.Users.Where(u => u.Id == requesterId).Select(u => u.ManagerId).SingleAsync(cancellationToken);
             ticket.StartApproval(workflow, managerId, now);
+        }
+        else
+        {
+            // No approval needed: the responsible team can start right away.
+            await autoAssigner.AssignAsync(ticket, cancellationToken);
         }
         var attachments = await TicketFiles.StoreAsync(storage, tenantId, ticket, files, requesterId, now, cancellationToken);
 

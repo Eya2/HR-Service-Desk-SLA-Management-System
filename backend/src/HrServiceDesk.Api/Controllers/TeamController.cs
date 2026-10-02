@@ -1,8 +1,8 @@
 using HrServiceDesk.Api.ErrorHandling;
 using HrServiceDesk.Application.Auth;
 using HrServiceDesk.Application.Common;
-using HrServiceDesk.Application.Team;
-using HrServiceDesk.Application.Team.Queries;
+using HrServiceDesk.Application.MyTeam;
+using HrServiceDesk.Application.MyTeam.Queries;
 using HrServiceDesk.Application.Tickets;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

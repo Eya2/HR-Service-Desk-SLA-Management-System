@@ -8,7 +8,7 @@ using HrServiceDesk.Domain.Tickets;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace HrServiceDesk.Application.Team.Queries;
+namespace HrServiceDesk.Application.MyTeam.Queries;
 
 /// <summary>Non-confidential requests of the caller's direct reports, newest first.</summary>
 public sealed record ListTeamTicketsQuery(string? Status, int Page = 1, int PageSize = 20) : IRequest<PagedResult<TicketSummaryDto>>;

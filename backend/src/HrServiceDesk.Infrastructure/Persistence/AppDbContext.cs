@@ -2,6 +2,7 @@ using System.Reflection;
 using HrServiceDesk.Application.Abstractions;
 using HrServiceDesk.Domain.Catalog;
 using HrServiceDesk.Domain.Common;
+using HrServiceDesk.Domain.Teams;
 using HrServiceDesk.Domain.Tenants;
 using HrServiceDesk.Domain.Tickets;
 using HrServiceDesk.Domain.Users;
@@ -57,6 +58,8 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<TicketApproval> TicketApprovals => Set<TicketApproval>();
 
     public DbSet<WorkflowDefinition> WorkflowDefinitions => Set<WorkflowDefinition>();
+
+    public DbSet<Team> Teams => Set<Team>();
 
     internal DbSet<ReferenceCounter> ReferenceCounters => Set<ReferenceCounter>();
 

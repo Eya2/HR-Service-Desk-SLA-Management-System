@@ -32,6 +32,10 @@ public sealed class TicketsController : ApiControllerBase
 
     public sealed record ChangeStatusRequest(string Status, string? Reason);
 
+    public sealed record AssignRequest(Guid? AssigneeId);
+
+    public sealed record MoveToTeamRequest(Guid TeamId);
+
     /// <summary>
     /// Submits a request. Send <c>multipart/form-data</c> with a <c>payload</c> part (JSON: requestTypeId,
     /// title, description, values) and one file part per uploaded document, named after its form field key.
@@ -59,14 +63,41 @@ public sealed class TicketsController : ApiControllerBase
         CancellationToken cancellationToken = default) =>
         Ok(await Sender.Send(new ListMyTicketsQuery(status, search, page, pageSize), cancellationToken));
 
-    /// <summary>Every case visible to HR staff or auditors.</summary>
+    /// <summary>
+    /// Cases visible to HR staff or auditors. <paramref name="scope"/>: All, Mine (assigned to me), MyTeams, Unassigned;
+    /// <paramref name="activeOnly"/> hides resolved and closed cases.
+    /// </summary>
     [HttpGet]
     [Authorize(Policy = Policies.CanViewAllTickets)]
     [ProducesResponseType<PagedResult<TicketSummaryDto>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<TicketSummaryDto>>> List(
         [FromQuery] string? status, [FromQuery] string? priority, [FromQuery] Guid? requestTypeId, [FromQuery] string? search,
+        [FromQuery] TicketScope scope = TicketScope.All, [FromQuery] Guid? teamId = null, [FromQuery] bool activeOnly = false,
         [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default) =>
-        Ok(await Sender.Send(new ListTicketsQuery(status, priority, requestTypeId, search, page, pageSize), cancellationToken));
+        Ok(await Sender.Send(
+            new ListTicketsQuery(status, priority, requestTypeId, search, page, pageSize, scope, teamId, activeOnly), cancellationToken));
+
+    /// <summary>The caller takes the case. 409 if someone else already holds it or took it at the same moment.</summary>
+    [HttpPost("{id:guid}/claim")]
+    [Authorize(Policy = Policies.CanWorkTickets)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult> Claim(Guid id, CancellationToken cancellationToken) =>
+        FromResult(await Sender.Send(new ClaimTicketCommand(id), cancellationToken));
+
+    /// <summary>Assigns the case to an HR staff member, or back to the team queue when <c>assigneeId</c> is null.</summary>
+    [HttpPut("{id:guid}/assignee")]
+    [Authorize(Policy = Policies.CanWorkTickets)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<ActionResult> Assign(Guid id, AssignRequest request, CancellationToken cancellationToken) =>
+        FromResult(await Sender.Send(new AssignTicketCommand(id, request.AssigneeId), cancellationToken));
+
+    /// <summary>Hands the case to another team, which assigns it according to its strategy.</summary>
+    [HttpPut("{id:guid}/team")]
+    [Authorize(Policy = Policies.CanWorkTickets)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<ActionResult> MoveToTeam(Guid id, MoveToTeamRequest request, CancellationToken cancellationToken) =>
+        FromResult(await Sender.Send(new MoveTicketToTeamCommand(id, request.TeamId), cancellationToken));
 
     [HttpGet("{id:guid}")]
     [ProducesResponseType<TicketDetailsDto>(StatusCodes.Status200OK)]

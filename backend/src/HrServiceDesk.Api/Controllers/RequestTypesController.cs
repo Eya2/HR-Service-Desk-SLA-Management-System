@@ -3,6 +3,7 @@ using HrServiceDesk.Application.Auth;
 using HrServiceDesk.Application.Catalog;
 using HrServiceDesk.Application.Catalog.Commands;
 using HrServiceDesk.Application.Catalog.Queries;
+using HrServiceDesk.Application.Teams.Commands;
 using HrServiceDesk.Domain.Catalog;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,6 +18,8 @@ public sealed class RequestTypesController : ApiControllerBase
         string Name, string? Description, string Category, bool IsConfidential, string DefaultPriority, IReadOnlyList<FormField> Fields);
 
     public sealed record SetActiveRequest(bool IsActive);
+
+    public sealed record SetTeamRequest(Guid? TeamId);
 
     /// <summary>Lists the catalog, with optional text search and category filter.</summary>
     [HttpGet]
@@ -56,6 +59,14 @@ public sealed class RequestTypesController : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<ActionResult> SetActive(Guid id, SetActiveRequest request, CancellationToken cancellationToken) =>
         FromResult(await Sender.Send(new SetRequestTypeActiveCommand(id, request.IsActive), cancellationToken));
+
+    /// <summary>Chooses the team that handles cases of this type (null: none).</summary>
+    [HttpPut("{id:guid}/team")]
+    [Authorize(Policy = Policies.CanAdministerTenant)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> SetTeam(Guid id, SetTeamRequest request, CancellationToken cancellationToken) =>
+        FromResult(await Sender.Send(new SetResponsibleTeamCommand(id, request.TeamId), cancellationToken));
 
     private static SaveRequestTypeCommand ToCommand(Guid? id, SaveRequestTypeRequest r) =>
         new(id, r.Name, r.Description, r.Category, r.IsConfidential, r.DefaultPriority, r.Fields ?? []);

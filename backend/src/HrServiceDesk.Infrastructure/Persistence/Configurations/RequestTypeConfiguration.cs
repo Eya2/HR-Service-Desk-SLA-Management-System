@@ -1,4 +1,5 @@
 using HrServiceDesk.Domain.Catalog;
+using HrServiceDesk.Domain.Teams;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -16,5 +17,6 @@ internal sealed class RequestTypeConfiguration : IEntityTypeConfiguration<Reques
         builder.Property(t => t.FormSchemaJson).HasColumnName("form_schema").HasColumnType("jsonb").IsRequired();
         builder.Ignore(t => t.Schema);
         builder.HasIndex(t => new { t.TenantId, t.Name }).IsUnique();
+        builder.HasOne<Team>().WithMany().HasForeignKey(t => t.ResponsibleTeamId).OnDelete(DeleteBehavior.SetNull);
     }
 }

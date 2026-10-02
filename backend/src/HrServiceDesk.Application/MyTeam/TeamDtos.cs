@@ -1,4 +1,4 @@
-namespace HrServiceDesk.Application.Team;
+namespace HrServiceDesk.Application.MyTeam;
 
 public sealed record StatusCountDto(string Status, int Count);
 

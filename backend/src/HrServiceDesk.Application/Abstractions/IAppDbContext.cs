@@ -1,4 +1,5 @@
 using HrServiceDesk.Domain.Catalog;
+using HrServiceDesk.Domain.Teams;
 using HrServiceDesk.Domain.Tenants;
 using HrServiceDesk.Domain.Tickets;
 using HrServiceDesk.Domain.Users;
@@ -30,6 +31,8 @@ public interface IAppDbContext
     DbSet<TicketApproval> TicketApprovals { get; }
 
     DbSet<WorkflowDefinition> WorkflowDefinitions { get; }
+
+    DbSet<Team> Teams { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

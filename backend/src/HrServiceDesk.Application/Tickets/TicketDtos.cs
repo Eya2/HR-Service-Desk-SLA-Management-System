@@ -17,8 +17,14 @@ public sealed record TicketSummaryDto(
     bool IsConfidential,
     Guid RequesterId,
     string RequesterName,
+    Guid? TeamId,
+    string? TeamName,
+    Guid? AssigneeId,
+    string? AssigneeName,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt);
+
+public sealed record TeamRefDto(Guid Id, string Name);
 
 public sealed record PersonDto(Guid Id, string FullName, string Email);
 
@@ -42,7 +48,9 @@ public sealed record TicketPermissionsDto(
     bool CanChangePriority,
     bool CanAttach,
     IReadOnlyList<string> AvailableTransitions,
-    Guid? DecidableApprovalId);
+    Guid? DecidableApprovalId,
+    bool CanAssign,
+    bool CanClaim);
 
 /// <summary>One approval step of a case.</summary>
 public sealed record ApprovalDto(
@@ -65,6 +73,7 @@ public sealed record TicketDetailsDto(
     bool IsConfidential,
     PersonDto Requester,
     PersonDto? Assignee,
+    TeamRefDto? Team,
     IReadOnlyList<FormAnswerDto> Answers,
     IReadOnlyList<AttachmentDto> Attachments,
     IReadOnlyList<CommentDto> Comments,

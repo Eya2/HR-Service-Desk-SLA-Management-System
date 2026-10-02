@@ -17,5 +17,10 @@ public static class TicketErrors
     public static Error InvalidTransition(TicketStatus from, TicketStatus to) =>
         Error.DomainRule("ticket.invalid_transition", $"A case cannot move from {from} to {to}.");
 
+    public static readonly Error AlreadyAssigned = Error.Conflict("ticket.already_assigned", "Someone else is already working on this case.");
+    public static readonly Error StaffOnly = Error.Forbidden("ticket.staff_only", "Only HR staff can assign cases.");
+    public static readonly Error AssigneeNotStaff = Error.Validation("ticket.invalid_assignee", "Cases can only be assigned to active HR staff of this organisation.");
+    public static readonly Error TeamNotFound = Error.NotFound("team.not_found", "Team not found.");
+
     public static readonly Error NotEditable = Error.DomainRule("ticket.not_editable", "This case can no longer be edited.");
 }

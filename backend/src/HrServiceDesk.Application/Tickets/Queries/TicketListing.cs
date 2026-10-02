@@ -20,6 +20,8 @@ internal static class TicketListing
         from t in tickets
         join type in db.RequestTypes on t.RequestTypeId equals type.Id
         join requester in db.Users on t.RequesterId equals requester.Id
+        from team in db.Teams.Where(x => x.Id == t.TeamId).DefaultIfEmpty()
+        from assignee in db.Users.Where(u => u.Id == t.AssigneeId).DefaultIfEmpty()
         select new TicketSummaryDto(
             t.Id,
             t.Reference,
@@ -32,6 +34,10 @@ internal static class TicketListing
             t.IsConfidential,
             requester.Id,
             requester.FirstName + " " + requester.LastName,
+            t.TeamId,
+            team != null ? team.Name : null,
+            t.AssigneeId,
+            assignee != null ? assignee.FirstName + " " + assignee.LastName : null,
             t.CreatedAt,
             t.UpdatedAt);
 }
