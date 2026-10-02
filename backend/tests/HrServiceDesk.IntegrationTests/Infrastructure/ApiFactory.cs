@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 namespace HrServiceDesk.IntegrationTests.Infrastructure;
 
 /// <summary>Hosts the real API against the Testcontainers database, with migrations and demo seed on startup.</summary>
-public sealed class ApiFactory(string connectionString, IReadOnlyDictionary<string, string>? overrides = null)
+public class ApiFactory(string connectionString, IReadOnlyDictionary<string, string>? overrides = null)
     : WebApplicationFactory<Program>
 {
     public const string SigningKey = "integration-tests-signing-key-0123456789abcdef";
