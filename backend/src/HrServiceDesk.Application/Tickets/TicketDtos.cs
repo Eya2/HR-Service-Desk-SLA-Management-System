@@ -21,6 +21,8 @@ public sealed record TicketSummaryDto(
     string? TeamName,
     Guid? AssigneeId,
     string? AssigneeName,
+    string SlaState,
+    DateTimeOffset? ResolutionDueAt,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt);
 
@@ -74,6 +76,7 @@ public sealed record TicketDetailsDto(
     PersonDto Requester,
     PersonDto? Assignee,
     TeamRefDto? Team,
+    Sla.TicketSlaDto Sla,
     IReadOnlyList<FormAnswerDto> Answers,
     IReadOnlyList<AttachmentDto> Attachments,
     IReadOnlyList<CommentDto> Comments,

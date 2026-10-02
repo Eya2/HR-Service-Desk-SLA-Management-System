@@ -38,6 +38,8 @@ internal static class TicketListing
             team != null ? team.Name : null,
             t.AssigneeId,
             assignee != null ? assignee.FirstName + " " + assignee.LastName : null,
+            t.SlaState.ToString(),
+            t.ResolutionDueAt,
             t.CreatedAt,
             t.UpdatedAt);
 }

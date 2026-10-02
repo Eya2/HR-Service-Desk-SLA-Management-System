@@ -40,6 +40,7 @@ internal sealed class SubmitTicketHandler(
     IReferenceNumberGenerator references,
     IFileStorage storage,
     Assignment.AutoAssigner autoAssigner,
+    Sla.SlaService sla,
     TimeProvider clock,
     IOptions<AttachmentOptions> attachmentOptions) : IRequestHandler<SubmitTicketCommand, Result<TicketCreatedDto>>
 {
@@ -75,6 +76,8 @@ internal sealed class SubmitTicketHandler(
             // No approval needed: the responsible team can start right away.
             await autoAssigner.AssignAsync(ticket, cancellationToken);
         }
+
+        await sla.StartAsync(ticket, type, cancellationToken);
         var attachments = await TicketFiles.StoreAsync(storage, tenantId, ticket, files, requesterId, now, cancellationToken);
 
         // File fields are answered by the ids of their attachments.

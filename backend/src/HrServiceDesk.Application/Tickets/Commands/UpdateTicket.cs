@@ -24,7 +24,7 @@ internal sealed class UpdateTicketValidator : AbstractValidator<UpdateTicketComm
     }
 }
 
-internal sealed class UpdateTicketHandler(IAppDbContext db, ICurrentUser currentUser, TimeProvider clock)
+internal sealed class UpdateTicketHandler(IAppDbContext db, ICurrentUser currentUser, Sla.SlaService sla, TimeProvider clock)
     : IRequestHandler<UpdateTicketCommand, Result>
 {
     public async Task<Result> Handle(UpdateTicketCommand request, CancellationToken cancellationToken)
@@ -51,6 +51,7 @@ internal sealed class UpdateTicketHandler(IAppDbContext db, ICurrentUser current
                 if (!isStaff)
                     return TicketErrors.PriorityForbidden;
                 ticket.ChangePriority(priority, actorId, now);
+                await sla.RetargetAsync(ticket, cancellationToken);
             }
         }
 

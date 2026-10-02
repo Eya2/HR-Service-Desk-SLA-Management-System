@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddValidatorsFromAssembly(assembly, includeInternalTypes: true);
         services.AddScoped<Auth.SessionIssuer>();
         services.AddScoped<Tickets.Assignment.AutoAssigner>();
+        services.AddScoped<Sla.SlaService>();
 
         return services;
     }

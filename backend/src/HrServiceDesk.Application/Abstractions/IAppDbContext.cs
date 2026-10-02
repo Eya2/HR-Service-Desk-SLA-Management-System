@@ -1,4 +1,5 @@
 using HrServiceDesk.Domain.Catalog;
+using HrServiceDesk.Domain.Sla;
 using HrServiceDesk.Domain.Teams;
 using HrServiceDesk.Domain.Tenants;
 using HrServiceDesk.Domain.Tickets;
@@ -33,6 +34,10 @@ public interface IAppDbContext
     DbSet<WorkflowDefinition> WorkflowDefinitions { get; }
 
     DbSet<Team> Teams { get; }
+
+    DbSet<BusinessCalendar> BusinessCalendars { get; }
+
+    DbSet<SlaPolicy> SlaPolicies { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

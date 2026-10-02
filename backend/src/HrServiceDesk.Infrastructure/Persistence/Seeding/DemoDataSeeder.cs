@@ -37,6 +37,7 @@ internal sealed partial class DemoDataSeeder(
         await SeedCatalogAsync(cancellationToken);
         await SeedWorkflowsAsync(cancellationToken);
         await SeedTeamsAsync(cancellationToken);
+        await SeedSlaAsync(cancellationToken);
     }
 
     private async Task SeedTenantsAndUsersAsync(string demoPassword, CancellationToken cancellationToken)
@@ -160,6 +161,34 @@ internal sealed partial class DemoDataSeeder(
                 foreach (var type in types.Where(t => definition.RequestTypes.Contains(t.Name)))
                     type.SetResponsibleTeam(team.Id);
             }
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task SeedSlaAsync(CancellationToken cancellationToken)
+    {
+        var configured = await db.BusinessCalendars.IgnoreQueryFilters().Select(c => c.TenantId).ToListAsync(cancellationToken);
+        var tenants = await db.Tenants.Where(t => (t.Slug == "acme-tn" || t.Slug == "globex-fr") && !configured.Contains(t.Id))
+            .ToListAsync(cancellationToken);
+
+        foreach (var tenant in tenants)
+        {
+            var calendar = tenant.Slug == "acme-tn" ? DemoSla.Tunisia() : DemoSla.France();
+            calendar.TenantId = tenant.Id;
+            db.BusinessCalendars.Add(calendar);
+
+            var standard = DemoSla.Standard();
+            standard.TenantId = tenant.Id;
+            var payroll = DemoSla.Payroll();
+            payroll.TenantId = tenant.Id;
+            db.SlaPolicies.AddRange(standard, payroll);
+
+            var payrollTypes = await db.RequestTypes.IgnoreQueryFilters()
+                .Where(t => t.TenantId == tenant.Id && DemoSla.PayrollRequestTypes.Contains(t.Name))
+                .ToListAsync(cancellationToken);
+            foreach (var type in payrollTypes)
+                type.SetSlaPolicy(payroll.Id);
         }
 
         await db.SaveChangesAsync(cancellationToken);

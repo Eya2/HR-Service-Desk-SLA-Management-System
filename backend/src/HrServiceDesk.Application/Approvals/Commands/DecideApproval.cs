@@ -21,7 +21,7 @@ internal sealed class DecideApprovalValidator : AbstractValidator<DecideApproval
 }
 
 internal sealed class DecideApprovalHandler(
-    IAppDbContext db, ICurrentUser currentUser, Tickets.Assignment.AutoAssigner autoAssigner, TimeProvider clock)
+    IAppDbContext db, ICurrentUser currentUser, Tickets.Assignment.AutoAssigner autoAssigner, Sla.SlaService sla, TimeProvider clock)
     : IRequestHandler<DecideApprovalCommand, Result>
 {
     private static readonly Error NotApprover = Error.Forbidden("approval.not_approver", "You are not an approver for this step.");
@@ -47,6 +47,7 @@ internal sealed class DecideApprovalHandler(
             ticket.AddComment(userId, request.Comment!, isInternal: false, clock.GetUtcNow());
         else if (ticket.Status == TicketStatus.Open)
             await autoAssigner.AssignAsync(ticket, cancellationToken); // last approval: hand over to the team
+        await sla.RefreshAsync(ticket, cancellationToken);
 
         await db.SaveChangesAsync(cancellationToken);
         return Result.Success();

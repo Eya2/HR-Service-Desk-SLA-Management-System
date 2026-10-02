@@ -25,7 +25,7 @@ internal sealed class ChangeTicketStatusValidator : AbstractValidator<ChangeTick
     }
 }
 
-internal sealed class ChangeTicketStatusHandler(IAppDbContext db, ICurrentUser currentUser, TimeProvider clock)
+internal sealed class ChangeTicketStatusHandler(IAppDbContext db, ICurrentUser currentUser, Sla.SlaService sla, TimeProvider clock)
     : IRequestHandler<ChangeTicketStatusCommand, Result>
 {
     public async Task<Result> Handle(ChangeTicketStatusCommand request, CancellationToken cancellationToken)
@@ -51,7 +51,10 @@ internal sealed class ChangeTicketStatusHandler(IAppDbContext db, ICurrentUser c
         var now = clock.GetUtcNow();
         if (!string.IsNullOrWhiteSpace(request.Reason))
             ticket.AddComment(actorId, request.Reason, isInternal: false, now);
+        if (!string.IsNullOrWhiteSpace(request.Reason) && TicketAccess.IsStaff(currentUser) && actorId != ticket.RequesterId)
+            ticket.RecordFirstResponse(now);
         ticket.ChangeStatus(to, actor, actorId, now, request.Reason);
+        await sla.RefreshAsync(ticket, cancellationToken);
 
         await db.SaveChangesAsync(cancellationToken);
         return Result.Success();

@@ -21,6 +21,13 @@ internal sealed class TicketConfiguration : IEntityTypeConfiguration<Ticket>
         builder.Property(t => t.FormData).HasColumnType("jsonb").IsRequired();
         builder.Ignore(t => t.IsFinal);
 
+        // SLA clock: snapshot of the policy, pause history (jsonb) and computed deadlines.
+        builder.PrimitiveCollection(t => t.SlaPauseStatuses).ElementType(e => e.HasConversion<string>().HasMaxLength(32));
+        builder.Property(t => t.SlaState).HasConversion<string>().HasMaxLength(16);
+        builder.OwnsMany(t => t.SlaPauses, pause => pause.ToJson());
+        builder.Ignore(t => t.IsSlaPaused);
+        builder.HasIndex(t => new { t.SlaState, t.ResolutionDueAt });
+
         // Optimistic concurrency on PostgreSQL's xmin: two agents cannot both claim or move the same case.
         builder.Property<uint>("Version").IsRowVersion();
 

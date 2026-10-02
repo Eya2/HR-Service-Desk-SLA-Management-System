@@ -2,6 +2,7 @@ using System.Reflection;
 using HrServiceDesk.Application.Abstractions;
 using HrServiceDesk.Domain.Catalog;
 using HrServiceDesk.Domain.Common;
+using HrServiceDesk.Domain.Sla;
 using HrServiceDesk.Domain.Teams;
 using HrServiceDesk.Domain.Tenants;
 using HrServiceDesk.Domain.Tickets;
@@ -60,6 +61,10 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<WorkflowDefinition> WorkflowDefinitions => Set<WorkflowDefinition>();
 
     public DbSet<Team> Teams => Set<Team>();
+
+    public DbSet<BusinessCalendar> BusinessCalendars => Set<BusinessCalendar>();
+
+    public DbSet<SlaPolicy> SlaPolicies => Set<SlaPolicy>();
 
     internal DbSet<ReferenceCounter> ReferenceCounters => Set<ReferenceCounter>();
 

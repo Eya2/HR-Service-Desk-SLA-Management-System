@@ -1,4 +1,5 @@
 using HrServiceDesk.Domain.Catalog;
+using HrServiceDesk.Domain.Sla;
 using HrServiceDesk.Domain.Teams;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -18,5 +19,6 @@ internal sealed class RequestTypeConfiguration : IEntityTypeConfiguration<Reques
         builder.Ignore(t => t.Schema);
         builder.HasIndex(t => new { t.TenantId, t.Name }).IsUnique();
         builder.HasOne<Team>().WithMany().HasForeignKey(t => t.ResponsibleTeamId).OnDelete(DeleteBehavior.SetNull);
+        builder.HasOne<SlaPolicy>().WithMany().HasForeignKey(t => t.SlaPolicyId).OnDelete(DeleteBehavior.SetNull);
     }
 }

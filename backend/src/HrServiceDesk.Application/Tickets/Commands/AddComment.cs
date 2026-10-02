@@ -15,7 +15,7 @@ internal sealed class AddCommentValidator : AbstractValidator<AddCommentCommand>
     public AddCommentValidator() => RuleFor(c => c.Body).NotEmpty().MaximumLength(Comment.BodyMaxLength);
 }
 
-internal sealed class AddCommentHandler(IAppDbContext db, ICurrentUser currentUser, TimeProvider clock)
+internal sealed class AddCommentHandler(IAppDbContext db, ICurrentUser currentUser, Sla.SlaService sla, TimeProvider clock)
     : IRequestHandler<AddCommentCommand, Result<CommentDto>>
 {
     public async Task<Result<CommentDto>> Handle(AddCommentCommand request, CancellationToken cancellationToken)
@@ -34,9 +34,15 @@ internal sealed class AddCommentHandler(IAppDbContext db, ICurrentUser currentUs
         var now = clock.GetUtcNow();
         var comment = ticket.AddComment(authorId, request.Body, request.IsInternal, now);
 
+        // HR's first public reply is the first response.
+        if (!request.IsInternal && authorId != ticket.RequesterId && TicketAccess.IsStaff(currentUser))
+            ticket.RecordFirstResponse(now);
+
         // The employee answered the question HR asked: work (and the SLA clock) resumes.
         if (ticket.Status == TicketStatus.WaitingOnEmployee && ticket.RequesterId == authorId && !request.IsInternal)
             ticket.ChangeStatus(TicketStatus.InProgress, TransitionActor.Requester, authorId, now);
+
+        await sla.RefreshAsync(ticket, cancellationToken);
 
         await db.SaveChangesAsync(cancellationToken);
 
