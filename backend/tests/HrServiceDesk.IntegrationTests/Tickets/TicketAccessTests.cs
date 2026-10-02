@@ -117,7 +117,7 @@ public sealed class TicketAccessTests(PostgresFixture postgres)
         var auditor = await SignedInAs(DemoUsers.AcmeAuditor);
 
         var view = (await auditor.GetFromJsonAsync<TicketDetails>($"/api/tickets/{created.Id}"))!;
-        view.Permissions.Should().BeEquivalentTo(new Permissions(false, false, false, false, false));
+        view.Permissions.Should().BeEquivalentTo(new Permissions(false, false, false, false, false, []));
 
         var comment = await auditor.PostAsJsonAsync($"/api/tickets/{created.Id}/comments", new { body = "Audit", isInternal = false });
         comment.StatusCode.Should().Be(HttpStatusCode.Forbidden);

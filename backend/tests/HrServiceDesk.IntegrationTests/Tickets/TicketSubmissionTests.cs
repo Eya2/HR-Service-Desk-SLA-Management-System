@@ -37,7 +37,8 @@ public sealed partial class TicketSubmissionTests(PostgresFixture postgres)
         var payslip = ticket.Answers.Single(a => a.Key == "payslip").Files.Should().ContainSingle().Subject;
         payslip.FileName.Should().Be("payslip-march.pdf");
         payslip.ContentType.Should().Be("application/pdf");
-        ticket.Permissions.Should().BeEquivalentTo(new Permissions(true, false, true, false, true));
+        ticket.Permissions.Should().BeEquivalentTo(new Permissions(true, false, true, false, true, ["Cancelled"]));
+        ticket.Timeline.Should().ContainSingle().Which.Type.Should().Be("Created");
     }
 
     [Fact]
