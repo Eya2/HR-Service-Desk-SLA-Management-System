@@ -196,8 +196,8 @@ The project is delivered in 13 phases. Each phase ends with a green build and te
 | 1 | **Scaffolding** | Solution structure, EF Core + tenant filter, Serilog, Swagger, ProblemDetails, health checks, Docker Compose, Angular shell, CI | backend · frontend | ✅ Done |
 | 2 | **Authentication** | Users, roles, policies, JWT + rotating refresh tokens, password policy, rate limiting; Angular login, layout, guards, interceptor | backend · frontend | ✅ Done |
 | 3 | **Catalog & tickets** | Request types with JSON form schema, tickets CRUD, reference numbers, public/internal comments, attachments; employee portal | backend · frontend | ✅ Done |
-| 4 | **Status machine & audit** | Transition table with role permissions, audit events, timeline UI, exhaustive tests | backend · frontend | ⏳ Next |
-| 5 | **Approval workflows** | Workflow engine, admin workflow editor, manager approval queue | backend · frontend | 🔲 Planned |
+| 4 | **Status machine & audit** | Transition table with role permissions, audit events, timeline UI, exhaustive tests | backend · frontend | ✅ Done |
+| 5 | **Approval workflows** | Workflow engine, admin workflow editor, manager approval queue | backend · frontend | ⏳ Next |
 | 6 | **Teams & assignment** | Teams, manual / round-robin / least-loaded strategies, optimistic concurrency, agent queue | backend · frontend | 🔲 Planned |
 | 7 | **SLA foundations** | Business calendars and holidays (TN/FR), business-time calculator, SLA policies, pause/resume | backend · frontend | 🔲 Planned |
 | 8 | **SLA monitor & escalation** | Hangfire job every minute, escalation rules (idempotent), in-app and email notifications | backend · frontend | 🔲 Planned |
