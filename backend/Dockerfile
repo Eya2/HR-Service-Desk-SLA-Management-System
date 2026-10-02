@@ -18,7 +18,8 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 ENV ASPNETCORE_HTTP_PORTS=8080
 COPY --from=build /app/publish .
-# Non-root user shipped with the official .NET 8 images.
+# Attachment storage (mounted as a volume); owned by the non-root user shipped with the .NET 8 images.
+RUN mkdir -p /app/data/attachments && chown -R app:app /app/data
 USER app
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "HrServiceDesk.Api.dll"]
