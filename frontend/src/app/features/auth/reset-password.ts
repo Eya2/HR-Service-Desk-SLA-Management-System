@@ -1,10 +1,7 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { AbstractControl, NonNullableFormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { problemMessage } from '../../core/http/error.interceptor';
@@ -29,14 +26,14 @@ const matching = (group: AbstractControl): ValidationErrors | null =>
 /** Chooses a new password with the e-mailed link (?email=…&token=…). */
 @Component({
   selector: 'app-reset-password',
-  imports: [ReactiveFormsModule, RouterLink, MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule, AuthLayout, TranslatePipe],
+  imports: [ReactiveFormsModule, RouterLink, MatIconModule, AuthLayout, TranslatePipe],
   template: `
     <app-auth-layout>
       @if (done()) {
         <div role="status" data-testid="reset-done">
           <h1>{{ 'auth.changed' | translate }}</h1>
           <p class="lead">{{ 'auth.changedLead' | translate }}</p>
-          <a mat-flat-button routerLink="/login" class="submit">{{ 'auth.signIn' | translate }}</a>
+          <a routerLink="/login" class="auth-submit">{{ 'auth.signIn' | translate }}</a>
         </div>
       } @else if (!email() || !token()) {
         <h1>{{ 'auth.incomplete' | translate }}</h1>
@@ -45,10 +42,13 @@ const matching = (group: AbstractControl): ValidationErrors | null =>
         <h1>{{ 'auth.chooseNew' | translate }}</h1>
         <p class="lead">{{ 'auth.forEmail' | translate: { email: email() } }}</p>
         <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-          <mat-form-field appearance="outline">
-            <mat-label>{{ 'auth.newPassword' | translate }}</mat-label>
-            <input matInput type="password" formControlName="password" autocomplete="new-password" required />
-          </mat-form-field>
+          <label class="auth-field">
+            <span class="auth-label">{{ 'auth.newPassword' | translate }}</span>
+            <span class="auth-input">
+              <mat-icon fontSet="material-symbols-outlined">lock</mat-icon>
+              <input type="password" formControlName="password" autocomplete="new-password" required />
+            </span>
+          </label>
           <ul class="rules" [attr.aria-label]="'auth.rulesLabel' | translate">
             @for (rule of rules; track rule.label) {
               <li [class.ok]="rule.test(password())">
@@ -57,19 +57,22 @@ const matching = (group: AbstractControl): ValidationErrors | null =>
               </li>
             }
           </ul>
-          <mat-form-field appearance="outline">
-            <mat-label>{{ 'auth.confirmPassword' | translate }}</mat-label>
-            <input matInput type="password" formControlName="confirm" autocomplete="new-password" required />
-          </mat-form-field>
-          @if (form.hasError('mismatch') && form.controls.confirm.touched) {
-            <p class="error" data-testid="mismatch">{{ 'auth.mismatch' | translate }}</p>
-          }
+          <label class="auth-field" [class.invalid]="form.hasError('mismatch') && form.controls.confirm.touched">
+            <span class="auth-label">{{ 'auth.confirmPassword' | translate }}</span>
+            <span class="auth-input">
+              <mat-icon fontSet="material-symbols-outlined">lock_reset</mat-icon>
+              <input type="password" formControlName="confirm" autocomplete="new-password" required />
+            </span>
+            @if (form.hasError('mismatch') && form.controls.confirm.touched) {
+              <span class="auth-error" data-testid="mismatch"><mat-icon fontSet="material-symbols-outlined">error</mat-icon>{{ 'auth.mismatch' | translate }}</span>
+            }
+          </label>
           @if (error(); as message) {
             <p class="error" role="alert" data-testid="reset-error">
               {{ message }} <a routerLink="/forgot-password">{{ 'auth.askNewLink' | translate }}</a>
             </p>
           }
-          <button mat-flat-button type="submit" class="submit" [disabled]="form.invalid || saving()">{{ 'auth.changePassword' | translate }}</button>
+          <button type="submit" class="auth-submit" [disabled]="form.invalid || saving()">{{ 'auth.changePassword' | translate }}</button>
         </form>
       }
     </app-auth-layout>

@@ -104,6 +104,11 @@
     "pitch2": "Des circuits d'approbation que vos managers utilisent vraiment",
     "pitch3": "Des dossiers confidentiels vus uniquement par les bonnes personnes",
     "pitchTitle": "Le service RH,<br />dans les délais, à chaque fois.",
+    "preview": {
+      "case": "Correction de bulletin de paie",
+      "early": "Résolu 2 h avant l'échéance",
+      "ratings": "sur 128 évaluations"
+    },
     "rememberMe": "Se souvenir de moi",
     "rule": {
       "digit": "Un chiffre",

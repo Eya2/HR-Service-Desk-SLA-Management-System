@@ -1,11 +1,7 @@
 import { Component, inject, input, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { problemMessage } from '../../core/http/error.interceptor';
@@ -17,12 +13,8 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
   imports: [
     ReactiveFormsModule,
     RouterLink,
-    MatButtonModule,
     MatCheckboxModule,
-    MatFormFieldModule,
     MatIconModule,
-    MatInputModule,
-    MatProgressSpinnerModule,
     AuthLayout,
     TranslatePipe,
   ],
@@ -32,45 +24,49 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
       <p class="lead">{{ 'auth.lead' | translate }}</p>
 
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-        <mat-form-field appearance="outline">
-          <mat-label>{{ 'auth.email' | translate }}</mat-label>
-          <mat-icon matPrefix fontSet="material-symbols-outlined">mail</mat-icon>
-          <input matInput formControlName="email" type="email" autocomplete="username" required />
-          @if (form.controls.email.hasError('required')) {
-            <mat-error>{{ 'auth.emailRequired' | translate }}</mat-error>
-          } @else if (form.controls.email.hasError('email')) {
-            <mat-error>{{ 'auth.emailInvalid' | translate }}</mat-error>
+        <label class="auth-field" [class.invalid]="form.controls.email.invalid && form.controls.email.touched">
+          <span class="auth-label">{{ 'auth.email' | translate }}</span>
+          <span class="auth-input">
+            <mat-icon fontSet="material-symbols-outlined">mail</mat-icon>
+            <input formControlName="email" type="email" autocomplete="username" placeholder="name@company.com" required />
+          </span>
+          @if (form.controls.email.touched && form.controls.email.hasError('required')) {
+            <span class="auth-error"><mat-icon fontSet="material-symbols-outlined">error</mat-icon>{{ 'auth.emailRequired' | translate }}</span>
+          } @else if (form.controls.email.touched && form.controls.email.hasError('email')) {
+            <span class="auth-error"><mat-icon fontSet="material-symbols-outlined">error</mat-icon>{{ 'auth.emailInvalid' | translate }}</span>
           }
-        </mat-form-field>
+        </label>
 
-        <mat-form-field appearance="outline">
-          <mat-label>{{ 'auth.password' | translate }}</mat-label>
-          <mat-icon matPrefix fontSet="material-symbols-outlined">lock</mat-icon>
-          <input
-            matInput
-            formControlName="password"
-            [type]="showPassword() ? 'text' : 'password'"
-            autocomplete="current-password"
-            required
-          />
-          <button
-            mat-icon-button
-            matSuffix
-            type="button"
-            (click)="showPassword.set(!showPassword())"
-            [attr.aria-label]="(showPassword() ? 'auth.hidePassword' : 'auth.showPassword') | translate"
-          >
-            <mat-icon fontSet="material-symbols-outlined">{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
-          </button>
-          @if (form.controls.password.hasError('required')) {
-            <mat-error>{{ 'auth.passwordRequired' | translate }}</mat-error>
+        <div class="auth-field" [class.invalid]="form.controls.password.invalid && form.controls.password.touched">
+          <span class="auth-label">
+            <label for="login-password">{{ 'auth.password' | translate }}</label>
+            <a routerLink="/forgot-password" data-testid="forgot-link">{{ 'auth.forgotLink' | translate }}</a>
+          </span>
+          <span class="auth-input">
+            <mat-icon fontSet="material-symbols-outlined">lock</mat-icon>
+            <input
+              id="login-password"
+              formControlName="password"
+              [type]="showPassword() ? 'text' : 'password'"
+              autocomplete="current-password"
+              placeholder="••••••••••••"
+              required
+            />
+            <button
+              type="button"
+              class="reveal"
+              (click)="showPassword.set(!showPassword())"
+              [attr.aria-label]="(showPassword() ? 'auth.hidePassword' : 'auth.showPassword') | translate"
+            >
+              <mat-icon fontSet="material-symbols-outlined">{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+          </span>
+          @if (form.controls.password.touched && form.controls.password.hasError('required')) {
+            <span class="auth-error"><mat-icon fontSet="material-symbols-outlined">error</mat-icon>{{ 'auth.passwordRequired' | translate }}</span>
           }
-        </mat-form-field>
-
-        <div class="row">
-          <mat-checkbox formControlName="rememberMe" data-testid="remember-me">{{ 'auth.rememberMe' | translate }}</mat-checkbox>
-          <a routerLink="/forgot-password" data-testid="forgot-link">{{ 'auth.forgotLink' | translate }}</a>
         </div>
+
+        <mat-checkbox formControlName="rememberMe" class="remember" data-testid="remember-me">{{ 'auth.rememberMe' | translate }}</mat-checkbox>
 
         @if (error(); as message) {
           <p class="error" role="alert" data-testid="login-error">
@@ -78,11 +74,12 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
           </p>
         }
 
-        <button mat-flat-button type="submit" class="submit" [disabled]="submitting()">
+        <button type="submit" class="auth-submit" [disabled]="submitting()">
           @if (submitting()) {
-            <mat-spinner diameter="20" />
+            <span class="auth-spinner" aria-hidden="true"></span>
           } @else {
             {{ 'auth.signIn' | translate }}
+            <mat-icon class="flip-rtl" fontSet="material-symbols-outlined">arrow_forward</mat-icon>
           }
         </button>
       </form>
@@ -91,49 +88,38 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
   `,
   styles: `
     h1 {
-      font: 700 1.8rem/1.2 Inter, 'IBM Plex Sans Arabic', sans-serif;
-      letter-spacing: -0.02em;
-      margin: 0 0 6px;
+      font: 700 2rem/1.15 Inter, 'IBM Plex Sans Arabic', sans-serif;
+      letter-spacing: -0.03em;
+      margin: 0 0 8px;
     }
-    .lead,
+    .lead {
+      color: var(--app-muted);
+      margin: 0 0 28px;
+      font-size: 1rem;
+    }
     .hint {
       color: var(--app-muted);
-      margin: 0 0 24px;
-    }
-    .hint {
       font-size: 0.8rem;
+      line-height: 1.5;
       margin: 20px 0 0;
+      text-align: center;
     }
     form {
       display: grid;
-      gap: 4px;
     }
-    .row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin: -4px 0 12px;
-    }
-    .row a {
-      font-weight: 500;
-      text-decoration: none;
-    }
-    .submit {
-      height: 48px;
-      font-weight: 600;
-    }
-    .submit mat-spinner {
-      margin: 0 auto;
+    .remember {
+      margin: -4px 0 16px -8px;
     }
     .error {
       display: flex;
       align-items: center;
       gap: 8px;
       padding: 10px 12px;
-      border-radius: 10px;
+      border-radius: 12px;
       background: var(--mat-sys-error-container);
       color: var(--mat-sys-on-error-container);
-      margin: 0 0 12px;
+      margin: 0 0 16px;
+      font-size: 0.9rem;
     }
   `,
 })

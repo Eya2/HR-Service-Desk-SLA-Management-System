@@ -27,6 +27,15 @@ html {
     light-dark(0 4px 16px rgba(16, 24, 40, 0.06), 0 4px 16px rgba(0, 0, 0, 0.3));
   --app-muted: light-dark(#5b6170, #a3a9b7);
   --app-brand-gradient: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+  --app-field-bg: light-dark(#ffffff, #1b1e25);
+  --app-field-border: light-dark(#dfe3ea, #2e323c);
+  --app-hover: light-dark(rgba(16, 24, 40, 0.045), rgba(255, 255, 255, 0.06));
+  --app-ring: color-mix(in srgb, var(--mat-sys-primary) 20%, transparent);
+  --app-overlay-shadow: light-dark(
+    0 16px 40px -12px rgba(16, 24, 40, 0.22),
+    0 16px 40px -12px rgba(0, 0, 0, 0.7)
+  ), light-dark(0 2px 6px rgba(16, 24, 40, 0.06), 0 2px 6px rgba(0, 0, 0, 0.4));
+  --app-segment-bg: light-dark(#eceef3, #23262e);
 
   // Chart tokens (validated with the data-viz palette checker for both surfaces).
   --viz-surface: #fcfcfb;
@@ -87,17 +96,6 @@ body {
   box-shadow: var(--app-shadow);
 }
 
-// Buttons and fields: slightly rounder, modern feel.
-.mat-mdc-button-base {
-  --mat-button-filled-container-shape: 10px;
-  --mat-button-outlined-container-shape: 10px;
-  --mat-button-text-container-shape: 10px;
-}
-
-.mat-mdc-form-field {
-  --mat-form-field-outlined-container-shape: 10px;
-}
-
 // Page header used by every screen.
 .page-header {
   display: flex;
@@ -147,4 +145,455 @@ a {
 /* Right-to-left (Arabic): mirror directional icons (arrows, chevrons). */
 [dir='rtl'] .flip-rtl {
   transform: scaleX(-1);
+}
+
+/* ==========================================================================
+   Modern controls: Material 3 tuned to the app's look (fields, dropdowns,
+   menus, segmented buttons, tabs, chips, tables, overlays).
+   ========================================================================== */
+
+html {
+  // Fields
+  --mat-form-field-outlined-container-shape: 12px;
+  --mat-form-field-outlined-outline-color: var(--app-field-border);
+  --mat-form-field-outlined-hover-outline-color: color-mix(in srgb, var(--mat-sys-primary) 40%, var(--app-field-border));
+  --mat-form-field-outlined-focus-outline-width: 1.5px;
+  --mat-form-field-outlined-label-text-color: var(--app-muted);
+  --mat-form-field-outlined-input-text-placeholder-color: var(--app-muted);
+
+  // Dropdown panels and options
+  --mat-select-panel-background-color: var(--app-card-bg);
+  --mat-select-container-elevation-shadow: var(--app-overlay-shadow);
+  --mat-autocomplete-container-shape: 14px;
+  --mat-autocomplete-container-elevation-shadow: var(--app-overlay-shadow);
+  --mat-option-hover-state-layer-color: var(--app-hover);
+  --mat-option-focus-state-layer-color: var(--app-hover);
+  --mat-option-selected-state-layer-color: color-mix(in srgb, var(--mat-sys-primary) 10%, transparent);
+  --mat-option-selected-state-label-text-color: var(--mat-sys-primary);
+  --mat-option-label-text-size: 0.92rem;
+
+  // Menus
+  --mat-menu-container-shape: 14px;
+  --mat-menu-container-color: var(--app-card-bg);
+  --mat-menu-container-elevation-shadow: var(--app-overlay-shadow);
+  --mat-menu-item-label-text-size: 0.92rem;
+  --mat-menu-item-label-text-weight: 500;
+  --mat-menu-item-hover-state-layer-color: var(--app-hover);
+  --mat-menu-item-icon-size: 20px;
+
+  // Buttons
+  --mat-button-filled-container-shape: 10px;
+  --mat-button-outlined-container-shape: 10px;
+  --mat-button-text-container-shape: 10px;
+  --mat-button-protected-container-shape: 10px;
+  --mat-button-outlined-outline-color: var(--app-field-border);
+  --mat-button-filled-label-text-weight: 600;
+  --mat-button-outlined-label-text-weight: 600;
+  --mat-button-text-label-text-weight: 600;
+
+  // Segmented buttons
+  --mat-button-toggle-shape: 12px;
+  --mat-button-toggle-divider-color: transparent;
+  --mat-button-toggle-background-color: transparent;
+  --mat-button-toggle-text-color: var(--app-muted);
+  --mat-button-toggle-selected-state-background-color: var(--app-card-bg);
+  --mat-button-toggle-selected-state-text-color: var(--mat-sys-on-surface);
+  --mat-button-toggle-label-text-weight: 600;
+  --mat-button-toggle-label-text-size: 0.88rem;
+  --mat-button-toggle-height: 36px;
+
+  // Tabs
+  --mat-tab-divider-color: var(--app-border);
+  --mat-tab-label-text-weight: 600;
+  --mat-tab-label-text-size: 0.92rem;
+  --mat-tab-inactive-label-text-color: var(--app-muted);
+  --mat-tab-active-indicator-height: 3px;
+  --mat-tab-active-indicator-shape: 3px 3px 0 0;
+
+  // Chips
+  --mat-chip-container-shape-radius: 999px;
+  --mat-chip-outline-color: var(--app-field-border);
+  --mat-chip-label-text-weight: 500;
+  --mat-chip-elevated-selected-container-color: color-mix(in srgb, var(--mat-sys-primary) 12%, var(--app-card-bg));
+  --mat-chip-selected-label-text-color: var(--mat-sys-primary);
+  --mat-chip-with-icon-selected-icon-color: var(--mat-sys-primary);
+
+  // Tables
+  --mat-table-background-color: var(--app-card-bg);
+  --mat-table-header-headline-color: var(--app-muted);
+  --mat-table-header-headline-size: 0.75rem;
+  --mat-table-header-headline-weight: 600;
+  --mat-table-header-headline-tracking: 0.04em;
+  --mat-table-row-item-outline-color: var(--app-border);
+  --mat-table-row-item-label-text-size: 0.9rem;
+  --mat-paginator-container-background-color: var(--app-card-bg);
+
+  // Overlays
+  --mat-tooltip-container-shape: 8px;
+  --mat-tooltip-container-color: light-dark(#1f2430, #e8eaf0);
+  --mat-tooltip-supporting-text-color: light-dark(#ffffff, #14161b);
+  --mat-snack-bar-container-shape: 12px;
+  --mat-snack-bar-container-color: light-dark(#1f2430, #e8eaf0);
+  --mat-snack-bar-supporting-text-color: light-dark(#ffffff, #14161b);
+  --mat-snack-bar-button-color: light-dark(#a5b4fc, #4338ca);
+  --mat-dialog-container-shape: 20px;
+  --mat-dialog-container-color: var(--app-card-bg);
+}
+
+// Fields: white surface, soft shadow, focus ring.
+.mat-mdc-form-field.mat-form-field-appearance-outline {
+  .mat-mdc-text-field-wrapper {
+    background: var(--app-field-bg);
+    border-radius: 12px;
+    box-shadow: 0 1px 2px light-dark(rgba(16, 24, 40, 0.05), rgba(0, 0, 0, 0.3));
+    transition: box-shadow 150ms ease;
+  }
+
+  &.mat-focused .mat-mdc-text-field-wrapper {
+    box-shadow: 0 0 0 4px var(--app-ring);
+  }
+
+  &.mat-form-field-invalid.mat-focused .mat-mdc-text-field-wrapper {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--mat-sys-error) 18%, transparent);
+  }
+
+  .mat-mdc-form-field-icon-prefix > .mat-icon,
+  .mat-mdc-form-field-icon-suffix > .mat-icon {
+    color: var(--app-muted);
+  }
+
+  &.mat-focused .mat-mdc-form-field-icon-prefix > .mat-icon {
+    color: var(--mat-sys-primary);
+  }
+}
+
+.mat-mdc-form-field-hint,
+.mat-mdc-form-field-error {
+  font-size: 0.78rem;
+}
+
+// Select: chevron instead of the triangle, turned while open.
+.mat-mdc-select-arrow-wrapper {
+  height: 20px;
+}
+
+.mat-mdc-select-arrow {
+  width: 20px !important;
+  height: 20px !important;
+  color: var(--app-muted);
+  transition: transform 150ms ease;
+
+  svg {
+    display: none;
+  }
+
+  &::after {
+    content: '';
+    display: block;
+    width: 20px;
+    height: 20px;
+    background: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7.4 9.3 12 13.9l4.6-4.6L18 10.7l-6 6-6-6z'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7.4 9.3 12 13.9l4.6-4.6L18 10.7l-6 6-6-6z'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
+}
+
+.mat-mdc-select[aria-expanded='true'] .mat-mdc-select-arrow {
+  transform: rotate(180deg);
+  color: var(--mat-sys-primary);
+}
+
+// Dropdown panels and menus: rounded floating surfaces with inset, rounded items.
+div.mat-mdc-select-panel,
+div.mat-mdc-autocomplete-panel {
+  padding: 6px !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--app-border);
+  margin-top: 6px;
+}
+
+.mat-mdc-menu-panel.mat-mdc-menu-panel {
+  border: 1px solid var(--app-border);
+  min-width: 200px;
+}
+
+.mat-mdc-menu-content {
+  padding: 6px !important;
+}
+
+.mat-mdc-option,
+.mat-mdc-menu-item {
+  border-radius: 8px;
+  min-height: 40px !important;
+  margin: 1px 0;
+}
+
+.mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled) {
+  font-weight: 600;
+}
+
+.mat-mdc-option .mat-pseudo-checkbox-minimal {
+  color: var(--mat-sys-primary);
+}
+
+// Segmented control (button toggles).
+.mat-button-toggle-group.mat-button-toggle-group-appearance-standard {
+  border: 0;
+  padding: 3px;
+  gap: 2px;
+  background: var(--app-segment-bg);
+  border-radius: 12px;
+
+  .mat-button-toggle {
+    border: 0 !important;
+    border-radius: 9px;
+    transition: background 150ms ease, box-shadow 150ms ease;
+  }
+
+  .mat-button-toggle-checked {
+    box-shadow: 0 1px 3px light-dark(rgba(16, 24, 40, 0.12), rgba(0, 0, 0, 0.5));
+  }
+
+  .mat-button-toggle-appearance-standard .mat-button-toggle-label-content {
+    padding: 0 14px;
+  }
+}
+
+// Tab bars.
+.mat-mdc-tab-nav-bar,
+.mat-mdc-tab-header {
+  --mat-tab-container-height: 46px;
+}
+
+// Tables: a card with quiet headers and row hover; the paginator closes it.
+.mat-mdc-table {
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  overflow: hidden;
+  box-shadow: var(--app-shadow);
+
+  .mat-mdc-header-cell {
+    text-transform: uppercase;
+    background: light-dark(#fafbfd, #1c1f26);
+  }
+
+  .mat-mdc-row:hover .mat-mdc-cell {
+    background: var(--app-hover);
+  }
+}
+
+.mat-mdc-table:has(+ .mat-mdc-paginator) {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  box-shadow: none;
+}
+
+.mat-mdc-table + .mat-mdc-paginator {
+  border: 1px solid var(--app-border);
+  border-top: 0;
+  border-radius: 0 0 var(--app-radius) var(--app-radius);
+  box-shadow: var(--app-shadow);
+}
+
+// Dialogs and snack bars.
+.mat-mdc-dialog-surface {
+  border: 1px solid var(--app-border);
+}
+
+.mat-mdc-snack-bar-container .mdc-snackbar__surface {
+  box-shadow: var(--app-overlay-shadow) !important;
+}
+
+// Checkboxes and toggles: brand colour when on.
+.mat-mdc-checkbox,
+.mat-mdc-slide-toggle {
+  --mat-checkbox-label-text-size: 0.92rem;
+}
+
+/* ==========================================================================
+   Sign-in pages: label above, rounded input with icon, focus halo,
+   gradient primary button.
+   ========================================================================== */
+
+.auth-field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.auth-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+
+  a {
+    font-weight: 600;
+    font-size: 0.82rem;
+    text-decoration: none;
+  }
+}
+
+.auth-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 50px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--app-field-border);
+  background: light-dark(#f8f9fc, #171a20);
+  transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+
+  > .mat-icon {
+    flex: none;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: var(--app-muted);
+    transition: color 150ms ease;
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--mat-sys-on-surface);
+    font: 500 0.98rem Inter, 'IBM Plex Sans Arabic', system-ui, sans-serif;
+
+    &::placeholder {
+      color: light-dark(#9aa1b0, #646b7a);
+      font-weight: 400;
+    }
+
+    // Keep autofilled fields in the theme instead of the browser's yellow/blue.
+    &:-webkit-autofill {
+      -webkit-text-fill-color: var(--mat-sys-on-surface);
+      transition: background-color 9999s ease-out 0s;
+    }
+  }
+
+  .reveal {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    margin-inline-end: -6px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--app-muted);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--app-hover);
+      color: var(--mat-sys-on-surface);
+    }
+
+    .mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--mat-sys-primary) 35%, var(--app-field-border));
+  }
+
+  &:focus-within {
+    border-color: var(--mat-sys-primary);
+    background: var(--app-field-bg);
+    box-shadow: 0 0 0 4px var(--app-ring);
+
+    > .mat-icon {
+      color: var(--mat-sys-primary);
+    }
+  }
+}
+
+.auth-field.invalid .auth-input {
+  border-color: var(--mat-sys-error);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--mat-sys-error) 14%, transparent);
+}
+
+.auth-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--mat-sys-error);
+
+  .mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.auth-submit {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 50px;
+  border: 0;
+  border-radius: 12px;
+  color: #fff;
+  font: 600 1rem Inter, 'IBM Plex Sans Arabic', system-ui, sans-serif;
+  letter-spacing: 0.01em;
+  background: var(--app-brand-gradient);
+  box-shadow: 0 10px 24px -10px rgba(79, 70, 229, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+  text-decoration: none;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+    box-shadow: 0 14px 28px -10px rgba(79, 70, 229, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px var(--app-ring), 0 10px 24px -10px rgba(79, 70, 229, 0.75);
+  }
+
+  &:disabled {
+    opacity: 0.65;
+    cursor: progress;
+  }
+
+  .mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.auth-spinner {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  animation: auth-spin 0.7s linear infinite;
+}
+
+@keyframes auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

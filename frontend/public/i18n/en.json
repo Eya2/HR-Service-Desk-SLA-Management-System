@@ -104,6 +104,11 @@
     "pitch2": "Approval workflows your managers actually use",
     "pitch3": "Confidential cases seen only by the right people",
     "pitchTitle": "HR service delivery,<br />on time, every time.",
+    "preview": {
+      "case": "Payslip correction",
+      "early": "Resolved 2 h before the deadline",
+      "ratings": "from 128 ratings"
+    },
     "rememberMe": "Remember me",
     "rule": {
       "digit": "A digit",

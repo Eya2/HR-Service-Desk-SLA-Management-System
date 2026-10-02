@@ -1,9 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { AuthLayout } from './auth-layout';
@@ -12,7 +9,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 /** Asks for a reset link. The confirmation is the same whether or not the address exists. */
 @Component({
   selector: 'app-forgot-password',
-  imports: [ReactiveFormsModule, RouterLink, MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule, AuthLayout, TranslatePipe],
+  imports: [ReactiveFormsModule, RouterLink, MatIconModule, AuthLayout, TranslatePipe],
   template: `
     <app-auth-layout>
       <a routerLink="/login" class="back"><mat-icon class="flip-rtl" fontSet="material-symbols-outlined">arrow_back</mat-icon> {{ 'auth.backToSignIn' | translate }}</a>
@@ -26,13 +23,17 @@ import { TranslatePipe } from '@ngx-translate/core';
         <h1>{{ 'auth.forgotTitle' | translate }}</h1>
         <p class="lead">{{ 'auth.forgotLead' | translate }}</p>
         <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-          <mat-form-field appearance="outline">
-            <mat-label>{{ 'auth.email' | translate }}</mat-label>
-            <mat-icon matPrefix fontSet="material-symbols-outlined">mail</mat-icon>
-            <input matInput type="email" formControlName="email" autocomplete="username" required />
-            <mat-error>{{ 'auth.emailInvalid' | translate }}</mat-error>
-          </mat-form-field>
-          <button mat-flat-button type="submit" class="submit" [disabled]="sending()">{{ 'auth.sendLink' | translate }}</button>
+          <label class="auth-field" [class.invalid]="form.controls.email.invalid && form.controls.email.touched">
+            <span class="auth-label">{{ 'auth.email' | translate }}</span>
+            <span class="auth-input">
+              <mat-icon fontSet="material-symbols-outlined">mail</mat-icon>
+              <input type="email" formControlName="email" autocomplete="username" placeholder="name@company.com" required />
+            </span>
+            @if (form.controls.email.invalid && form.controls.email.touched) {
+              <span class="auth-error"><mat-icon fontSet="material-symbols-outlined">error</mat-icon>{{ 'auth.emailInvalid' | translate }}</span>
+            }
+          </label>
+          <button type="submit" class="auth-submit" [disabled]="sending()">{{ 'auth.sendLink' | translate }}</button>
         </form>
       }
     </app-auth-layout>
