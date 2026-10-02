@@ -19,17 +19,22 @@ public sealed record Answer(string Key, string Label, string Type, JsonNode? Val
 
 public sealed record Permissions(
     bool CanComment, bool CanCommentInternally, bool CanEdit, bool CanChangePriority, bool CanAttach, string[] AvailableTransitions,
-    Guid? DecidableApprovalId = null);
+    Guid? DecidableApprovalId = null, bool CanAssign = false, bool CanClaim = false);
 
 public sealed record TimelineEntry(string Type, string? ActorName, JsonNode? Data);
 
 public sealed record Approval(Guid Id, int StepOrder, string StepName, string ApproverRole, string? ApproverName, string Decision, string? DecidedByName, string? Comment);
 
+public sealed record TeamRef(Guid Id, string Name);
+
 public sealed record TicketDetails(
     Guid Id, string Reference, string Title, string Description, string RequestTypeName, string Status, string Priority,
-    bool IsConfidential, Answer[] Answers, Attachment[] Attachments, Comment[] Comments, TimelineEntry[] Timeline, Approval[] Approvals, Permissions Permissions);
+    bool IsConfidential, Answer[] Answers, Attachment[] Attachments, Comment[] Comments, TimelineEntry[] Timeline, Approval[] Approvals, Permissions Permissions,
+    Person? Assignee = null, TeamRef? Team = null);
 
-public sealed record TicketSummary(Guid Id, string Reference, string Title, string Status, string RequesterName);
+public sealed record Person(Guid Id, string FullName, string Email);
+
+public sealed record TicketSummary(Guid Id, string Reference, string Title, string Status, string RequesterName, string? TeamName = null, Guid? AssigneeId = null, string? AssigneeName = null);
 
 public sealed record TicketPage(TicketSummary[] Items, int TotalCount);
 

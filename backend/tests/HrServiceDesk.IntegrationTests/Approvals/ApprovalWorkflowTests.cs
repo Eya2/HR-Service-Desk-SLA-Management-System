@@ -64,7 +64,7 @@ public sealed class ApprovalWorkflowTests(PostgresFixture postgres)
         var ticket = await GetAsync(employee, created.Id);
         ticket.Status.Should().Be("Open");
         ticket.Approvals.Single().Should().BeEquivalentTo(new { Decision = "Approved", DecidedByName = "Youssef Haddad", Comment = "OK for me" });
-        ticket.Timeline.Select(e => e.Type).Should().Equal("Created", "StatusChanged", "ApprovalRequested", "ApprovalDecided", "StatusChanged");
+        ticket.Timeline.Select(e => e.Type).Should().Equal("Created", "StatusChanged", "ApprovalRequested", "ApprovalDecided", "StatusChanged", "Assigned");
         (await QueueAsync(manager)).Should().NotContain(p => p.TicketId == created.Id);
     }
 
