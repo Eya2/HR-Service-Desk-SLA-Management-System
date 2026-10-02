@@ -39,7 +39,7 @@ public sealed class AuthController : ApiControllerBase
     /// <summary>Rotates the refresh token cookie and returns a new access token.</summary>
     [HttpPost("refresh")]
     [AllowAnonymous]
-    [EnableRateLimiting(AuthSetup.AuthRateLimitPolicy)]
+    [EnableRateLimiting(AuthSetup.RefreshRateLimitPolicy)]
     [ProducesResponseType<SessionResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<SessionResponse>> Refresh(CancellationToken cancellationToken)

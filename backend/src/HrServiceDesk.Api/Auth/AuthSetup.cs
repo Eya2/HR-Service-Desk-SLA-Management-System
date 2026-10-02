@@ -17,6 +17,9 @@ internal static class AuthSetup
 {
     public const string AuthRateLimitPolicy = "auth";
 
+    /// <summary>Session refresh runs on every page load: limited per IP, but far more loosely than sign-in.</summary>
+    public const string RefreshRateLimitPolicy = "refresh";
+
     public static IServiceCollection AddApiAuth(this IServiceCollection services)
     {
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -90,6 +93,19 @@ internal static class AuthSetup
                         QueueLimit = 0,
                     });
             });
+            options.AddPolicy(RefreshRateLimitPolicy, http =>
+            {
+                var settings = http.RequestServices.GetRequiredService<IConfiguration>().GetSection("RateLimiting:Refresh");
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = settings.GetValue("PermitLimit", 60),
+                        Window = TimeSpan.FromSeconds(settings.GetValue("WindowSeconds", 60)),
+                        QueueLimit = 0,
+                    });
+            });
+
             // Per key: an integration loop cannot starve the desk.
             options.AddPolicy(IntegrationPolicies.RateLimit, http =>
             {

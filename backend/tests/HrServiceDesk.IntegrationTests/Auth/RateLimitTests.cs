@@ -25,4 +25,23 @@ public sealed class RateLimitTests(PostgresFixture postgres)
         (await limited.ProblemCodeAsync()).Should().Be("rate_limited");
         limited.Headers.Contains("Retry-After").Should().BeTrue();
     }
+
+    [Fact]
+    public async Task Session_refresh_has_its_own_looser_limit_so_page_loads_do_not_block_sign_in()
+    {
+        await using var api = new ApiFactory(postgres.ConnectionString, new Dictionary<string, string>
+        {
+            ["RateLimiting:Auth:PermitLimit"] = "2",
+            ["RateLimiting:Refresh:PermitLimit"] = "5",
+        });
+        var client = api.CreateApiClient();
+
+        // Several page loads (each refreshes the session) do not use up the sign-in budget...
+        for (var i = 0; i < 5; i++)
+            (await client.PostRefreshAsync("not-a-token")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await client.PostRefreshAsync("not-a-token")).StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+
+        // ...so the user can still sign in.
+        (await client.PostLoginAsync(DemoUsers.AcmeEmployee)).StatusCode.Should().Be(HttpStatusCode.OK);
+    }
 }

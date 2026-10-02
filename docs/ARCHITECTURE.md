@@ -246,6 +246,7 @@ The Hangfire dashboard is exposed at `/hangfire`, restricted to SuperAdmin.
 | 83 | A mock payroll container receives the signed webhooks, verifies them, and resolves payroll cases that become Open through the integration API — the demo of the whole loop | Spec mock payroll consumer |
 | 84 | Demo history (`Seed:History`, on in development and Docker, off in tests): six weeks of cases per organisation built with the domain model at past timestamps and saved without interceptors (no notification, e-mail or webhook for history); open cases keep their last state so the live SLA monitor detects and escalates the late ones | Believable dashboards and queues from the first start |
 | 85 | The end-to-end demo story is an integration test with a simulated clock (holiday-skipping deadline, at risk, breached, escalation, webhook, integration API, audit, confidentiality), plus a shell script that plays it against the running stack | The demo cannot silently break |
+| 86 | Session refresh (run on every page load) has its own per-IP limit (60/min), separate from sign-in, password reset and forgotten password (10/min) | A few reloads must not lock someone out of signing in |
 
 ## 7. Testing strategy
 
