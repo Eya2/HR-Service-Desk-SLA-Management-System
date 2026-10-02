@@ -52,7 +52,10 @@ public sealed record TicketPermissionsDto(
     IReadOnlyList<string> AvailableTransitions,
     Guid? DecidableApprovalId,
     bool CanAssign,
-    bool CanClaim);
+    bool CanClaim,
+    bool CanRate);
+
+public sealed record SatisfactionDto(int Score, string? Comment, DateTimeOffset CreatedAt);
 
 /// <summary>One approval step of a case.</summary>
 public sealed record ApprovalDto(
@@ -77,6 +80,7 @@ public sealed record TicketDetailsDto(
     PersonDto? Assignee,
     TeamRefDto? Team,
     Sla.TicketSlaDto Sla,
+    SatisfactionDto? Satisfaction,
     IReadOnlyList<FormAnswerDto> Answers,
     IReadOnlyList<AttachmentDto> Attachments,
     IReadOnlyList<CommentDto> Comments,

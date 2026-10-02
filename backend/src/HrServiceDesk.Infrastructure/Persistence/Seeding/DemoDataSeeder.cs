@@ -40,6 +40,7 @@ internal sealed partial class DemoDataSeeder(
         await SeedSlaAsync(cancellationToken);
         await SeedEscalationsAsync(cancellationToken);
         await SeedConfidentialityAsync(cancellationToken);
+        await SeedKnowledgeAsync(cancellationToken);
     }
 
     private async Task SeedTenantsAndUsersAsync(string demoPassword, CancellationToken cancellationToken)
@@ -225,6 +226,23 @@ internal sealed partial class DemoDataSeeder(
             foreach (var type in await db.RequestTypes.IgnoreQueryFilters()
                          .Where(t => t.TenantId == team.TenantId && sensitive.Contains(t.Name)).ToListAsync(cancellationToken))
                 type.MarkSensitive(true);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task SeedKnowledgeAsync(CancellationToken cancellationToken)
+    {
+        var configured = await db.KnowledgeArticles.IgnoreQueryFilters().Select(a => a.TenantId).Distinct().ToListAsync(cancellationToken);
+        var tenants = await db.Tenants.Where(t => (t.Slug == "acme-tn" || t.Slug == "globex-fr") && !configured.Contains(t.Id))
+            .Select(t => t.Id).ToListAsync(cancellationToken);
+        foreach (var tenantId in tenants)
+        {
+            foreach (var article in DemoKnowledge.Create())
+            {
+                article.TenantId = tenantId;
+                db.KnowledgeArticles.Add(article);
+            }
         }
 
         await db.SaveChangesAsync(cancellationToken);

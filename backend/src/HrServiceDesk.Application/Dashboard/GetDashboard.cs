@@ -66,6 +66,12 @@ internal sealed class DashboardHandlers(IAppDbContext db, ICurrentUser currentUs
             return values.Count == 0 ? null : Math.Round(values.Average() / 60.0, 1);
         }
 
+        // Satisfaction given in the period, on cases the caller may see.
+        var ratings = await db.SatisfactionRatings.AsNoTracking()
+            .Where(r => r.CreatedAt >= from && r.CreatedAt < to && scope.Any(t => t.Id == r.TicketId))
+            .Select(r => r.Score)
+            .ToListAsync(cancellationToken);
+
         var kpis = new DashboardKpis(
             created.Count,
             resolved.Count,
@@ -75,7 +81,9 @@ internal sealed class DashboardHandlers(IAppDbContext db, ICurrentUser currentUs
             Percent(measured.Count(t => !t.ResolutionBreached), measured.Count),
             calculator is null ? null : AverageHours(created.Where(t => t.FirstRespondedAt is not null).Select(t => t.ElapsedBusinessMinutes(calculator, t.FirstRespondedAt!.Value))),
             calculator is null ? null : AverageHours(resolved.Select(t => t.ElapsedBusinessMinutes(calculator, t.ResolvedAt!.Value))),
-            Percent(resolved.Count(t => t.ReopenCount > 0), resolved.Count));
+            Percent(resolved.Count(t => t.ReopenCount > 0), resolved.Count),
+            ratings.Count == 0 ? null : Math.Round(ratings.Average(), 1),
+            ratings.Count);
 
         List<ComplianceRow> Compliance(Func<Ticket, string> key, Func<string, string> label) =>
             measured.GroupBy(key)

@@ -86,6 +86,7 @@ public static class DependencyInjection
         services.AddOptions<StorageOptions>().BindConfiguration(StorageOptions.SectionName);
         services.AddSingleton<IFileStorage, LocalFileStorage>();
         services.AddScoped<IReferenceNumberGenerator, ReferenceNumberGenerator>();
+        services.AddScoped<IKnowledgeSearch, Knowledge.PostgresKnowledgeSearch>();
     }
 
     private static string GetConnectionString(IServiceProvider sp) =>

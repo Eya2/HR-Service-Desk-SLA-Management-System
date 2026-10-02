@@ -36,6 +36,8 @@ public sealed class TicketsController : ApiControllerBase
 
     public sealed record MoveToTeamRequest(Guid TeamId);
 
+    public sealed record RatingRequest(int Score, string? Comment);
+
     /// <summary>
     /// Submits a request. Send <c>multipart/form-data</c> with a <c>payload</c> part (JSON: requestTypeId,
     /// title, description, values) and one file part per uploaded document, named after its form field key.
@@ -119,6 +121,14 @@ public sealed class TicketsController : ApiControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> ChangeStatus(Guid id, ChangeStatusRequest request, CancellationToken cancellationToken) =>
         FromResult(await Sender.Send(new ChangeTicketStatusCommand(id, request.Status, request.Reason), cancellationToken));
+
+    /// <summary>The requester rates the closed case (1 to 5), once.</summary>
+    [HttpPost("{id:guid}/satisfaction")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> Rate(Guid id, RatingRequest request, CancellationToken cancellationToken) =>
+        FromResult(await Sender.Send(new RateTicketCommand(id, request.Score, request.Comment), cancellationToken));
 
     [HttpPost("{id:guid}/comments")]
     [ProducesResponseType<CommentDto>(StatusCodes.Status200OK)]

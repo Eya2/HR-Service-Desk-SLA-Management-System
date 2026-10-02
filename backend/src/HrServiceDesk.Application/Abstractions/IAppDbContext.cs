@@ -1,6 +1,7 @@
 using HrServiceDesk.Domain.Audit;
 using HrServiceDesk.Domain.Catalog;
 using HrServiceDesk.Domain.Escalations;
+using HrServiceDesk.Domain.Knowledge;
 using HrServiceDesk.Domain.Notifications;
 using HrServiceDesk.Domain.Sla;
 using HrServiceDesk.Domain.Teams;
@@ -51,6 +52,10 @@ public interface IAppDbContext
     DbSet<EscalationExecution> EscalationExecutions { get; }
 
     DbSet<AuditLog> AuditLogs { get; }
+
+    DbSet<KnowledgeArticle> KnowledgeArticles { get; }
+
+    DbSet<SatisfactionRating> SatisfactionRatings { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

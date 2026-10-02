@@ -15,6 +15,7 @@ public enum TicketEventType
     ApprovalDecided,
     SlaStateChanged,
     Escalated,
+    Rated,
 }
 
 /// <summary>

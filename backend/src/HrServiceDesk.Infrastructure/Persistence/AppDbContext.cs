@@ -4,6 +4,7 @@ using HrServiceDesk.Domain.Audit;
 using HrServiceDesk.Domain.Catalog;
 using HrServiceDesk.Domain.Common;
 using HrServiceDesk.Domain.Escalations;
+using HrServiceDesk.Domain.Knowledge;
 using HrServiceDesk.Domain.Notifications;
 using HrServiceDesk.Domain.Sla;
 using HrServiceDesk.Domain.Teams;
@@ -79,6 +80,10 @@ public class AppDbContext : DbContext, IAppDbContext
 
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
+    public DbSet<KnowledgeArticle> KnowledgeArticles => Set<KnowledgeArticle>();
+
+    public DbSet<SatisfactionRating> SatisfactionRatings => Set<SatisfactionRating>();
+
     internal DbSet<ReferenceCounter> ReferenceCounters => Set<ReferenceCounter>();
 
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default) =>
@@ -86,6 +91,8 @@ public class AppDbContext : DbContext, IAppDbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // unaccent: accent-insensitive search in the help centre.
+        modelBuilder.HasPostgresExtension("unaccent");
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())

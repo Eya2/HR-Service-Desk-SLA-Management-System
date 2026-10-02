@@ -1,6 +1,7 @@
 using HrServiceDesk.Domain.Audit;
 using HrServiceDesk.Domain.Catalog;
 using HrServiceDesk.Domain.Escalations;
+using HrServiceDesk.Domain.Knowledge;
 using HrServiceDesk.Domain.Notifications;
 using HrServiceDesk.Domain.Teams;
 using HrServiceDesk.Domain.Tickets;
@@ -61,5 +62,30 @@ internal sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         builder.HasIndex(l => new { l.TenantId, l.OccurredAt });
         builder.HasIndex(l => new { l.TenantId, l.UserId });
         // No foreign key to users: the log must outlive the accounts it mentions.
+    }
+}
+
+internal sealed class KnowledgeArticleConfiguration : IEntityTypeConfiguration<KnowledgeArticle>
+{
+    public void Configure(EntityTypeBuilder<KnowledgeArticle> builder)
+    {
+        builder.HasKey(a => a.Id);
+        builder.Property(a => a.Title).HasMaxLength(KnowledgeArticle.TitleMaxLength).IsRequired();
+        builder.Property(a => a.Summary).HasMaxLength(KnowledgeArticle.SummaryMaxLength).IsRequired();
+        builder.Property(a => a.Body).HasMaxLength(KnowledgeArticle.BodyMaxLength).IsRequired();
+        builder.Property(a => a.Category).HasConversion<string>().HasMaxLength(32);
+        builder.HasIndex(a => new { a.TenantId, a.IsPublished });
+    }
+}
+
+internal sealed class SatisfactionRatingConfiguration : IEntityTypeConfiguration<SatisfactionRating>
+{
+    public void Configure(EntityTypeBuilder<SatisfactionRating> builder)
+    {
+        builder.HasKey(r => r.Id);
+        builder.Property(r => r.Comment).HasMaxLength(SatisfactionRating.CommentMaxLength);
+        builder.HasIndex(r => r.TicketId).IsUnique();
+        builder.HasIndex(r => new { r.TenantId, r.CreatedAt });
+        builder.HasOne<Ticket>().WithMany().HasForeignKey(r => r.TicketId).OnDelete(DeleteBehavior.Cascade);
     }
 }

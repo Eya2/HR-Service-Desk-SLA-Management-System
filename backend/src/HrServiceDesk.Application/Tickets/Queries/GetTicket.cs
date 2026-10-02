@@ -33,6 +33,8 @@ internal sealed class GetTicketHandler(IAppDbContext db, ICurrentUser currentUse
         var team = ticket.TeamId is { } teamId
             ? await db.Teams.AsNoTracking().Where(t => t.Id == teamId).Select(t => new TeamRefDto(t.Id, t.Name)).SingleOrDefaultAsync(cancellationToken)
             : null;
+        var rating = await db.SatisfactionRatings.AsNoTracking().Where(r => r.TicketId == ticket.Id)
+            .Select(r => new SatisfactionDto(r.Score, r.Comment, r.CreatedAt)).SingleOrDefaultAsync(cancellationToken);
         var seesInternal = TicketAccess.SeesAllCases(currentUser);
         var comments = ticket.Comments.Where(c => seesInternal || !c.IsInternal).OrderBy(c => c.CreatedAt).ToList();
         var events = ticket.Events.Where(e => seesInternal || !e.IsInternal).OrderBy(e => e.OccurredAt).ToList();
@@ -79,6 +81,7 @@ internal sealed class GetTicketHandler(IAppDbContext db, ICurrentUser currentUse
                 ticket.ResolutionBreached,
                 ticket.FirstResponseTargetMinutes,
                 ticket.ResolutionTargetMinutes),
+            rating,
             BuildAnswers(type.Schema, ticket.FormData, attachments),
             attachments,
             comments.Select(c => new CommentDto(c.Id, c.AuthorId, NameOf(c.AuthorId), c.Body, c.IsInternal, c.CreatedAt)).ToList(),
@@ -91,12 +94,12 @@ internal sealed class GetTicketHandler(IAppDbContext db, ICurrentUser currentUse
                 a.DecidedById is { } decider ? NameOf(decider) : null,
                 a.DecidedAt,
                 a.Comment)).ToList(),
-            Permissions(ticket),
+            Permissions(ticket, rating is not null),
             ticket.CreatedAt,
             ticket.UpdatedAt);
     }
 
-    private TicketPermissionsDto Permissions(Ticket ticket)
+    private TicketPermissionsDto Permissions(Ticket ticket, bool rated)
     {
         var participates = TicketAccess.CanParticipate(ticket, currentUser) && !ticket.IsFinal;
         var isStaff = TicketAccess.IsStaff(currentUser);
@@ -114,7 +117,8 @@ internal sealed class GetTicketHandler(IAppDbContext db, ICurrentUser currentUse
                 ? current.Id
                 : null,
             CanAssign: isStaff && !ticket.IsFinal,
-            CanClaim: isStaff && !ticket.IsFinal && ticket.AssigneeId != currentUser.UserId);
+            CanClaim: isStaff && !ticket.IsFinal && ticket.AssigneeId != currentUser.UserId,
+            CanRate: !rated && isRequester && ticket.Status == TicketStatus.Closed);
     }
 
     /// <summary>Labels the stored answers with the current form definition; answers to removed fields are kept under their key.</summary>

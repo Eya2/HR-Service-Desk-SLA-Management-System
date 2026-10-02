@@ -19,7 +19,9 @@ public sealed record DashboardKpis(
     double? SlaCompliancePercent,
     double? AverageFirstResponseHours,
     double? AverageResolutionHours,
-    double? ReopenRatePercent);
+    double? ReopenRatePercent,
+    double? AverageSatisfaction,
+    int Ratings);
 
 /// <summary>HR leadership dashboard for a period (and optionally one team). Hours are business hours, pauses excluded.</summary>
 public sealed record DashboardDto(
