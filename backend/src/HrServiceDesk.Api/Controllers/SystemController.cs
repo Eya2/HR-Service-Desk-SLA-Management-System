@@ -1,11 +1,13 @@
 using System.Reflection;
 using HrServiceDesk.Api.ErrorHandling;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HrServiceDesk.Api.Controllers;
 
 /// <summary>Service metadata, used by the SPA to show which API it is talking to.</summary>
 [Route("api/system")]
+[AllowAnonymous]
 public sealed class SystemController(IHostEnvironment environment) : ApiControllerBase
 {
     public sealed record SystemInfoDto(string Name, string Version, string Environment);

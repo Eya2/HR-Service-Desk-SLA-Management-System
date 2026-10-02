@@ -1,3 +1,4 @@
+using HrServiceDesk.Api.Auth;
 using HrServiceDesk.Api.Common;
 using HrServiceDesk.Api.ErrorHandling;
 using HrServiceDesk.Api.Middleware;
@@ -31,6 +32,8 @@ builder.Services
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ITenantContext, HttpTenantContext>();
+builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
+builder.Services.AddApiAuth();
 
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails(options =>
@@ -46,6 +49,16 @@ builder.Services.AddSwaggerGen(options =>
         Version = "v1",
         Description = "HR case management with approval workflows, SLAs and escalation.",
     });
+    var bearer = new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Description = "Access token from POST /api/auth/login.",
+        Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" },
+    };
+    options.AddSecurityDefinition("Bearer", bearer);
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement { [bearer] = [] });
     var xml = Path.Combine(AppContext.BaseDirectory, $"{typeof(Program).Assembly.GetName().Name}.xml");
     if (File.Exists(xml))
         options.IncludeXmlComments(xml);
@@ -62,7 +75,7 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy
 var app = builder.Build();
 
 if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
-    await app.Services.MigrateDatabaseAsync();
+    await app.Services.InitializeDatabaseAsync();
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseSerilogRequestLogging();
@@ -76,10 +89,13 @@ if (app.Configuration.GetValue<bool>("Swagger:Enabled"))
 }
 
 app.UseCors();
+app.UseAuthentication();
+app.UseRateLimiter();
+app.UseAuthorization();
 
 app.MapControllers();
-app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
-app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();
+app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") }).AllowAnonymous();
 
 await app.RunAsync();
 
