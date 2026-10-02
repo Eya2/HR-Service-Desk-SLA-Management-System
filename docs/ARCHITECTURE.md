@@ -230,6 +230,9 @@ The Hangfire dashboard is exposed at `/hangfire`, restricted to SuperAdmin.
 | 67 | CSV export: one row per case created in the period, UTF-8 with BOM, RFC 4180 quoting, and a leading quote on text starting with = + - @ (spreadsheet formula injection) | Spec CSV export, safe to open in Excel |
 | 68 | "Remember me" stores a persistent refresh cookie (7 days) that keeps the choice across rotations; otherwise the cookie ends with the browser session | Standard login behaviour |
 | 69 | Forgotten password: the same answer whatever the address, a single-use link valid one hour (hash stored, newest link only), reset ends all sessions, unlocks the account and is audited | Standard, secure self-service reset |
+| 70 | Charts use Chart.js through a small in-house wrapper (no ng2-charts) so the chart library follows Angular releases without a peer dependency; it is only in the dashboard's lazy chunk | Spec allows Chart.js; fewer upgrade risks |
+| 71 | Chart colours come from `--viz-*` tokens: a categorical palette and an ordinal ramp checked with a colour-vision-deficiency validator against the light and dark chart surfaces, with selected (not inverted) dark steps; legends for two-series charts, tooltips on every mark, and a table view for every chart | Accessible, theme-consistent charts |
+| 72 | Light, dark or system theme, chosen in the top bar and remembered on the device; the initial bundle warning budget is 650 kB (two colour schemes of Material 3 tokens) | Modern UI expectation |
 
 ## 7. Testing strategy
 
