@@ -204,8 +204,8 @@ The project is delivered in 13 phases. Each phase ends with a green build and te
 | 9 | **Confidentiality & GDPR** | Restricted HR group, sensitive-access audit log, retention and anonymization job, audit viewer | backend · frontend | ✅ Done |
 | 10 | **Dashboards** | KPIs, charts, date and team filters, CSV export | backend · frontend | ✅ Done |
 | 11 | **Knowledge base, CSAT & i18n** | FAQ with suggestions while typing, satisfaction ratings, FR / EN / AR with RTL | backend · frontend | ✅ Done |
-| 12 | **Integration** | API keys, integration endpoints, HMAC-signed webhooks with retry, mock payroll container | backend | ⏳ Next |
-| 13 | **Demo & polish** | Full seed (2 tenants, every role), end-to-end demo script, final documentation | backend · frontend | 🔲 Planned |
+| 12 | **Integration** | API keys, integration endpoints, HMAC-signed webhooks with retry, mock payroll container | backend | ✅ Done |
+| 13 | **Demo & polish** | Full seed (2 tenants, every role), end-to-end demo script, final documentation | backend · frontend | ⏳ Next |
 
 ### Definition of done
 
