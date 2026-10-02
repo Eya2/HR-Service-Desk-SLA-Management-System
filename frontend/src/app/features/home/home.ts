@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
 import { AREAS } from '../../core/auth/areas';
 import { AuthService } from '../../core/auth/auth.service';
+import { TranslatePipe } from '@ngx-translate/core';
 
 /** Accent per area: a soft tinted chip behind each area's icon. */
 const AREA_TINT: Record<string, string> = {
@@ -18,22 +19,25 @@ const AREA_TINT: Record<string, string> = {
 /** Landing page: a greeting banner, quick actions and the areas the user's roles open. */
 @Component({
   selector: 'app-home',
-  imports: [MatButtonModule, MatIconModule, RouterLink],
+  imports: [MatButtonModule, MatIconModule, RouterLink, TranslatePipe],
   template: `
     <section class="hero">
       <div class="hero-text">
         <p class="eyebrow">{{ auth.user()?.tenantName }}</p>
-        <h1>{{ greeting() }}, {{ auth.user()?.firstName }}</h1>
-        <p>What would you like to do today?</p>
+        <h1>{{ 'home.greeting' | translate: { greeting: greeting() | translate, name: auth.user()?.firstName } }}</h1>
+        <p>{{ 'home.today' | translate }}</p>
         <div class="actions">
           @if (has('portal')) {
             <a mat-flat-button routerLink="/portal/catalog" class="primary-action">
-              <mat-icon fontSet="material-symbols-outlined">add</mat-icon> New request
+              <mat-icon fontSet="material-symbols-outlined">add</mat-icon> {{ 'home.newRequest' | translate }}
             </a>
-            <a mat-stroked-button routerLink="/portal/requests" class="ghost">My requests</a>
+            <a mat-stroked-button routerLink="/portal/requests" class="ghost">{{ 'area.portal.label' | translate }}</a>
+            <a mat-stroked-button routerLink="/portal/help" class="ghost">
+              <mat-icon fontSet="material-symbols-outlined">help</mat-icon> {{ 'home.helpCenter' | translate }}
+            </a>
           }
           @if (has('agent')) {
-            <a mat-stroked-button routerLink="/agent" class="ghost">Open the HR queue</a>
+            <a mat-stroked-button routerLink="/agent" class="ghost">{{ 'home.openQueue' | translate }}</a>
           }
         </div>
       </div>
@@ -44,22 +48,22 @@ const AREA_TINT: Record<string, string> = {
       </div>
     </section>
 
-    <h2 class="section-title">Your workspace</h2>
+    <h2 class="section-title">{{ 'home.workspace' | translate }}</h2>
     @if (areas().length > 0) {
       <div class="grid">
         @for (area of areas(); track area.path) {
           <a class="tile" [routerLink]="['/', area.path]" [attr.data-testid]="'area-' + area.path" [style.--tint]="tint(area.path)">
             <span class="chip"><mat-icon fontSet="material-symbols-outlined">{{ area.icon }}</mat-icon></span>
             <span class="tile-text">
-              <strong>{{ area.label }}</strong>
-              <span>{{ area.description }}</span>
+              <strong>{{ area.label | translate }}</strong>
+              <span>{{ area.description | translate }}</span>
             </span>
             <mat-icon class="arrow" fontSet="material-symbols-outlined">arrow_forward</mat-icon>
           </a>
         }
       </div>
     } @else {
-      <p>No work area is available for your role yet.</p>
+      <p>{{ 'home.noArea' | translate }}</p>
     }
   `,
   styles: `
@@ -79,7 +83,8 @@ const AREA_TINT: Record<string, string> = {
     .hero::before {
       content: '';
       position: absolute;
-      inset: -40% -10% auto auto;
+      inset-block-start: -40%;
+      inset-inline-end: -10%;
       width: 380px;
       height: 380px;
       border-radius: 50%;
@@ -94,7 +99,7 @@ const AREA_TINT: Record<string, string> = {
       margin: 0;
     }
     .hero h1 {
-      font: 700 2rem/1.15 Inter, sans-serif;
+      font: 700 2rem/1.15 Inter, 'IBM Plex Sans Arabic', sans-serif;
       letter-spacing: -0.03em;
       margin: 6px 0;
     }
@@ -156,7 +161,7 @@ const AREA_TINT: Record<string, string> = {
       height: 30px;
     }
     .section-title {
-      font: 600 1rem Inter, sans-serif;
+      font: 600 1rem Inter, 'IBM Plex Sans Arabic', sans-serif;
       margin: 32px 0 14px;
       color: var(--app-muted);
     }
@@ -213,6 +218,12 @@ const AREA_TINT: Record<string, string> = {
       opacity: 1;
       transform: translateX(2px);
     }
+    :host-context([dir='rtl']) .arrow {
+      transform: scaleX(-1);
+    }
+    :host-context([dir='rtl']) .tile:hover .arrow {
+      transform: scaleX(-1) translateX(2px);
+    }
     @media (max-width: 799px) {
       .hero-art {
         display: none;
@@ -229,7 +240,7 @@ export class Home {
 
   protected readonly greeting = computed(() => {
     const hour = new Date().getHours();
-    return hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+    return hour < 12 ? 'home.morning' : hour < 18 ? 'home.afternoon' : 'home.evening';
   });
 
   protected has(path: string): boolean {

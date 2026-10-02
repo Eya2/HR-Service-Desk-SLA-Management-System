@@ -146,6 +146,14 @@ export interface TicketPermissions {
   decidableApprovalId: string | null;
   canAssign: boolean;
   canClaim: boolean;
+  /** The requester may rate the closed case (once). */
+  canRate: boolean;
+}
+
+export interface Satisfaction {
+  score: number;
+  comment: string | null;
+  createdAt: string;
 }
 
 export interface TeamInfo {
@@ -236,6 +244,7 @@ export interface TicketDetails {
   assignee: Person | null;
   team: { id: string; name: string } | null;
   sla: TicketSla;
+  satisfaction: Satisfaction | null;
   answers: FormAnswer[];
   attachments: AttachmentInfo[];
   comments: CommentInfo[];
@@ -247,6 +256,18 @@ export interface TicketDetails {
 }
 
 export const PRIORITIES = ['Low', 'Medium', 'High', 'Critical'] as const;
+
+export const CATEGORIES = [
+  'Payroll',
+  'LeaveAndAbsence',
+  'Contracts',
+  'Benefits',
+  'OnboardingOffboarding',
+  'Training',
+  'Expenses',
+  'Certificates',
+  'Confidential',
+] as const;
 
 export const STATUSES = [
   'New',
@@ -295,3 +316,26 @@ export const AUDIT_ACTIONS = [
   'RetentionPolicyChanged',
   'CaseAnonymized',
 ] as const;
+
+export interface ArticleSummary {
+  id: string;
+  title: string;
+  summary: string;
+  category: string | null;
+  isPublished: boolean;
+  viewCount: number;
+  helpfulCount: number;
+}
+
+export interface Article extends ArticleSummary {
+  body: string;
+  updatedAt: string | null;
+}
+
+export interface SaveArticle {
+  title: string;
+  summary: string;
+  body: string;
+  category: string | null;
+  isPublished: boolean;
+}

@@ -7,19 +7,19 @@ export const routes: Routes = [
     path: 'login',
     canActivate: [guestGuard],
     loadComponent: () => import('./features/auth/login').then((m) => m.Login),
-    title: 'Sign in · HR Service Desk',
+    title: 'title.signIn',
   },
   {
     path: 'forgot-password',
     canActivate: [guestGuard],
     loadComponent: () => import('./features/auth/forgot-password').then((m) => m.ForgotPassword),
-    title: 'Forgot password · HR Service Desk',
+    title: 'title.forgotPassword',
   },
   {
     path: 'reset-password',
     canActivate: [guestGuard],
     loadComponent: () => import('./features/auth/reset-password').then((m) => m.ResetPassword),
-    title: 'Choose a new password · HR Service Desk',
+    title: 'title.newPassword',
   },
   {
     path: '',
@@ -30,7 +30,7 @@ export const routes: Routes = [
         path: '',
         pathMatch: 'full',
         loadComponent: () => import('./features/home/home').then((m) => m.Home),
-        title: 'HR Service Desk',
+        title: 'common.appName',
       },
       {
         path: 'portal',
@@ -56,7 +56,7 @@ export const routes: Routes = [
         path: 'audit',
         canActivate: [roleGuard(areaByPath('audit').roles)],
         loadComponent: () => import('./features/audit/audit-log').then((m) => m.AuditLogPage),
-        title: 'Audit · HR Service Desk',
+        title: 'title.audit',
       },
       {
         path: 'admin',
@@ -67,12 +67,12 @@ export const routes: Routes = [
         // Any signed-in user; the API returns 404 for cases the caller may not see.
         path: 'tickets/:id',
         loadComponent: () => import('./features/tickets/ticket-detail').then((m) => m.TicketDetail),
-        title: 'Case · HR Service Desk',
+        title: 'title.case',
       },
       {
         path: 'forbidden',
         loadComponent: () => import('./features/home/forbidden').then((m) => m.Forbidden),
-        title: 'Access denied · HR Service Desk',
+        title: 'title.forbidden',
       },
     ],
   },

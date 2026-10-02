@@ -11,25 +11,21 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { STRATEGIES, TeamInfo } from '../../core/api/api.models';
 import { TeamsApi } from '../../core/api/approvals.api';
-import { problemOf } from '../../core/http/error.interceptor';
-import { humanize } from '../../shared/ui/labels';
+import { problemMessage } from '../../core/http/error.interceptor';
+import { EnumLabelPipe } from '../../shared/ui/enum-label';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
-const STRATEGY_HELP: Record<string, string> = {
-  Manual: 'Cases wait in the team queue until someone takes them.',
-  RoundRobin: 'Members receive new cases in turn.',
-  LeastLoaded: 'The member with the fewest active cases receives the next one.',
-};
 
 /** HR Admin: teams, their assignment strategy and members. */
 @Component({
   selector: 'app-teams-admin',
-  imports: [ReactiveFormsModule, MatButtonModule, MatCardModule, MatCheckboxModule, MatFormFieldModule, MatIconModule, MatInputModule, MatSelectModule],
+  imports: [ReactiveFormsModule, MatButtonModule, MatCardModule, MatCheckboxModule, MatFormFieldModule, MatIconModule, MatInputModule, MatSelectModule, TranslatePipe, EnumLabelPipe],
   template: `
     <div class="header">
-      <h1>Teams</h1>
+      <h1>{{ 'teams.title' | translate }}</h1>
       @if (!editing()) {
         <button mat-flat-button type="button" (click)="edit(null)" data-testid="new-team">
-          <mat-icon fontSet="material-symbols-outlined">add</mat-icon> New team
+          <mat-icon fontSet="material-symbols-outlined">add</mat-icon> {{ 'teams.new' | translate }}
         </button>
       }
     </div>
@@ -39,20 +35,20 @@ const STRATEGY_HELP: Record<string, string> = {
         <mat-card-content>
           <form [formGroup]="form" (ngSubmit)="save()" class="form">
             <mat-form-field appearance="outline">
-              <mat-label>Name</mat-label>
+              <mat-label>{{ 'teams.name' | translate }}</mat-label>
               <input matInput formControlName="name" maxlength="100" />
             </mat-form-field>
             <mat-form-field appearance="outline">
-              <mat-label>Assignment strategy</mat-label>
+              <mat-label>{{ 'teams.strategy' | translate }}</mat-label>
               <mat-select formControlName="strategy">
                 @for (s of strategies; track s) {
-                  <mat-option [value]="s">{{ humanize(s) }}</mat-option>
+                  <mat-option [value]="s">{{ s | enumLabel: 'strategy' }}</mat-option>
                 }
               </mat-select>
-              <mat-hint>{{ help(form.controls.strategy.value) }}</mat-hint>
+              <mat-hint>{{ 'strategy.help.' + form.controls.strategy.value | translate }}</mat-hint>
             </mat-form-field>
             <mat-form-field appearance="outline">
-              <mat-label>Members</mat-label>
+              <mat-label>{{ 'teams.members' | translate }}</mat-label>
               <mat-select formControlName="memberIds" multiple>
                 @for (user of staff.value() ?? []; track user.id) {
                   <mat-option [value]="user.id">{{ user.fullName }}</mat-option>
@@ -60,11 +56,11 @@ const STRATEGY_HELP: Record<string, string> = {
               </mat-select>
             </mat-form-field>
             <mat-checkbox formControlName="isConfidentialGroup">
-              Restricted HR group: its members (and the requester) are the only people who see confidential cases
+              {{ 'teams.restrictedLabel' | translate }}
             </mat-checkbox>
             <div class="actions">
-              <button mat-button type="button" (click)="editing.set(false)">Cancel</button>
-              <button mat-flat-button type="submit" [disabled]="form.invalid || saving()" data-testid="save-team">Save</button>
+              <button mat-button type="button" (click)="editing.set(false)">{{ 'common.cancel' | translate }}</button>
+              <button mat-flat-button type="submit" [disabled]="form.invalid || saving()" data-testid="save-team">{{ 'common.save' | translate }}</button>
             </div>
           </form>
         </mat-card-content>
@@ -77,25 +73,25 @@ const STRATEGY_HELP: Record<string, string> = {
           <mat-card-header>
             <mat-card-title>{{ team.name }}</mat-card-title>
             <mat-card-subtitle>
-              {{ humanize(team.strategy) }}
+              {{ team.strategy | enumLabel: 'strategy' }}
               @if (team.isConfidentialGroup) {
-                · <span class="restricted">restricted group</span>
+                · <span class="restricted">{{ 'teams.restricted' | translate }}</span>
               }
             </mat-card-subtitle>
-            <button mat-icon-button class="edit" (click)="edit(team)" [attr.aria-label]="'Edit ' + team.name">
+            <button mat-icon-button class="edit" (click)="edit(team)" [attr.aria-label]="'teams.editTeam' | translate: { name: team.name }">
               <mat-icon fontSet="material-symbols-outlined">edit</mat-icon>
             </button>
           </mat-card-header>
           <mat-card-content>
             <ul class="members">
               @for (m of team.members; track m.id) {
-                <li>{{ m.fullName }} <span class="load">{{ m.activeCases }} active</span></li>
+                <li>{{ m.fullName }} <span class="load">{{ 'teams.activeCount' | translate: { count: m.activeCases } }}</span></li>
               } @empty {
-                <li class="load">No members</li>
+                <li class="load">{{ 'teams.noMembers' | translate }}</li>
               }
             </ul>
             @if (team.requestTypes.length > 0) {
-              <p class="types">Handles: {{ team.requestTypes.join(', ') }}</p>
+              <p class="types">{{ 'teams.handles' | translate: { types: team.requestTypes.join(', ') } }}</p>
             }
           </mat-card-content>
         </mat-card>
@@ -150,9 +146,9 @@ const STRATEGY_HELP: Record<string, string> = {
 export class TeamsAdmin {
   private readonly api = inject(TeamsApi);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly translate = inject(TranslateService);
 
   protected readonly strategies = STRATEGIES;
-  protected readonly humanize = humanize;
   protected readonly teams = rxResource({ stream: () => this.api.list() });
   protected readonly staff = rxResource({ stream: () => this.api.staff() });
   protected readonly editing = signal(false);
@@ -166,9 +162,6 @@ export class TeamsAdmin {
     isConfidentialGroup: new FormControl(false, { nonNullable: true }),
   });
 
-  protected help(strategy: string): string {
-    return STRATEGY_HELP[strategy] ?? '';
-  }
 
   protected edit(team: TeamInfo | null): void {
     this.editedId = team?.id ?? null;
@@ -187,12 +180,12 @@ export class TeamsAdmin {
       next: () => {
         this.saving.set(false);
         this.editing.set(false);
-        this.snackBar.open('Team saved.', undefined, { duration: 3000 });
+        this.snackBar.open(this.translate.instant('teams.saved'), undefined, { duration: 3000 });
         this.teams.reload();
       },
       error: (error: unknown) => {
         this.saving.set(false);
-        this.snackBar.open(problemOf(error)?.title ?? 'The team could not be saved.', 'Dismiss', { duration: 6000 });
+        this.snackBar.open(problemMessage(this.translate, error, 'teams.saveFailed'), this.translate.instant('common.dismiss'), { duration: 6000 });
       },
     });
   }

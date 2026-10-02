@@ -10,18 +10,28 @@ export const routes: Routes = [
       {
         path: 'catalog',
         loadComponent: () => import('./catalog').then((m) => m.Catalog),
-        title: 'Request catalog · HR Service Desk',
+        title: 'title.catalog',
+      },
+      {
+        path: 'help',
+        loadComponent: () => import('./help-center').then((m) => m.HelpCenter),
+        title: 'title.help',
+      },
+      {
+        path: 'help/:articleId',
+        loadComponent: () => import('./article-page').then((m) => m.ArticlePage),
+        title: 'title.help',
       },
       {
         path: 'requests',
         loadComponent: () => import('./my-requests').then((m) => m.MyRequests),
-        title: 'My requests · HR Service Desk',
+        title: 'title.myRequests',
       },
     ],
   },
   {
     path: 'new/:typeId',
     loadComponent: () => import('./new-request').then((m) => m.NewRequest),
-    title: 'New request · HR Service Desk',
+    title: 'title.newRequest',
   },
 ];

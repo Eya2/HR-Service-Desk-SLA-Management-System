@@ -4,7 +4,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-/** What the dialog asks for: a title, the field label and whether a message is mandatory. */
+import { TranslatePipe } from '@ngx-translate/core';
+/** What the dialog asks for: a title and field label (translation keys) and whether a message is mandatory. */
 export interface ReasonRequest {
   label: string;
   reasonLabel?: string;
@@ -14,22 +15,22 @@ export interface ReasonRequest {
 /** Asks for the message that accompanies a decision. Closes with the text, or undefined if cancelled. */
 @Component({
   selector: 'app-reason-dialog',
-  imports: [ReactiveFormsModule, MatButtonModule, MatDialogModule, MatFormFieldModule, MatInputModule],
+  imports: [ReactiveFormsModule, MatButtonModule, MatDialogModule, MatFormFieldModule, MatInputModule, TranslatePipe],
   template: `
-    <h2 mat-dialog-title>{{ action.label }}</h2>
+    <h2 mat-dialog-title>{{ action.label | translate }}</h2>
     <mat-dialog-content>
       <mat-form-field appearance="outline" class="field">
-        <mat-label>{{ action.reasonLabel }}</mat-label>
+        <mat-label>{{ action.reasonLabel ?? '' | translate }}</mat-label>
         <textarea matInput rows="4" maxlength="4000" [formControl]="reason" data-testid="reason"></textarea>
         @if (reason.hasError('required')) {
-          <mat-error>A message is required.</mat-error>
+          <mat-error>{{ 'action.messageRequired' | translate }}</mat-error>
         }
       </mat-form-field>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button type="button" mat-dialog-close>Cancel</button>
+      <button mat-button type="button" mat-dialog-close>{{ 'common.cancel' | translate }}</button>
       <button mat-flat-button type="button" [disabled]="reason.invalid" (click)="confirm()" data-testid="confirm-status">
-        {{ action.label }}
+        {{ action.label | translate }}
       </button>
     </mat-dialog-actions>
   `,

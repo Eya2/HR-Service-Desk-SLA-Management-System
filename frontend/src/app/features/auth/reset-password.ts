@@ -7,16 +7,17 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
-import { problemOf } from '../../core/http/error.interceptor';
+import { problemMessage } from '../../core/http/error.interceptor';
 import { AuthLayout } from './auth-layout';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 /** The password policy enforced by the API, shown as a checklist while typing. */
 export const PASSWORD_RULES: { label: string; test: (p: string) => boolean }[] = [
-  { label: 'At least 12 characters', test: (p) => p.length >= 12 },
-  { label: 'An upper-case letter', test: (p) => /\p{Lu}/u.test(p) },
-  { label: 'A lower-case letter', test: (p) => /\p{Ll}/u.test(p) },
-  { label: 'A digit', test: (p) => /\d/.test(p) },
-  { label: 'A symbol', test: (p) => /[^\p{L}\p{N}]/u.test(p) },
+  { label: 'auth.rule.length', test: (p) => p.length >= 12 },
+  { label: 'auth.rule.upper', test: (p) => /\p{Lu}/u.test(p) },
+  { label: 'auth.rule.lower', test: (p) => /\p{Ll}/u.test(p) },
+  { label: 'auth.rule.digit', test: (p) => /\d/.test(p) },
+  { label: 'auth.rule.symbol', test: (p) => /[^\p{L}\p{N}]/u.test(p) },
 ];
 
 const policy = (control: AbstractControl): ValidationErrors | null =>
@@ -28,54 +29,54 @@ const matching = (group: AbstractControl): ValidationErrors | null =>
 /** Chooses a new password with the e-mailed link (?email=…&token=…). */
 @Component({
   selector: 'app-reset-password',
-  imports: [ReactiveFormsModule, RouterLink, MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule, AuthLayout],
+  imports: [ReactiveFormsModule, RouterLink, MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule, AuthLayout, TranslatePipe],
   template: `
     <app-auth-layout>
       @if (done()) {
         <div role="status" data-testid="reset-done">
-          <h1>Password changed</h1>
-          <p class="lead">You can now sign in with your new password. You were signed out everywhere else.</p>
-          <a mat-flat-button routerLink="/login" class="submit">Sign in</a>
+          <h1>{{ 'auth.changed' | translate }}</h1>
+          <p class="lead">{{ 'auth.changedLead' | translate }}</p>
+          <a mat-flat-button routerLink="/login" class="submit">{{ 'auth.signIn' | translate }}</a>
         </div>
       } @else if (!email() || !token()) {
-        <h1>This link is incomplete</h1>
-        <p class="lead">Open the link from the e-mail again, or <a routerLink="/forgot-password">ask for a new one</a>.</p>
+        <h1>{{ 'auth.incomplete' | translate }}</h1>
+        <p class="lead">{{ 'auth.incompleteLead' | translate }} <a routerLink="/forgot-password">{{ 'auth.askNew' | translate }}</a>.</p>
       } @else {
-        <h1>Choose a new password</h1>
-        <p class="lead">For {{ email() }}</p>
+        <h1>{{ 'auth.chooseNew' | translate }}</h1>
+        <p class="lead">{{ 'auth.forEmail' | translate: { email: email() } }}</p>
         <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
           <mat-form-field appearance="outline">
-            <mat-label>New password</mat-label>
+            <mat-label>{{ 'auth.newPassword' | translate }}</mat-label>
             <input matInput type="password" formControlName="password" autocomplete="new-password" required />
           </mat-form-field>
-          <ul class="rules" aria-label="Password rules">
+          <ul class="rules" [attr.aria-label]="'auth.rulesLabel' | translate">
             @for (rule of rules; track rule.label) {
               <li [class.ok]="rule.test(password())">
                 <mat-icon fontSet="material-symbols-outlined">{{ rule.test(password()) ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-                {{ rule.label }}
+                {{ rule.label | translate }}
               </li>
             }
           </ul>
           <mat-form-field appearance="outline">
-            <mat-label>Confirm the password</mat-label>
+            <mat-label>{{ 'auth.confirmPassword' | translate }}</mat-label>
             <input matInput type="password" formControlName="confirm" autocomplete="new-password" required />
           </mat-form-field>
           @if (form.hasError('mismatch') && form.controls.confirm.touched) {
-            <p class="error" data-testid="mismatch">The two passwords differ.</p>
+            <p class="error" data-testid="mismatch">{{ 'auth.mismatch' | translate }}</p>
           }
           @if (error(); as message) {
             <p class="error" role="alert" data-testid="reset-error">
-              {{ message }} <a routerLink="/forgot-password">Ask for a new link</a>
+              {{ message }} <a routerLink="/forgot-password">{{ 'auth.askNewLink' | translate }}</a>
             </p>
           }
-          <button mat-flat-button type="submit" class="submit" [disabled]="form.invalid || saving()">Change password</button>
+          <button mat-flat-button type="submit" class="submit" [disabled]="form.invalid || saving()">{{ 'auth.changePassword' | translate }}</button>
         </form>
       }
     </app-auth-layout>
   `,
   styles: `
     h1 {
-      font: 700 1.6rem/1.2 Inter, sans-serif;
+      font: 700 1.6rem/1.2 Inter, 'IBM Plex Sans Arabic', sans-serif;
       letter-spacing: -0.02em;
       margin: 0 0 6px;
     }
@@ -120,6 +121,7 @@ const matching = (group: AbstractControl): ValidationErrors | null =>
 })
 export class ResetPassword {
   private readonly auth = inject(AuthService);
+  private readonly translate = inject(TranslateService);
 
   /** Query parameters from the e-mailed link. */
   readonly email = input<string>();
@@ -143,7 +145,7 @@ export class ResetPassword {
       next: () => this.done.set(true),
       error: (error: unknown) => {
         this.saving.set(false);
-        this.error.set(problemOf(error)?.title ?? 'The password could not be changed.');
+        this.error.set(problemMessage(this.translate, error, 'auth.changeFailed'));
       },
     });
   }

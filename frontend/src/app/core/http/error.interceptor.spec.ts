@@ -3,6 +3,8 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { errorInterceptor } from './error.interceptor';
+import { TranslateService, provideTranslateService } from '@ngx-translate/core';
+import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 
 describe('errorInterceptor', () => {
   let client: HttpClient;
@@ -46,3 +48,19 @@ describe('errorInterceptor', () => {
     expect(snackBar.open).not.toHaveBeenCalled();
   });
 });
+
+describe('errorInterceptor with the translation loader', () => {
+  it('lets the translations load through HttpClient without a circular dependency', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(withInterceptors([errorInterceptor])),
+        provideHttpClientTesting(),
+        provideTranslateService({ fallbackLang: 'en', loader: provideTranslateHttpLoader({ prefix: '/i18n/', suffix: '.json' }) }),
+      ],
+    });
+
+    expect(() => TestBed.inject(TranslateService)).not.toThrow();
+    TestBed.inject(HttpTestingController).expectOne('/i18n/en.json').flush({ common: { ok: 'OK' } });
+  });
+});
+

@@ -1,5 +1,6 @@
 import { payslipType } from '../../testing/catalog-fixtures';
 import { buildFormGroup, errorMessage, toSubmission } from './form-builder';
+import { text } from '../../testing/i18n';
 
 describe('dynamic form builder', () => {
   const fields = payslipType.fields;
@@ -22,28 +23,28 @@ describe('dynamic form builder', () => {
     expect(control.valid).toBeTrue();
     control.setValue('x2026-03');
     expect(control.hasError('pattern')).toBeTrue();
-    expect(errorMessage(field('payPeriod'), control)).toBe('Invalid format. YYYY-MM');
+    expect(errorMessage(field('payPeriod'), control, text)).toBe('Invalid format. YYYY-MM');
   });
 
   it('enforces number bounds and text length', () => {
     const group = buildFormGroup(fields);
 
     group.controls['expectedAmount'].setValue(-1);
-    expect(errorMessage(field('expectedAmount'), group.controls['expectedAmount'])).toBe('Minimum 0.');
+    expect(errorMessage(field('expectedAmount'), group.controls['expectedAmount'], text)).toBe('Minimum 0.');
     group.controls['notes'].setValue('x'.repeat(21));
-    expect(errorMessage(field('notes'), group.controls['notes'])).toBe('At most 20 characters.');
+    expect(errorMessage(field('notes'), group.controls['notes'], text)).toBe('At most 20 characters.');
   });
 
   it('validates files: required, count, type and size', () => {
     const control = buildFormGroup(fields).controls['payslip'];
 
-    expect(errorMessage(field('payslip'), control)).toBe('Payslip is required.');
+    expect(errorMessage(field('payslip'), control, text)).toBe('Payslip is required.');
     control.setValue([pdf(), pdf('second.pdf')]);
     expect(control.hasError('maxFiles')).toBeTrue();
     control.setValue([pdf('virus.exe')]);
-    expect(errorMessage(field('payslip'), control)).toContain('accepted types');
+    expect(errorMessage(field('payslip'), control, text)).toContain('accepted types');
     control.setValue([pdf('huge.pdf', 11 * 1024 * 1024)]);
-    expect(errorMessage(field('payslip'), control)).toBe('huge.pdf is larger than 10 MB.');
+    expect(errorMessage(field('payslip'), control, text)).toBe('huge.pdf is larger than 10 MB.');
     control.setValue([pdf()]);
     expect(control.valid).toBeTrue();
   });
@@ -70,6 +71,6 @@ describe('dynamic form builder', () => {
     const control = buildFormGroup(fields).controls['issue'];
     control.setErrors({ server: 'Issue must be one of the proposed options.' });
 
-    expect(errorMessage(field('issue'), control)).toBe('Issue must be one of the proposed options.');
+    expect(errorMessage(field('issue'), control, text)).toBe('Issue must be one of the proposed options.');
   });
 });

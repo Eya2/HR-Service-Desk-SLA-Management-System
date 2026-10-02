@@ -1,11 +1,17 @@
+import { TestBed } from '@angular/core/testing';
+import { TranslateService } from '@ngx-translate/core';
+import { text } from '../../testing/i18n';
 import { describeEvent, statusAction } from './status-actions';
+
+const label = (from: string, to: string) => text(statusAction(from, to).label);
+const describe_ = (type: string, data: Record<string, unknown> | null) => describeEvent(TestBed.inject(TranslateService), type, data);
 
 describe('status actions', () => {
   it('labels transitions for the people performing them', () => {
-    expect(statusAction('New', 'Open').label).toBe('Accept');
-    expect(statusAction('Open', 'InProgress').label).toBe('Start work');
-    expect(statusAction('WaitingOnEmployee', 'InProgress').label).toBe('Resume');
-    expect(statusAction('InProgress', 'Open').label).toBe('Back to queue');
+    expect(label('New', 'Open')).toBe('Accept');
+    expect(label('Open', 'InProgress')).toBe('Start work');
+    expect(label('WaitingOnEmployee', 'InProgress')).toBe('Resume');
+    expect(label('InProgress', 'Open')).toBe('Back to queue');
   });
 
   it('asks for a reason where the employee needs an explanation', () => {
@@ -16,11 +22,12 @@ describe('status actions', () => {
   });
 
   it('describes audit events in plain words', () => {
-    expect(describeEvent('StatusChanged', { from: 'Open', to: 'WaitingOnEmployee' })).toBe(
+    expect(describe_('StatusChanged', { from: 'Open', to: 'WaitingOnEmployee' })).toBe(
       'changed the status from Open to Waiting on employee',
     );
-    expect(describeEvent('CommentAdded', { isInternal: true })).toBe('added an internal note');
-    expect(describeEvent('AttachmentAdded', { fileName: 'timesheet.pdf' })).toBe('added the document timesheet.pdf');
-    expect(describeEvent('Created', null)).toBe('submitted the request');
+    expect(describe_('CommentAdded', { isInternal: true })).toBe('added an internal note');
+    expect(describe_('AttachmentAdded', { fileName: 'timesheet.pdf' })).toBe('added the document timesheet.pdf');
+    expect(describe_('Created', null)).toBe('submitted the request');
+    expect(describe_('Rated', { score: 4 })).toBe('rated the service 4/5');
   });
 });

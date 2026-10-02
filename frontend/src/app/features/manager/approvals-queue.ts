@@ -10,15 +10,16 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { RouterLink } from '@angular/router';
 import { PendingApproval } from '../../core/api/api.models';
 import { ApprovalsApi } from '../../core/api/approvals.api';
-import { problemOf } from '../../core/http/error.interceptor';
+import { problemMessage } from '../../core/http/error.interceptor';
 import { ReasonDialog, ReasonRequest } from '../tickets/reason-dialog';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 /** Requests waiting for the user's decision, oldest first, with one-click approval. */
 @Component({
   selector: 'app-approvals-queue',
-  imports: [DatePipe, MatButtonModule, MatCardModule, MatIconModule, MatProgressBarModule, RouterLink],
+  imports: [DatePipe, MatButtonModule, MatCardModule, MatIconModule, MatProgressBarModule, RouterLink, TranslatePipe],
   template: `
-    <h1>Pending approvals</h1>
+    <h1>{{ 'manager.pending' | translate }}</h1>
     @if (queue.isLoading()) {
       <mat-progress-bar mode="indeterminate" />
     }
@@ -30,23 +31,23 @@ import { ReasonDialog, ReasonRequest } from '../tickets/reason-dialog';
               <a [routerLink]="['/tickets', item.ticketId]" class="reference">{{ item.reference }}</a>
               <h2>{{ item.title }}</h2>
               <p>
-                {{ item.requestTypeName }} · {{ item.requesterName }} · submitted {{ item.submittedAt | date: 'medium' }}
+                {{ 'manager.submittedOn' | translate: { type: item.requestTypeName, name: item.requesterName, date: (item.submittedAt | date: 'medium') } }}
               </p>
-              <p class="step">Step {{ item.stepOrder }} of {{ item.stepCount }}: {{ item.stepName }}</p>
+              <p class="step">{{ 'manager.step' | translate: { order: item.stepOrder, count: item.stepCount, name: item.stepName } }}</p>
             </div>
             <div class="buttons">
               <button mat-stroked-button type="button" (click)="decide(item, false)" [disabled]="busy() === item.approvalId">
-                <mat-icon fontSet="material-symbols-outlined">block</mat-icon>Reject
+                <mat-icon fontSet="material-symbols-outlined">block</mat-icon>{{ 'ticket.reject' | translate }}
               </button>
               <button mat-flat-button type="button" (click)="decide(item, true)" [disabled]="busy() === item.approvalId" data-testid="approve">
-                <mat-icon fontSet="material-symbols-outlined">check</mat-icon>Approve
+                <mat-icon fontSet="material-symbols-outlined">check</mat-icon>{{ 'ticket.approve' | translate }}
               </button>
             </div>
           </mat-card-content>
         </mat-card>
       } @empty {
         @if (!queue.isLoading()) {
-          <p class="empty" data-testid="queue-empty">Nothing is waiting for your approval.</p>
+          <p class="empty" data-testid="queue-empty">{{ 'manager.nothing' | translate }}</p>
         }
       }
     </div>
@@ -91,6 +92,7 @@ export class ApprovalsQueue {
   private readonly api = inject(ApprovalsApi);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly translate = inject(TranslateService);
 
   protected readonly queue = rxResource({ stream: () => this.api.pending() });
   protected readonly busy = signal<string | null>(null);
@@ -102,7 +104,7 @@ export class ApprovalsQueue {
     }
     this.dialog
       .open<ReasonDialog, ReasonRequest, string>(ReasonDialog, {
-        data: { label: `Reject ${item.reference}`, reasonLabel: 'Reason (sent to the employee)', reason: 'required' },
+        data: { label: this.translate.instant('manager.rejectRef', { reference: item.reference }), reasonLabel: 'action.reasonToEmployee', reason: 'required' },
       })
       .afterClosed()
       .subscribe((reason) => {
@@ -116,11 +118,13 @@ export class ApprovalsQueue {
       next: () => {
         this.busy.set(null);
         this.queue.update((items) => items?.filter((i) => i.approvalId !== item.approvalId));
-        this.snackBar.open(`${item.reference} ${approve ? 'approved' : 'rejected'}.`, undefined, { duration: 3000 });
+        this.snackBar.open(this.translate.instant(approve ? 'manager.approvedRef' : 'manager.rejectedRef', { reference: item.reference }), undefined, {
+          duration: 3000,
+        });
       },
       error: (error: unknown) => {
         this.busy.set(null);
-        this.snackBar.open(problemOf(error)?.title ?? 'The decision could not be recorded.', 'Dismiss', { duration: 6000 });
+        this.snackBar.open(problemMessage(this.translate, error, 'ticket.decisionFailed'), this.translate.instant('common.dismiss'), { duration: 6000 });
         this.queue.reload();
       },
     });

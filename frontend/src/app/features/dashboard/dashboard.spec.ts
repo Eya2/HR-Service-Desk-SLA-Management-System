@@ -5,6 +5,7 @@ import { DashboardData } from '../../core/api/dashboard.api';
 import { VizColors } from '../../shared/charts/chart';
 import { Dashboard } from './dashboard';
 import { complianceChart, priorityChart, volumeChart } from './dashboard-charts';
+import { text } from '../../testing/i18n';
 
 const data: DashboardData = {
   from: '2026-03-01T00:00:00Z',
@@ -21,6 +22,8 @@ const data: DashboardData = {
     averageFirstResponseHours: 1.5,
     averageResolutionHours: 6.25,
     reopenRatePercent: 11.1,
+    averageSatisfaction: 4.5,
+    ratings: 2,
   },
   complianceByRequestType: [{ key: 'a', label: 'Payslip correction', resolved: 4, met: 2, compliancePercent: 50 }],
   complianceByTeam: [{ key: 't', label: 'Payroll', resolved: 4, met: 2, compliancePercent: 50 }],
@@ -53,7 +56,7 @@ const colors: VizColors = {
 
 describe('dashboard charts', () => {
   it('draws created and resolved in the first two categorical slots with a legend', () => {
-    const config = volumeChart(data)(colors);
+    const config = volumeChart(data, text)(colors);
     const sets = config.data.datasets as unknown as { label: string; borderColor: string }[];
 
     expect(sets.map((s) => [s.label, s.borderColor])).toEqual([
@@ -64,13 +67,13 @@ describe('dashboard charts', () => {
   });
 
   it('uses the ordinal ramp for priorities, light to dark', () => {
-    const config = priorityChart(data.backlogByPriority)(colors);
+    const config = priorityChart(data.backlogByPriority, text)(colors);
 
     expect((config.data.datasets[0] as unknown as { backgroundColor: string[] }).backgroundColor).toEqual(colors.ordinal);
   });
 
   it('caps compliance at 100%', () => {
-    const config = complianceChart(data.complianceByRequestType)(colors);
+    const config = complianceChart(data.complianceByRequestType, text)(colors);
 
     expect((config.options as { scales: { x: { max: number } } }).scales.x.max).toBe(100);
   });

@@ -1,5 +1,5 @@
-import { DecimalPipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { DecimalPipe, PercentPipe } from '@angular/common';
+import { Component, LOCALE_ID, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
@@ -11,8 +11,10 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { DashboardApi, DashboardData, DashboardQuery } from '../../core/api/dashboard.api';
 import { ChartView } from '../../shared/charts/chart';
-import { categoryLabel, humanize } from '../../shared/ui/labels';
-import { complianceChart, countChart, formatBucket, priorityChart, volumeChart, workloadChart } from './dashboard-charts';
+import { ChartText, complianceChart, countChart, formatBucket, priorityChart, volumeChart, workloadChart } from './dashboard-charts';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { EnumLabelPipe, enumLabel } from '../../shared/ui/enum-label';
+import { formatNumber } from '@angular/common';
 
 type Preset = '7' | '30' | '90' | '365' | 'custom';
 
@@ -23,6 +25,9 @@ const DAY = 86_400_000;
   selector: 'app-dashboard',
   imports: [
     DecimalPipe,
+    PercentPipe,
+    TranslatePipe,
+    EnumLabelPipe,
     MatButtonModule,
     MatButtonToggleModule,
     MatFormFieldModule,
@@ -36,43 +41,43 @@ const DAY = 86_400_000;
   template: `
     <div class="page-header">
       <div>
-        <h1>Dashboard</h1>
-        <p>Service levels, workload and demand. Times are business hours, pauses excluded.</p>
+        <h1>{{ 'dashboard.title' | translate }}</h1>
+        <p>{{ 'dashboard.lead' | translate }}</p>
       </div>
       <button mat-stroked-button type="button" (click)="export()" [disabled]="!data.value()" data-testid="export">
-        <mat-icon fontSet="material-symbols-outlined">download</mat-icon> Export CSV
+        <mat-icon fontSet="material-symbols-outlined">download</mat-icon> {{ 'dashboard.export' | translate }}
       </button>
     </div>
 
-    <div class="filters dense-controls" role="group" aria-label="Filters">
-      <mat-button-toggle-group [value]="preset()" (change)="preset.set($event.value)" aria-label="Period" hideSingleSelectionIndicator>
-        <mat-button-toggle value="7">7 days</mat-button-toggle>
-        <mat-button-toggle value="30">30 days</mat-button-toggle>
-        <mat-button-toggle value="90">90 days</mat-button-toggle>
-        <mat-button-toggle value="365">12 months</mat-button-toggle>
-        <mat-button-toggle value="custom">Custom</mat-button-toggle>
+    <div class="filters dense-controls" role="group" [attr.aria-label]="'dashboard.filters' | translate">
+      <mat-button-toggle-group [value]="preset()" (change)="preset.set($event.value)" [attr.aria-label]="'dashboard.period' | translate" hideSingleSelectionIndicator>
+        <mat-button-toggle value="7">{{ 'dashboard.days7' | translate }}</mat-button-toggle>
+        <mat-button-toggle value="30">{{ 'dashboard.days30' | translate }}</mat-button-toggle>
+        <mat-button-toggle value="90">{{ 'dashboard.days90' | translate }}</mat-button-toggle>
+        <mat-button-toggle value="365">{{ 'dashboard.months12' | translate }}</mat-button-toggle>
+        <mat-button-toggle value="custom">{{ 'dashboard.custom' | translate }}</mat-button-toggle>
       </mat-button-toggle-group>
       @if (preset() === 'custom') {
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="date">
-          <mat-label>From</mat-label>
+          <mat-label>{{ 'dashboard.from' | translate }}</mat-label>
           <input matInput type="date" [value]="customFrom()" (change)="customFrom.set($any($event.target).value)" />
         </mat-form-field>
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="date">
-          <mat-label>To</mat-label>
+          <mat-label>{{ 'dashboard.to' | translate }}</mat-label>
           <input matInput type="date" [value]="customTo()" (change)="customTo.set($any($event.target).value)" />
         </mat-form-field>
       }
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="team">
-        <mat-label>Team</mat-label>
+        <mat-label>{{ 'dashboard.team' | translate }}</mat-label>
         <mat-select [value]="teamId()" (selectionChange)="teamId.set($event.value)" data-testid="team-filter">
-          <mat-option [value]="null">All teams</mat-option>
+          <mat-option [value]="null">{{ 'dashboard.allTeams' | translate }}</mat-option>
           @for (team of teams(); track team.id) {
             <mat-option [value]="team.id">{{ team.name }}</mat-option>
           }
         </mat-select>
       </mat-form-field>
       <span class="spacer"></span>
-      <mat-slide-toggle [checked]="tables()" (change)="tables.set($event.checked)" data-testid="tables-toggle">Tables</mat-slide-toggle>
+      <mat-slide-toggle [checked]="tables()" (change)="tables.set($event.checked)" data-testid="tables-toggle">{{ 'dashboard.tables' | translate }}</mat-slide-toggle>
     </div>
 
     @if (data.isLoading()) {
@@ -80,65 +85,76 @@ const DAY = 86_400_000;
     }
 
     @if (data.value(); as d) {
-      <section class="kpis" aria-label="Key figures">
+      <section class="kpis" [attr.aria-label]="'dashboard.keyFigures' | translate">
         <div class="kpi" data-testid="kpi-compliance">
-          <span class="label">SLA compliance</span>
-          <span class="value">{{ d.kpis.slaCompliancePercent === null ? '—' : (d.kpis.slaCompliancePercent | number: '1.0-1') + '%' }}</span>
-          <span class="sub">resolved on time</span>
+          <span class="label">{{ 'dashboard.compliance' | translate }}</span>
+          <span class="value">{{ d.kpis.slaCompliancePercent === null ? '—' : (d.kpis.slaCompliancePercent / 100 | percent: '1.0-1') }}</span>
+          <span class="sub">{{ 'dashboard.resolvedOnTime' | translate }}</span>
         </div>
         <div class="kpi" data-testid="kpi-created">
-          <span class="label">Created</span>
+          <span class="label">{{ 'dashboard.created' | translate }}</span>
           <span class="value">{{ d.kpis.created }}</span>
-          <span class="sub">{{ d.kpis.resolved }} resolved</span>
+          <span class="sub">{{ 'dashboard.resolvedCount' | translate: { count: d.kpis.resolved } }}</span>
         </div>
         <div class="kpi" data-testid="kpi-backlog">
-          <span class="label">Backlog</span>
+          <span class="label">{{ 'dashboard.backlog' | translate }}</span>
           <span class="value">{{ d.kpis.backlog }}</span>
           <span class="sub status">
-            <span class="dot warning"></span>{{ d.kpis.atRiskNow }} at risk <span class="dot critical"></span>{{ d.kpis.breachedNow }} late
+            <span class="dot warning"></span>{{ 'dashboard.atRiskLate' | translate: { risk: d.kpis.atRiskNow } }} <span class="dot critical"></span>{{ 'dashboard.late' | translate: { late: d.kpis.breachedNow } }}
           </span>
         </div>
         <div class="kpi">
-          <span class="label">First response</span>
+          <span class="label">{{ 'dashboard.firstResponse' | translate }}</span>
           <span class="value">{{ hours(d.kpis.averageFirstResponseHours) }}</span>
-          <span class="sub">average</span>
+          <span class="sub">{{ 'dashboard.average' | translate }}</span>
         </div>
         <div class="kpi">
-          <span class="label">Resolution</span>
+          <span class="label">{{ 'dashboard.resolution' | translate }}</span>
           <span class="value">{{ hours(d.kpis.averageResolutionHours) }}</span>
-          <span class="sub">average</span>
+          <span class="sub">{{ 'dashboard.average' | translate }}</span>
         </div>
         <div class="kpi">
-          <span class="label">Reopened</span>
-          <span class="value">{{ d.kpis.reopenRatePercent === null ? '—' : (d.kpis.reopenRatePercent | number: '1.0-1') + '%' }}</span>
-          <span class="sub">of resolved</span>
+          <span class="label">{{ 'dashboard.reopened' | translate }}</span>
+          <span class="value">{{ d.kpis.reopenRatePercent === null ? '—' : (d.kpis.reopenRatePercent / 100 | percent: '1.0-1') }}</span>
+          <span class="sub">{{ 'dashboard.ofResolved' | translate }}</span>
+        </div>
+        <div class="kpi" data-testid="kpi-csat">
+          <span class="label">{{ 'dashboard.csat' | translate }}</span>
+          <span class="value">
+            @if (d.kpis.averageSatisfaction === null) {
+              —
+            } @else {
+              {{ d.kpis.averageSatisfaction | number: '1.1-1' }}<mat-icon class="kpi-star" fontSet="material-symbols-outlined" aria-hidden="true">star</mat-icon>
+            }
+          </span>
+          <span class="sub">{{ 'dashboard.csatSub' | translate: { count: d.kpis.ratings } }}</span>
         </div>
       </section>
 
       <div class="grid">
         <article class="card wide">
-          <header><h2>Volume over time</h2><p>Cases created and resolved per {{ d.granularity === 'Week' ? 'week' : 'day' }}</p></header>
+          <header><h2>{{ 'dashboard.volume' | translate }}</h2><p>{{ (d.granularity === 'Week' ? 'dashboard.volumeSubWeek' : 'dashboard.volumeSubDay') | translate }}</p></header>
           @if (tables()) {
-            <table class="data" aria-label="Volume over time">
-              <thead><tr><th>{{ d.granularity }}</th><th>Created</th><th>Resolved</th></tr></thead>
+            <table class="data" [attr.aria-label]="'dashboard.volume' | translate">
+              <thead><tr><th>{{ (d.granularity === 'Week' ? 'dashboard.week' : 'dashboard.day') | translate }}</th><th>{{ 'dashboard.created' | translate }}</th><th>{{ 'dashboard.resolved' | translate }}</th></tr></thead>
               <tbody>
                 @for (p of d.volume; track p.date) {
-                  <tr><td>{{ bucket(p.date, d.granularity) }}</td><td>{{ p.created }}</td><td>{{ p.resolved }}</td></tr>
+                  <tr><td>{{ bucket(p.date, d.granularity, text, locale) }}</td><td>{{ p.created }}</td><td>{{ p.resolved }}</td></tr>
                 }
               </tbody>
             </table>
           } @else {
-            <app-chart [config]="charts().volume" [height]="280" label="Cases created and resolved over time" />
+            <app-chart [config]="charts().volume" [height]="280" [label]="'dashboard.volume' | translate" />
           }
         </article>
 
         <article class="card">
-          <header><h2>SLA compliance by request type</h2><p>Share resolved on time, worst first</p></header>
+          <header><h2>{{ 'dashboard.byType' | translate }}</h2><p>{{ 'dashboard.byTypeSub' | translate }}</p></header>
           @if (d.complianceByRequestType.length === 0) {
-            <p class="empty">No case resolved in this period.</p>
+            <p class="empty">{{ 'dashboard.noResolved' | translate }}</p>
           } @else if (tables()) {
-            <table class="data" aria-label="SLA compliance by request type">
-              <thead><tr><th>Request type</th><th>On time</th><th>Resolved</th><th>%</th></tr></thead>
+            <table class="data" [attr.aria-label]="'dashboard.byType' | translate">
+              <thead><tr><th>{{ 'dashboard.requestType' | translate }}</th><th>{{ 'dashboard.onTime' | translate }}</th><th>{{ 'dashboard.resolved' | translate }}</th><th>%</th></tr></thead>
               <tbody>
                 @for (r of d.complianceByRequestType; track r.key) {
                   <tr><td>{{ r.label }}</td><td>{{ r.met }}</td><td>{{ r.resolved }}</td><td>{{ r.compliancePercent }}</td></tr>
@@ -146,17 +162,17 @@ const DAY = 86_400_000;
               </tbody>
             </table>
           } @else {
-            <app-chart [config]="charts().byType" [height]="chartHeight(d.complianceByRequestType.length)" label="SLA compliance by request type" />
+            <app-chart [config]="charts().byType" [height]="chartHeight(d.complianceByRequestType.length)" [label]="'dashboard.byType' | translate" />
           }
         </article>
 
         <article class="card">
-          <header><h2>SLA compliance by team</h2><p>Share resolved on time</p></header>
+          <header><h2>{{ 'dashboard.byTeam' | translate }}</h2><p>{{ 'dashboard.byTeamSub' | translate }}</p></header>
           @if (d.complianceByTeam.length === 0) {
-            <p class="empty">No case resolved in this period.</p>
+            <p class="empty">{{ 'dashboard.noResolved' | translate }}</p>
           } @else if (tables()) {
-            <table class="data" aria-label="SLA compliance by team">
-              <thead><tr><th>Team</th><th>On time</th><th>Resolved</th><th>%</th></tr></thead>
+            <table class="data" [attr.aria-label]="'dashboard.byTeam' | translate">
+              <thead><tr><th>{{ 'dashboard.team' | translate }}</th><th>{{ 'dashboard.onTime' | translate }}</th><th>{{ 'dashboard.resolved' | translate }}</th><th>%</th></tr></thead>
               <tbody>
                 @for (r of d.complianceByTeam; track r.key) {
                   <tr><td>{{ r.label }}</td><td>{{ r.met }}</td><td>{{ r.resolved }}</td><td>{{ r.compliancePercent }}</td></tr>
@@ -164,69 +180,69 @@ const DAY = 86_400_000;
               </tbody>
             </table>
           } @else {
-            <app-chart [config]="charts().byTeam" [height]="chartHeight(d.complianceByTeam.length)" label="SLA compliance by team" />
+            <app-chart [config]="charts().byTeam" [height]="chartHeight(d.complianceByTeam.length)" [label]="'dashboard.byTeam' | translate" />
           }
         </article>
 
         <article class="card">
-          <header><h2>Backlog by status</h2><p>Open cases now</p></header>
+          <header><h2>{{ 'dashboard.byStatus' | translate }}</h2><p>{{ 'dashboard.openNow' | translate }}</p></header>
           @if (tables()) {
-            <table class="data" aria-label="Backlog by status">
-              <thead><tr><th>Status</th><th>Cases</th></tr></thead>
+            <table class="data" [attr.aria-label]="'dashboard.byStatus' | translate">
+              <thead><tr><th>{{ 'dashboard.status' | translate }}</th><th>{{ 'dashboard.cases' | translate }}</th></tr></thead>
               <tbody>
                 @for (r of d.backlogByStatus; track r.key) {
-                  <tr><td>{{ humanize(r.label) }}</td><td>{{ r.count }}</td></tr>
+                  <tr><td>{{ r.key | enumLabel: 'status' }}</td><td>{{ r.count }}</td></tr>
                 }
               </tbody>
             </table>
           } @else if (d.backlogByStatus.length === 0) {
-            <p class="empty">No open case.</p>
+            <p class="empty">{{ 'dashboard.noOpen' | translate }}</p>
           } @else {
-            <app-chart [config]="charts().status" [height]="chartHeight(d.backlogByStatus.length)" label="Backlog by status" />
+            <app-chart [config]="charts().status" [height]="chartHeight(d.backlogByStatus.length)" [label]="'dashboard.byStatus' | translate" />
           }
         </article>
 
         <article class="card">
-          <header><h2>Backlog by priority</h2><p>Open cases now, Low to Critical</p></header>
+          <header><h2>{{ 'dashboard.byPriority' | translate }}</h2><p>{{ 'dashboard.byPrioritySub' | translate }}</p></header>
           @if (tables()) {
-            <table class="data" aria-label="Backlog by priority">
-              <thead><tr><th>Priority</th><th>Cases</th></tr></thead>
+            <table class="data" [attr.aria-label]="'dashboard.byPriority' | translate">
+              <thead><tr><th>{{ 'dashboard.priority' | translate }}</th><th>{{ 'dashboard.cases' | translate }}</th></tr></thead>
               <tbody>
                 @for (r of d.backlogByPriority; track r.key) {
-                  <tr><td>{{ r.label }}</td><td>{{ r.count }}</td></tr>
+                  <tr><td>{{ r.key | enumLabel: 'priority' }}</td><td>{{ r.count }}</td></tr>
                 }
               </tbody>
             </table>
           } @else {
-            <app-chart [config]="charts().priority" [height]="240" label="Backlog by priority" />
+            <app-chart [config]="charts().priority" [height]="240" [label]="'dashboard.byPriority' | translate" />
           }
         </article>
 
         <article class="card">
-          <header><h2>Top request categories</h2><p>Cases created in the period</p></header>
+          <header><h2>{{ 'dashboard.categories' | translate }}</h2><p>{{ 'dashboard.categoriesSub' | translate }}</p></header>
           @if (d.topCategories.length === 0) {
-            <p class="empty">No case created in this period.</p>
+            <p class="empty">{{ 'dashboard.noCreated' | translate }}</p>
           } @else if (tables()) {
-            <table class="data" aria-label="Top request categories">
-              <thead><tr><th>Category</th><th>Cases</th></tr></thead>
+            <table class="data" [attr.aria-label]="'dashboard.categories' | translate">
+              <thead><tr><th>{{ 'dashboard.category' | translate }}</th><th>{{ 'dashboard.cases' | translate }}</th></tr></thead>
               <tbody>
                 @for (r of d.topCategories; track r.key) {
-                  <tr><td>{{ category(r.label) }}</td><td>{{ r.count }}</td></tr>
+                  <tr><td>{{ r.key | enumLabel: 'category' }}</td><td>{{ r.count }}</td></tr>
                 }
               </tbody>
             </table>
           } @else {
-            <app-chart [config]="charts().categories" [height]="chartHeight(d.topCategories.length)" label="Top request categories" />
+            <app-chart [config]="charts().categories" [height]="chartHeight(d.topCategories.length)" [label]="'dashboard.categories' | translate" />
           }
         </article>
 
         <article class="card">
-          <header><h2>Agent workload</h2><p>Active cases now and cases resolved in the period</p></header>
+          <header><h2>{{ 'dashboard.workload' | translate }}</h2><p>{{ 'dashboard.workloadSub' | translate }}</p></header>
           @if (d.workload.length === 0) {
-            <p class="empty">No case assigned.</p>
+            <p class="empty">{{ 'dashboard.noAssigned' | translate }}</p>
           } @else if (tables()) {
-            <table class="data" aria-label="Agent workload">
-              <thead><tr><th>Agent</th><th>Active</th><th>Resolved</th></tr></thead>
+            <table class="data" [attr.aria-label]="'dashboard.workload' | translate">
+              <thead><tr><th>{{ 'dashboard.agent' | translate }}</th><th>{{ 'dashboard.active' | translate }}</th><th>{{ 'dashboard.resolved' | translate }}</th></tr></thead>
               <tbody>
                 @for (w of d.workload; track w.userId) {
                   <tr><td>{{ w.name }}</td><td>{{ w.activeCases }}</td><td>{{ w.resolvedInPeriod }}</td></tr>
@@ -234,7 +250,7 @@ const DAY = 86_400_000;
               </tbody>
             </table>
           } @else {
-            <app-chart [config]="charts().workload" [height]="chartHeight(d.workload.length, 44)" label="Agent workload" />
+            <app-chart [config]="charts().workload" [height]="chartHeight(d.workload.length, 44)" [label]="'dashboard.workload' | translate" />
           }
         </article>
       </div>
@@ -262,9 +278,18 @@ const DAY = 86_400_000;
     }
     .kpis {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
       gap: 14px;
       margin-bottom: 20px;
+    }
+    .kpi-star {
+      font-size: 22px;
+      width: 22px;
+      height: 22px;
+      vertical-align: -2px;
+      margin-inline-start: 4px;
+      color: #f5a524;
+      font-variation-settings: 'FILL' 1;
     }
     .kpi {
       display: grid;
@@ -281,7 +306,7 @@ const DAY = 86_400_000;
       color: var(--app-muted);
     }
     .kpi .value {
-      font: 700 1.9rem/1.1 Inter, sans-serif;
+      font: 700 1.9rem/1.1 Inter, 'IBM Plex Sans Arabic', sans-serif;
       letter-spacing: -0.02em;
     }
     .kpi .sub {
@@ -325,7 +350,7 @@ const DAY = 86_400_000;
       margin-bottom: 12px;
     }
     .card h2 {
-      font: 600 1rem Inter, sans-serif;
+      font: 600 1rem Inter, 'IBM Plex Sans Arabic', sans-serif;
       margin: 0;
     }
     .card header p {
@@ -364,8 +389,9 @@ const DAY = 86_400_000;
 export class Dashboard {
   private readonly api = inject(DashboardApi);
 
-  protected readonly humanize = humanize;
-  protected readonly category = categoryLabel;
+  private readonly translate = inject(TranslateService);
+  protected readonly locale = inject(LOCALE_ID);
+  protected readonly text: ChartText = (key, params) => this.translate.instant(key, params) as string;
   protected readonly bucket = formatBucket;
   protected readonly preset = signal<Preset>('30');
   protected readonly customFrom = signal(this.isoDate(Date.now() - 30 * DAY));
@@ -392,18 +418,18 @@ export class Dashboard {
   protected readonly charts = computed(() => {
     const d = this.data.value() as DashboardData;
     return {
-      volume: volumeChart(d),
-      byType: complianceChart(d.complianceByRequestType),
-      byTeam: complianceChart(d.complianceByTeam),
-      status: countChart(d.backlogByStatus, 'Open cases'),
-      priority: priorityChart(d.backlogByPriority),
-      categories: countChart(d.topCategories, 'Cases', categoryLabel),
-      workload: workloadChart(d),
+      volume: volumeChart(d, this.text, this.locale),
+      byType: complianceChart(d.complianceByRequestType, this.text),
+      byTeam: complianceChart(d.complianceByTeam, this.text),
+      status: countChart(d.backlogByStatus, this.text('dashboard.openNow'), (k) => enumLabel(this.translate, 'status', k)),
+      priority: priorityChart(d.backlogByPriority, this.text, (k) => enumLabel(this.translate, 'priority', k)),
+      categories: countChart(d.topCategories, this.text('dashboard.cases'), (k) => enumLabel(this.translate, 'category', k)),
+      workload: workloadChart(d, this.text),
     };
   });
 
   protected hours(value: number | null): string {
-    return value === null ? '—' : `${value.toFixed(1)} h`;
+    return value === null ? '—' : this.text('dashboard.hours', { value: formatNumber(value, this.locale, '1.1-1') });
   }
 
   /** Height grows with the number of bars so they keep a constant thickness. */

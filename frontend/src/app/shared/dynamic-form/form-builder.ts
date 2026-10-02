@@ -75,19 +75,22 @@ export function toSubmission(
   return { values, files };
 }
 
+/** Translates a key ("form.required") with parameters. */
+export type Translate = (key: string, params?: Record<string, unknown>) => string;
+
 /** First error message for a control, worded for employees. */
-export function errorMessage(field: FormFieldDef, control: AbstractControl): string | null {
+export function errorMessage(field: FormFieldDef, control: AbstractControl, t: Translate): string | null {
   const errors = control.errors;
   if (!errors) return null;
   if (errors['server']) return errors['server'] as string;
-  if (errors['required']) return `${field.label} is required.`;
-  if (errors['min']) return `Minimum ${field.min}.`;
-  if (errors['max']) return `Maximum ${field.max}.`;
-  if (errors['minlength']) return `At least ${field.minLength} characters.`;
-  if (errors['maxlength']) return `At most ${errors['maxlength'].requiredLength} characters.`;
-  if (errors['pattern']) return field.helpText ? `Invalid format. ${field.helpText}` : 'Invalid format.';
-  if (errors['maxFiles']) return `At most ${errors['maxFiles'].max} file(s).`;
-  if (errors['fileType']) return `${errors['fileType'].name}: accepted types are ${ACCEPTED_EXTENSIONS.join(', ')}.`;
-  if (errors['fileSize']) return `${errors['fileSize'].name} is larger than 10 MB.`;
-  return 'Invalid value.';
+  if (errors['required']) return t('form.required', { label: field.label });
+  if (errors['min']) return t('form.min', { min: field.min });
+  if (errors['max']) return t('form.max', { max: field.max });
+  if (errors['minlength']) return t('form.minLength', { n: field.minLength });
+  if (errors['maxlength']) return t('form.maxLength', { n: errors['maxlength'].requiredLength });
+  if (errors['pattern']) return field.helpText ? `${t('form.pattern')} ${field.helpText}` : t('form.pattern');
+  if (errors['maxFiles']) return t('form.maxFiles', { n: errors['maxFiles'].max });
+  if (errors['fileType']) return t('form.fileType', { name: errors['fileType'].name, types: ACCEPTED_EXTENSIONS.join(', ') });
+  if (errors['fileSize']) return t('form.fileSize', { name: errors['fileSize'].name });
+  return t('form.invalid');
 }

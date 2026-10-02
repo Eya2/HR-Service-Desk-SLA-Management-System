@@ -3,6 +3,7 @@ import { Role } from './auth.models';
 /** A top-level work area and the roles that may open it (mirrors the API's authorization policies). */
 export interface Area {
   path: string;
+  /** Translation keys. */
   label: string;
   icon: string;
   description: string;
@@ -12,44 +13,44 @@ export interface Area {
 export const AREAS: readonly Area[] = [
   {
     path: 'portal',
-    label: 'My requests',
+    label: 'area.portal.label',
     icon: 'inbox',
-    description: 'Browse the HR catalog, submit requests and follow them.',
+    description: 'area.portal.description',
     roles: ['Employee'],
   },
   {
     path: 'manager',
-    label: 'Approvals',
+    label: 'area.manager.label',
     icon: 'fact_check',
-    description: 'Decide on requests waiting for your approval and follow your team.',
+    description: 'area.manager.description',
     roles: ['Manager', 'HrOfficer', 'PayrollSpecialist', 'HrAdmin'],
   },
   {
     path: 'agent',
-    label: 'HR queue',
+    label: 'area.agent.label',
     icon: 'support_agent',
-    description: 'Work on assigned cases and keep SLAs on track.',
+    description: 'area.agent.description',
     roles: ['HrOfficer', 'PayrollSpecialist', 'HrAdmin', 'Auditor'],
   },
   {
     path: 'dashboard',
-    label: 'Dashboards',
+    label: 'area.dashboard.label',
     icon: 'monitoring',
-    description: 'SLA compliance, backlog and workload indicators.',
+    description: 'area.dashboard.description',
     roles: ['HrAdmin', 'Auditor', 'HrOfficer', 'PayrollSpecialist'],
   },
   {
     path: 'audit',
-    label: 'Audit',
+    label: 'area.audit.label',
     icon: 'policy',
-    description: 'Who viewed or changed sensitive data.',
+    description: 'area.audit.description',
     roles: ['HrAdmin', 'Auditor'],
   },
   {
     path: 'admin',
-    label: 'Administration',
+    label: 'area.admin.label',
     icon: 'admin_panel_settings',
-    description: 'Users, request types, workflows and SLA policies.',
+    description: 'area.admin.description',
     roles: ['HrAdmin'],
   },
 ];

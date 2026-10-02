@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, inject, input } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -6,6 +6,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { FormFieldDef } from '../../core/api/api.models';
 import { FileInput } from './file-input';
 import { DynamicFormGroup, errorMessage } from './form-builder';
+import { TranslateService } from '@ngx-translate/core';
 
 /** Renders a request type's fields into an existing form group (built with buildFormGroup). */
 @Component({
@@ -102,10 +103,12 @@ import { DynamicFormGroup, errorMessage } from './form-builder';
   `,
 })
 export class DynamicForm {
+  private readonly translate = inject(TranslateService);
+
   readonly fields = input.required<readonly FormFieldDef[]>();
   readonly group = input.required<DynamicFormGroup>();
 
   protected message(field: FormFieldDef): string | null {
-    return errorMessage(field, this.group().controls[field.key]);
+    return errorMessage(field, this.group().controls[field.key], (key, params) => this.translate.instant(key, params) as string);
   }
 }

@@ -1,5 +1,8 @@
-import { Component, computed, input } from '@angular/core';
-import { humanize } from './labels';
+import { Component, computed, inject, input } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
+import { enumLabel } from './enum-label';
+
+const PRIORITIES = new Set(['Low', 'Medium', 'High', 'Critical']);
 
 /** A coloured pill for a case status or priority. */
 @Component({
@@ -32,7 +35,12 @@ import { humanize } from './labels';
 export class StatusChip {
   readonly value = input.required<string>();
 
-  protected readonly label = computed(() => humanize(this.value()));
+  private readonly translate = inject(TranslateService);
+
+  /** Statuses and priorities share this chip. */
+  protected readonly label = computed(() =>
+    PRIORITIES.has(this.value()) ? enumLabel(this.translate, 'priority', this.value()) : enumLabel(this.translate, 'status', this.value()),
+  );
   protected readonly tone = computed(() => {
     switch (this.value()) {
       case 'New':

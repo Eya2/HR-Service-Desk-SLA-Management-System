@@ -46,12 +46,12 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "650kB",
+                  "maximumWarning": "760kB",
                   "maximumError": "1MB"
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "4kB",
+                  "maximumWarning": "6kB",
                   "maximumError": "8kB"
                 }
               ],
@@ -83,7 +83,11 @@
         "test": {
           "builder": "@angular/build:unit-test",
           "options": {
-            "runner": "karma"
+            "runner": "karma",
+            "include": [
+              "src/**/*.spec.ts",
+              "src/test-setup.ts"
+            ]
           }
         }
       }

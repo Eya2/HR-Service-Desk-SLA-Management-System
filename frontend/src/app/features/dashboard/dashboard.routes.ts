@@ -4,6 +4,6 @@ export const routes: Routes = [
   {
     path: '',
     loadComponent: () => import('./dashboard').then((m) => m.Dashboard),
-    title: 'Dashboard · HR Service Desk',
+    title: 'title.dashboard',
   },
 ];

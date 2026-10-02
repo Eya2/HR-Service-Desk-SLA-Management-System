@@ -10,30 +10,31 @@ import { MatTableModule } from '@angular/material/table';
 import { RouterLink } from '@angular/router';
 import { AUDIT_ACTIONS } from '../../core/api/api.models';
 import { ComplianceApi } from '../../core/api/approvals.api';
-import { humanize } from '../../shared/ui/labels';
+import { EnumLabelPipe } from '../../shared/ui/enum-label';
+import { TranslatePipe } from '@ngx-translate/core';
 
 /** Read-only audit log for HR Admins and auditors: who viewed or changed sensitive data. */
 @Component({
   selector: 'app-audit-log',
-  imports: [DatePipe, MatFormFieldModule, MatInputModule, MatPaginatorModule, MatProgressBarModule, MatSelectModule, MatTableModule, RouterLink],
+  imports: [DatePipe, MatFormFieldModule, MatInputModule, MatPaginatorModule, MatProgressBarModule, MatSelectModule, MatTableModule, RouterLink, TranslatePipe, EnumLabelPipe],
   template: `
-    <h1>Audit log</h1>
+    <h1>{{ 'audit.title' | translate }}</h1>
     <div class="filters">
       <mat-form-field appearance="outline" subscriptSizing="dynamic">
-        <mat-label>Action</mat-label>
+        <mat-label>{{ 'audit.action' | translate }}</mat-label>
         <mat-select [value]="action()" (selectionChange)="action.set($event.value); page.set(0)" data-testid="action-filter">
-          <mat-option [value]="null">All</mat-option>
+          <mat-option [value]="null">{{ 'common.all' | translate }}</mat-option>
           @for (a of actions; track a) {
-            <mat-option [value]="a">{{ humanize(a) }}</mat-option>
+            <mat-option [value]="a">{{ a | enumLabel: 'audit' }}</mat-option>
           }
         </mat-select>
       </mat-form-field>
       <mat-form-field appearance="outline" subscriptSizing="dynamic">
-        <mat-label>From</mat-label>
+        <mat-label>{{ 'audit.from' | translate }}</mat-label>
         <input matInput type="date" [value]="from()" (change)="from.set($any($event.target).value || null); page.set(0)" />
       </mat-form-field>
       <mat-form-field appearance="outline" subscriptSizing="dynamic">
-        <mat-label>To</mat-label>
+        <mat-label>{{ 'audit.to' | translate }}</mat-label>
         <input matInput type="date" [value]="to()" (change)="to.set($any($event.target).value || null); page.set(0)" />
       </mat-form-field>
     </div>
@@ -44,19 +45,19 @@ import { humanize } from '../../shared/ui/labels';
     @if (log.value(); as result) {
       <table mat-table [dataSource]="result.items" class="table">
         <ng-container matColumnDef="when">
-          <th mat-header-cell *matHeaderCellDef>When</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'audit.when' | translate }}</th>
           <td mat-cell *matCellDef="let e">{{ e.occurredAt | date: 'medium' }}</td>
         </ng-container>
         <ng-container matColumnDef="who">
-          <th mat-header-cell *matHeaderCellDef>Who</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'audit.who' | translate }}</th>
           <td mat-cell *matCellDef="let e">{{ e.userName }}</td>
         </ng-container>
         <ng-container matColumnDef="action">
-          <th mat-header-cell *matHeaderCellDef>Action</th>
-          <td mat-cell *matCellDef="let e">{{ humanize(e.action) }}</td>
+          <th mat-header-cell *matHeaderCellDef>{{ 'audit.action' | translate }}</th>
+          <td mat-cell *matCellDef="let e">{{ e.action | enumLabel: 'audit' }}</td>
         </ng-container>
         <ng-container matColumnDef="summary">
-          <th mat-header-cell *matHeaderCellDef>Details</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'audit.details' | translate }}</th>
           <td mat-cell *matCellDef="let e">
             @if (e.entityType === 'Ticket' && e.entityId) {
               <a [routerLink]="['/tickets', e.entityId]">{{ e.summary }}</a>
@@ -69,7 +70,7 @@ import { humanize } from '../../shared/ui/labels';
         <tr mat-row *matRowDef="let row; columns: columns" data-testid="audit-row"></tr>
       </table>
       @if (result.totalCount === 0) {
-        <p>No entry for these filters.</p>
+        <p>{{ 'audit.empty' | translate }}</p>
       }
       <mat-paginator [length]="result.totalCount" [pageIndex]="page()" [pageSize]="50" (page)="onPage($event)" />
     }
@@ -93,7 +94,6 @@ export class AuditLogPage {
   private readonly api = inject(ComplianceApi);
 
   protected readonly actions = AUDIT_ACTIONS;
-  protected readonly humanize = humanize;
   protected readonly columns = ['when', 'who', 'action', 'summary'];
   protected readonly action = signal<string | null>(null);
   protected readonly from = signal<string | null>(null);

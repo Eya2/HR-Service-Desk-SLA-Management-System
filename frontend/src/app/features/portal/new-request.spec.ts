@@ -78,4 +78,23 @@ describe('NewRequest', () => {
     expect(component().answers().controls['payslip'].errors).toEqual({ server: "'payslip.pdf' content does not match its extension." });
     expect(el().querySelector('[data-field="payslip"] .error')?.textContent).toContain('does not match');
   });
+
+  it('suggests help articles matching the title while it is typed', async () => {
+    const title = el().querySelector('input[formcontrolname="title"]') as HTMLInputElement;
+    title.value = 'payslip overtime missing';
+    title.dispatchEvent(new Event('input'));
+    await new Promise((resolve) => setTimeout(resolve, 400)); // past the typing pause
+    TestBed.tick();
+
+    const req = http.expectOne((r) => r.url === '/api/knowledge/suggest');
+    expect(req.request.params.get('text')).toBe('payslip overtime missing');
+    req.flush([
+      { id: 'k1', title: 'How do I read my payslip?', summary: 'Each line explained.', category: 'Payroll', isPublished: true, viewCount: 3, helpfulCount: 1 },
+    ]);
+    await fixture.whenStable();
+
+    const box = el().querySelector('[data-testid="suggestions"]');
+    expect(box?.textContent).toContain('These articles may answer your question');
+    expect(box?.querySelector('a')?.getAttribute('href')).toBe('/portal/help/k1');
+  });
 });

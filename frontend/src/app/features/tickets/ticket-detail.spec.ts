@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TeamInfo, TicketDetails } from '../../core/api/api.models';
 import { ticketDetails } from '../../testing/catalog-fixtures';
+import testProviders from '../../../test-providers';
 import { TicketDetail } from './ticket-detail';
 
 describe('TicketDetail', () => {
@@ -11,7 +12,8 @@ describe('TicketDetail', () => {
 
   /** Renders the page; when the caller may assign, the teams list it then loads is answered with <paramref name="teams"/>. */
   async function render(ticket: TicketDetails, teams: TeamInfo[] = []): Promise<HTMLElement> {
-    TestBed.configureTestingModule({ imports: [TicketDetail], providers: [provideHttpClient(), provideHttpClientTesting()] });
+    // Some tests reset the module mid-way: register the shared translations again.
+    TestBed.configureTestingModule({ imports: [TicketDetail], providers: [...testProviders, provideHttpClient(), provideHttpClientTesting()] });
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(TicketDetail);
     fixture.componentRef.setInput('id', ticket.id);
@@ -51,14 +53,14 @@ describe('TicketDetail', () => {
 
     TestBed.resetTestingModule();
     el = await render(
-      ticketDetails({ permissions: { canComment: true, canCommentInternally: true, canEdit: true, canChangePriority: true, canAttach: true, availableTransitions: [], decidableApprovalId: null, canAssign: false, canClaim: false } }),
+      ticketDetails({ permissions: { canComment: true, canCommentInternally: true, canEdit: true, canChangePriority: true, canAttach: true, availableTransitions: [], decidableApprovalId: null, canAssign: false, canClaim: false, canRate: false } }),
     );
     expect(el.querySelector('[data-testid="internal-toggle"]')).not.toBeNull();
   });
 
   it('hides the reply box for read-only viewers', async () => {
     const el = await render(
-      ticketDetails({ permissions: { canComment: false, canCommentInternally: false, canEdit: false, canChangePriority: false, canAttach: false, availableTransitions: [], decidableApprovalId: null, canAssign: false, canClaim: false } }),
+      ticketDetails({ permissions: { canComment: false, canCommentInternally: false, canEdit: false, canChangePriority: false, canAttach: false, availableTransitions: [], decidableApprovalId: null, canAssign: false, canClaim: false, canRate: false } }),
     );
 
     expect(el.querySelector('[data-testid="comment-body"]')).toBeNull();
@@ -79,6 +81,7 @@ describe('TicketDetail', () => {
           decidableApprovalId: null,
           canAssign: false,
           canClaim: false,
+          canRate: false,
         },
       }),
     );
@@ -124,7 +127,7 @@ describe('TicketDetail', () => {
           { id: 'a1', stepOrder: 1, stepName: 'Manager approval', approverRole: 'Manager', approverName: 'Youssef Haddad', decision: 'Pending', decidedByName: null, decidedAt: null, comment: null },
           { id: 'a2', stepOrder: 2, stepName: 'Payroll validation', approverRole: 'PayrollSpecialist', approverName: null, decision: 'Pending', decidedByName: null, decidedAt: null, comment: null },
         ],
-        permissions: { canComment: true, canCommentInternally: false, canEdit: false, canChangePriority: false, canAttach: false, availableTransitions: [], decidableApprovalId: 'a1', canAssign: false, canClaim: false },
+        permissions: { canComment: true, canCommentInternally: false, canEdit: false, canChangePriority: false, canAttach: false, availableTransitions: [], decidableApprovalId: 'a1', canAssign: false, canClaim: false, canRate: false },
       }),
     );
 
@@ -166,6 +169,7 @@ describe('TicketDetail', () => {
           decidableApprovalId: null,
           canAssign: true,
           canClaim: true,
+          canRate: false,
         },
       }),
       [
@@ -217,5 +221,44 @@ describe('TicketDetail', () => {
 
     expect(el.querySelectorAll('[data-testid="comment"]').length).toBe(1);
     expect(textarea.value).toBe('');
+  });
+
+  it('lets the requester rate a closed case with stars and a comment', async () => {
+    const el = await render(
+      ticketDetails({
+        status: 'Closed',
+        permissions: { ...ticketDetails().permissions, availableTransitions: [], canRate: true },
+      }),
+    );
+
+    expect(el.querySelector('[data-testid="csat-form"]')?.textContent).toContain('How did we do?');
+    const send = el.querySelector('[data-testid="csat-send"]') as HTMLButtonElement;
+    expect(send.disabled).toBeTrue();
+
+    (el.querySelector('[data-testid="star-4"]') as HTMLButtonElement).click();
+    const comment = el.querySelector('[data-testid="csat-comment"]') as HTMLTextAreaElement;
+    comment.value = 'Quick answer';
+    comment.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    expect(el.textContent).toContain('Satisfied');
+
+    send.click();
+    const req = http.expectOne('/api/tickets/t-1/satisfaction');
+    expect(req.request.body).toEqual({ score: 4, comment: 'Quick answer' });
+    req.flush(null, { status: 204, statusText: 'No Content' });
+    TestBed.tick(); // the case reloads after the rating
+    http.expectOne('/api/tickets/t-1').flush(
+      ticketDetails({ status: 'Closed', satisfaction: { score: 4, comment: 'Quick answer', createdAt: '2026-03-03T09:00:00Z' } }),
+    );
+    await fixture.whenStable();
+
+    expect(el.querySelector('[data-testid="csat-form"]')).toBeNull();
+    expect(el.querySelector('[data-testid="csat-given"]')?.textContent).toContain('Quick answer');
+  });
+
+  it('shows no rating form when the API does not allow it', async () => {
+    const el = await render(ticketDetails({ status: 'Resolved' }));
+
+    expect(el.querySelector('[data-testid="csat-form"]')).toBeNull();
   });
 });

@@ -17,10 +17,11 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { STATUSES, TicketSummary } from '../../core/api/api.models';
 import { TicketScope, TicketsApi } from '../../core/api/tickets.api';
 import { AuthService } from '../../core/auth/auth.service';
-import { problemOf } from '../../core/http/error.interceptor';
-import { humanize } from '../../shared/ui/labels';
+import { problemMessage } from '../../core/http/error.interceptor';
 import { SlaBadge } from '../../shared/ui/sla-badge';
 import { StatusChip } from '../../shared/ui/status-chip';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { EnumLabelPipe } from '../../shared/ui/enum-label';
 
 /** The HR agent's work queue: my cases, my teams', unassigned ones, or everything. */
 @Component({
@@ -39,29 +40,31 @@ import { StatusChip } from '../../shared/ui/status-chip';
     RouterLink,
     SlaBadge,
     StatusChip,
+    TranslatePipe,
+    EnumLabelPipe,
   ],
   template: `
-    <h1>HR queue</h1>
+    <h1>{{ 'queue.title' | translate }}</h1>
     <div class="filters">
-      <mat-button-toggle-group [value]="scope()" (change)="scope.set($event.value); page.set(0)" aria-label="Queue view">
+      <mat-button-toggle-group [value]="scope()" (change)="scope.set($event.value); page.set(0)" [attr.aria-label]="'queue.view' | translate">
         @for (s of scopes(); track s.value) {
-          <mat-button-toggle [value]="s.value" [attr.data-testid]="'scope-' + s.value">{{ s.label }}</mat-button-toggle>
+          <mat-button-toggle [value]="s.value" [attr.data-testid]="'scope-' + s.value">{{ s.label | translate }}</mat-button-toggle>
         }
       </mat-button-toggle-group>
       <mat-form-field appearance="outline" subscriptSizing="dynamic">
-        <mat-label>Search reference or title</mat-label>
+        <mat-label>{{ 'queue.search' | translate }}</mat-label>
         <input matInput [value]="search()" (input)="search.set($any($event.target).value)" />
       </mat-form-field>
       <mat-form-field appearance="outline" subscriptSizing="dynamic">
-        <mat-label>Status</mat-label>
+        <mat-label>{{ 'requests.status' | translate }}</mat-label>
         <mat-select [value]="status()" (selectionChange)="status.set($event.value); page.set(0)">
-          <mat-option [value]="null">Any</mat-option>
+          <mat-option [value]="null">{{ 'queue.any' | translate }}</mat-option>
           @for (s of statuses; track s) {
-            <mat-option [value]="s">{{ humanize(s) }}</mat-option>
+            <mat-option [value]="s">{{ s | enumLabel: 'status' }}</mat-option>
           }
         </mat-select>
       </mat-form-field>
-      <mat-slide-toggle [checked]="activeOnly()" (change)="activeOnly.set($event.checked); page.set(0)">Active only</mat-slide-toggle>
+      <mat-slide-toggle [checked]="activeOnly()" (change)="activeOnly.set($event.checked); page.set(0)">{{ 'queue.activeOnly' | translate }}</mat-slide-toggle>
     </div>
 
     @if (tickets.isLoading()) {
@@ -70,28 +73,28 @@ import { StatusChip } from '../../shared/ui/status-chip';
     @if (tickets.value(); as result) {
       <table mat-table [dataSource]="result.items" class="table">
         <ng-container matColumnDef="reference">
-          <th mat-header-cell *matHeaderCellDef>Reference</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'requests.reference' | translate }}</th>
           <td mat-cell *matCellDef="let t"><a [routerLink]="['/tickets', t.id]">{{ t.reference }}</a></td>
         </ng-container>
         <ng-container matColumnDef="title">
-          <th mat-header-cell *matHeaderCellDef>Case</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'queue.case' | translate }}</th>
           <td mat-cell *matCellDef="let t">
             <div>{{ t.title }}</div>
             <div class="sub">{{ t.requestTypeName }} · {{ t.requesterName }}</div>
           </td>
         </ng-container>
         <ng-container matColumnDef="team">
-          <th mat-header-cell *matHeaderCellDef>Team</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'ticket.team' | translate }}</th>
           <td mat-cell *matCellDef="let t">{{ t.teamName ?? '—' }}</td>
         </ng-container>
         <ng-container matColumnDef="assignee">
-          <th mat-header-cell *matHeaderCellDef>Assignee</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'ticket.assignee' | translate }}</th>
           <td mat-cell *matCellDef="let t">
             @if (t.assigneeName) {
               {{ t.assigneeName }}
             } @else if (canWork) {
               <button mat-stroked-button type="button" (click)="claim(t)" [disabled]="claiming() === t.id" [attr.data-testid]="'take-' + t.reference">
-                Take
+                {{ 'queue.take' | translate }}
               </button>
             } @else {
               —
@@ -99,26 +102,26 @@ import { StatusChip } from '../../shared/ui/status-chip';
           </td>
         </ng-container>
         <ng-container matColumnDef="status">
-          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'requests.status' | translate }}</th>
           <td mat-cell *matCellDef="let t"><app-status-chip [value]="t.status" /></td>
         </ng-container>
         <ng-container matColumnDef="priority">
-          <th mat-header-cell *matHeaderCellDef>Priority</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'ticket.priority' | translate }}</th>
           <td mat-cell *matCellDef="let t"><app-status-chip [value]="t.priority" /></td>
         </ng-container>
         <ng-container matColumnDef="sla">
-          <th mat-header-cell *matHeaderCellDef>SLA</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'queue.sla' | translate }}</th>
           <td mat-cell *matCellDef="let t"><app-sla-badge [state]="t.slaState" [dueAt]="t.resolutionDueAt" /></td>
         </ng-container>
         <ng-container matColumnDef="created">
-          <th mat-header-cell *matHeaderCellDef>Submitted</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'requests.submitted' | translate }}</th>
           <td mat-cell *matCellDef="let t">{{ t.createdAt | date: 'short' }}</td>
         </ng-container>
         <tr mat-header-row *matHeaderRowDef="columns"></tr>
         <tr mat-row *matRowDef="let row; columns: columns" [attr.data-testid]="'row-' + row.reference"></tr>
       </table>
       @if (result.totalCount === 0) {
-        <p class="empty">No case in this view.</p>
+        <p class="empty">{{ 'queue.empty' | translate }}</p>
       }
       <mat-paginator
         [length]="result.totalCount"
@@ -152,22 +155,22 @@ import { StatusChip } from '../../shared/ui/status-chip';
 export class Queue {
   private readonly api = inject(TicketsApi);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly translate = inject(TranslateService);
   private readonly auth = inject(AuthService);
 
   /** Auditors read the queue but do not take cases. */
   protected readonly canWork = this.auth.hasAnyRole(['HrOfficer', 'PayrollSpecialist', 'HrAdmin']);
   protected readonly statuses = STATUSES;
-  protected readonly humanize = humanize;
   protected readonly columns = ['reference', 'title', 'team', 'assignee', 'status', 'priority', 'sla', 'created'];
   protected readonly scopes = computed<{ value: TicketScope; label: string }[]>(() =>
     this.canWork
       ? [
-          { value: 'Mine', label: 'My cases' },
-          { value: 'MyTeams', label: 'My teams' },
-          { value: 'Unassigned', label: 'Unassigned' },
-          { value: 'All', label: 'All' },
+          { value: 'Mine', label: 'queue.scope.Mine' },
+          { value: 'MyTeams', label: 'queue.scope.MyTeams' },
+          { value: 'Unassigned', label: 'queue.scope.Unassigned' },
+          { value: 'All', label: 'queue.scope.All' },
         ]
-      : [{ value: 'All', label: 'All cases' }],
+      : [{ value: 'All', label: 'queue.scope.AllCases' }],
   );
 
   protected readonly scope = signal<TicketScope>(this.canWork ? 'Mine' : 'All');
@@ -204,12 +207,12 @@ export class Queue {
     this.api.claim(ticket.id).subscribe({
       next: () => {
         this.claiming.set(null);
-        this.snackBar.open(`${ticket.reference} is now yours.`, undefined, { duration: 3000 });
+        this.snackBar.open(this.translate.instant('queue.taken', { reference: ticket.reference }), undefined, { duration: 3000 });
         this.tickets.reload();
       },
       error: (error: unknown) => {
         this.claiming.set(null);
-        this.snackBar.open(problemOf(error)?.title ?? 'The case could not be taken.', 'Dismiss', { duration: 6000 });
+        this.snackBar.open(problemMessage(this.translate, error, 'queue.takeFailed'), this.translate.instant('common.dismiss'), { duration: 6000 });
         this.tickets.reload();
       },
     });

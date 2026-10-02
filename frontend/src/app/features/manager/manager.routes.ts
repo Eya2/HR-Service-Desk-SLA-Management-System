@@ -11,13 +11,13 @@ export const routes: Routes = [
       {
         path: 'queue',
         loadComponent: () => import('./approvals-queue').then((m) => m.ApprovalsQueue),
-        title: 'Pending approvals · HR Service Desk',
+        title: 'title.approvals',
       },
       {
         path: 'team',
         canActivate: [roleGuard(['Manager'])],
         loadComponent: () => import('./team').then((m) => m.Team),
-        title: 'My team · HR Service Desk',
+        title: 'title.team',
       },
     ],
   },

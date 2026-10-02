@@ -7,36 +7,37 @@ import { MatTableModule } from '@angular/material/table';
 import { RouterLink } from '@angular/router';
 import { WorkflowInfo } from '../../core/api/api.models';
 import { WorkflowsApi } from '../../core/api/approvals.api';
-import { humanize } from '../../shared/ui/labels';
+import { enumLabel } from '../../shared/ui/enum-label';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-workflows-list',
-  imports: [MatButtonModule, MatIconModule, MatProgressBarModule, MatTableModule, RouterLink],
+  imports: [MatButtonModule, MatIconModule, MatProgressBarModule, MatTableModule, RouterLink, TranslatePipe],
   template: `
-    <h1>Approval workflows</h1>
-    <p class="intro">Each request type can require an ordered chain of approvals before HR starts working on it.</p>
+    <h1>{{ 'workflows.title' | translate }}</h1>
+    <p class="intro">{{ 'workflows.intro' | translate }}</p>
     @if (workflows.isLoading()) {
       <mat-progress-bar mode="indeterminate" />
     }
     @if (workflows.value(); as list) {
       <table mat-table [dataSource]="list" class="table">
         <ng-container matColumnDef="type">
-          <th mat-header-cell *matHeaderCellDef>Request type</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'workflows.requestType' | translate }}</th>
           <td mat-cell *matCellDef="let w">
             {{ w.requestTypeName }}
             @if (w.requestTypeIsConfidential) {
-              <mat-icon class="lock" fontSet="material-symbols-outlined" aria-label="Confidential">lock</mat-icon>
+              <mat-icon class="lock" fontSet="material-symbols-outlined" [attr.aria-label]="'ticket.confidential' | translate">lock</mat-icon>
             }
           </td>
         </ng-container>
         <ng-container matColumnDef="steps">
-          <th mat-header-cell *matHeaderCellDef>Approval chain</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'workflows.chain' | translate }}</th>
           <td mat-cell *matCellDef="let w" [attr.data-testid]="'chain-' + w.requestTypeName">{{ chain(w) }}</td>
         </ng-container>
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef></th>
           <td mat-cell *matCellDef="let w">
-            <a mat-button [routerLink]="[w.requestTypeId]">{{ w.isConfigured ? 'Edit' : 'Add' }}</a>
+            <a mat-button [routerLink]="[w.requestTypeId]">{{ (w.isConfigured ? 'common.edit' : 'common.add') | translate }}</a>
           </td>
         </ng-container>
         <tr mat-header-row *matHeaderRowDef="columns"></tr>
@@ -65,13 +66,14 @@ import { humanize } from '../../shared/ui/labels';
 })
 export class WorkflowsList {
   private readonly api = inject(WorkflowsApi);
+  private readonly translate = inject(TranslateService);
 
   protected readonly columns = ['type', 'steps', 'actions'];
   protected readonly workflows = rxResource({ stream: () => this.api.list() });
 
   protected chain(workflow: WorkflowInfo): string {
-    if (!workflow.isConfigured) return 'No approval needed';
-    const steps = workflow.steps.map((s) => humanize(s.approverRole)).join(' → ');
-    return workflow.isActive ? steps : `${steps} (disabled)`;
+    if (!workflow.isConfigured) return this.translate.instant('workflows.noApproval');
+    const steps = workflow.steps.map((s) => enumLabel(this.translate, 'role', s.approverRole)).join(' → ');
+    return workflow.isActive ? steps : this.translate.instant('workflows.disabled', { steps });
   }
 }

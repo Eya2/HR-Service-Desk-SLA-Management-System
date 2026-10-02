@@ -2,19 +2,19 @@ import { DatePipe } from '@angular/common';
 import { Component, computed, input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslatePipe } from '@ngx-translate/core';
 import { SlaStateName } from '../../core/api/api.models';
 
-const LABELS: Record<SlaStateName, string> = { None: 'No SLA', OnTrack: 'On track', AtRisk: 'At risk', Breached: 'Breached' };
 const ICONS: Record<SlaStateName, string> = { None: 'remove', OnTrack: 'schedule', AtRisk: 'warning', Breached: 'alarm' };
 
 /** SLA state with its deadline, or "paused" when the clock is stopped. */
 @Component({
   selector: 'app-sla-badge',
-  imports: [DatePipe, MatIconModule, MatTooltipModule],
+  imports: [DatePipe, MatIconModule, MatTooltipModule, TranslatePipe],
   template: `
-    <span class="badge" [attr.data-state]="state()" [matTooltip]="tooltip()">
+    <span class="badge" [attr.data-state]="state()" [matTooltip]="(paused() ? 'sla.pausedTooltip' : 'sla.deadlineTooltip') | translate">
       <mat-icon fontSet="material-symbols-outlined">{{ paused() ? 'pause_circle' : icon() }}</mat-icon>
-      {{ paused() ? 'Paused' : label() }}
+      {{ (paused() ? 'sla.paused' : 'sla.' + state()) | translate }}
       @if (dueAt() && !paused() && state() !== 'None') {
         <span class="due">· {{ dueAt() | date: 'short' }}</span>
       }
@@ -58,9 +58,5 @@ export class SlaBadge {
   readonly dueAt = input<string | null>(null);
   readonly paused = input(false);
 
-  protected readonly label = computed(() => LABELS[this.state()] ?? this.state());
   protected readonly icon = computed(() => ICONS[this.state()] ?? 'schedule');
-  protected readonly tooltip = computed(() =>
-    this.paused() ? 'The SLA clock is paused (waiting for approval, for the employee, or resolved).' : 'Resolution deadline in business hours',
-  );
 }

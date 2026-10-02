@@ -16,6 +16,9 @@ import { AREAS } from '../auth/areas';
 import { AuthService } from '../auth/auth.service';
 import { AppNotification, NotificationService } from '../notifications/notification.service';
 import { ThemeService } from './theme.service';
+import { TranslatePipe } from '@ngx-translate/core';
+import { EnumLabelPipe } from '../../shared/ui/enum-label';
+import { LanguageMenu } from '../i18n/language-menu';
 
 /** Application frame: a sidebar with the brand and the user's areas, and a light top bar. */
 @Component({
@@ -33,6 +36,9 @@ import { ThemeService } from './theme.service';
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
+    TranslatePipe,
+    EnumLabelPipe,
+    LanguageMenu,
   ],
   template: `
     <mat-sidenav-container class="container">
@@ -40,15 +46,15 @@ import { ThemeService } from './theme.service';
         <a routerLink="/" class="brand" (click)="compact() && drawer.close()">
           <span class="logo"><mat-icon fontSet="material-symbols-outlined">support_agent</mat-icon></span>
           <span class="brand-text">
-            <strong>HR Service Desk</strong>
+            <strong>{{ 'common.appName' | translate }}</strong>
             <small>{{ auth.user()?.tenantName }}</small>
           </span>
         </a>
 
-        <nav class="nav" aria-label="Main">
-          <span class="nav-label">Workspace</span>
+        <nav class="nav" [attr.aria-label]="'shell.mainNav' | translate">
+          <span class="nav-label">{{ 'shell.workspace' | translate }}</span>
           <a class="nav-item" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="compact() && drawer.close()">
-            <mat-icon fontSet="material-symbols-outlined">home</mat-icon><span>Home</span>
+            <mat-icon fontSet="material-symbols-outlined">home</mat-icon><span>{{ 'shell.home' | translate }}</span>
           </a>
           @for (area of areas(); track area.path) {
             <a
@@ -58,7 +64,7 @@ import { ThemeService } from './theme.service';
               [attr.data-testid]="'nav-' + area.path"
               (click)="compact() && drawer.close()"
             >
-              <mat-icon fontSet="material-symbols-outlined">{{ area.icon }}</mat-icon><span>{{ area.label }}</span>
+              <mat-icon fontSet="material-symbols-outlined">{{ area.icon }}</mat-icon><span>{{ area.label | translate }}</span>
             </a>
           }
         </nav>
@@ -67,7 +73,7 @@ import { ThemeService } from './theme.service';
           <span class="avatar small" aria-hidden="true">{{ initials() }}</span>
           <span class="who">
             <strong>{{ auth.user()?.fullName }}</strong>
-            <small>{{ roleLabel() }}</small>
+            <small>{{ roleLabel() | enumLabel: 'role' }}</small>
           </span>
         </div>
       </mat-sidenav>
@@ -75,13 +81,15 @@ import { ThemeService } from './theme.service';
       <mat-sidenav-content class="content-area">
         <header class="topbar">
           @if (compact()) {
-            <button mat-icon-button (click)="drawer.toggle()" aria-label="Toggle navigation">
+            <button mat-icon-button (click)="drawer.toggle()" [attr.aria-label]="'shell.toggleNav' | translate">
               <mat-icon fontSet="material-symbols-outlined">menu</mat-icon>
             </button>
           }
           <span class="spacer"></span>
 
-          <button mat-icon-button (click)="theme.cycle()" [matTooltip]="themeTooltip()" [attr.aria-label]="themeTooltip()" data-testid="theme-toggle">
+          <app-language-menu />
+
+          <button mat-icon-button (click)="theme.cycle()" [matTooltip]="'shell.theme' | translate: { mode: ('shell.themeMode.' + theme.mode()) | translate }" [attr.aria-label]="'shell.theme' | translate: { mode: ('shell.themeMode.' + theme.mode()) | translate }" data-testid="theme-toggle">
             <mat-icon fontSet="material-symbols-outlined">{{ themeIcon() }}</mat-icon>
           </button>
 
@@ -89,7 +97,7 @@ import { ThemeService } from './theme.service';
             mat-icon-button
             [matMenuTriggerFor]="notificationsMenu"
             (menuOpened)="notifications.refresh()"
-            [attr.aria-label]="'Notifications: ' + notifications.unreadCount() + ' unread'"
+            [attr.aria-label]="'shell.notificationsAria' | translate: { count: notifications.unreadCount() }"
             data-testid="bell"
           >
             <mat-icon
@@ -103,9 +111,9 @@ import { ThemeService } from './theme.service';
           </button>
           <mat-menu #notificationsMenu="matMenu" class="notifications-menu">
             <div class="menu-title" (click)="$event.stopPropagation()">
-              <span>Notifications</span>
+              <span>{{ 'shell.notifications' | translate }}</span>
               @if (notifications.hasUnread()) {
-                <button mat-button (click)="notifications.markAllRead()">Mark all read</button>
+                <button mat-button (click)="notifications.markAllRead()">{{ 'shell.markAllRead' | translate }}</button>
               }
             </div>
             @for (n of notifications.latest(); track n.id) {
@@ -114,11 +122,11 @@ import { ThemeService } from './theme.service';
                 <span class="n-meta">{{ n.createdAt | date: 'short' }}</span>
               </button>
             } @empty {
-              <p class="empty-menu">You are all caught up.</p>
+              <p class="empty-menu">{{ 'shell.caughtUp' | translate }}</p>
             }
           </mat-menu>
 
-          <button class="user-button" [matMenuTriggerFor]="userMenu" data-testid="user-menu" [attr.aria-label]="'Account: ' + auth.user()?.fullName">
+          <button class="user-button" [matMenuTriggerFor]="userMenu" data-testid="user-menu" [attr.aria-label]="'shell.account' | translate: { name: auth.user()?.fullName }">
             <span class="avatar" aria-hidden="true">{{ initials() }}</span>
           </button>
           <mat-menu #userMenu="matMenu" xPosition="before">
@@ -129,7 +137,7 @@ import { ThemeService } from './theme.service';
             <mat-divider />
             <button mat-menu-item (click)="auth.logout()" data-testid="logout">
               <mat-icon fontSet="material-symbols-outlined">logout</mat-icon>
-              <span>Sign out</span>
+              <span>{{ 'auth.signOut' | translate }}</span>
             </button>
           </mat-menu>
         </header>
@@ -151,7 +159,7 @@ import { ThemeService } from './theme.service';
     }
     .sidenav {
       width: 264px;
-      border-right: 1px solid var(--app-border);
+      border-inline-end: 1px solid var(--app-border);
       background: var(--app-card-bg);
       display: flex;
       flex-direction: column;
@@ -233,11 +241,12 @@ import { ThemeService } from './theme.service';
     .nav-item.active::before {
       content: '';
       position: absolute;
-      left: -12px;
+      inset-inline-start: -12px;
       top: 8px;
       bottom: 8px;
       width: 3px;
-      border-radius: 0 3px 3px 0;
+      border-start-end-radius: 3px;
+      border-end-end-radius: 3px;
       background: var(--mat-sys-primary);
     }
     .sidebar-footer {
@@ -263,7 +272,7 @@ import { ThemeService } from './theme.service';
       border-radius: 50%;
       display: grid;
       place-items: center;
-      font: 600 0.8rem/1 Inter, sans-serif;
+      font: 600 0.8rem/1 Inter, 'IBM Plex Sans Arabic', sans-serif;
       background: var(--app-brand-gradient);
       color: #fff;
     }
@@ -293,7 +302,7 @@ import { ThemeService } from './theme.service';
     .user-button {
       border: 0;
       padding: 0;
-      margin-left: 8px;
+      margin-inline-start: 8px;
       background: none;
       cursor: pointer;
       border-radius: 50%;
@@ -369,21 +378,11 @@ export class Shell {
   /** The most senior role, for the sidebar footer. */
   protected readonly roleLabel = computed(() => {
     const order = ['SuperAdmin', 'HrAdmin', 'Auditor', 'PayrollSpecialist', 'HrOfficer', 'Manager', 'Employee'];
-    const labels: Record<string, string> = {
-      SuperAdmin: 'Super admin',
-      HrAdmin: 'HR Admin',
-      Auditor: 'Auditor',
-      PayrollSpecialist: 'Payroll specialist',
-      HrOfficer: 'HR Officer',
-      Manager: 'Manager',
-      Employee: 'Employee',
-    };
     const role = order.find((r) => this.auth.user()?.roles.includes(r as never));
-    return role ? labels[role] : '';
+    return role ?? '';
   });
 
   protected readonly themeIcon = computed(() => ({ light: 'light_mode', dark: 'dark_mode', system: 'contrast' })[this.theme.mode()]);
-  protected readonly themeTooltip = computed(() => `Theme: ${this.theme.mode()} (click to change)`);
 
   protected open(notification: AppNotification): void {
     this.notifications.markRead(notification);

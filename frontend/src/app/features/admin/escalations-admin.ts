@@ -10,28 +10,20 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { EscalationRuleInfo } from '../../core/api/api.models';
 import { EscalationsApi, TeamsApi } from '../../core/api/approvals.api';
-import { problemOf } from '../../core/http/error.interceptor';
+import { problemMessage, problemOf } from '../../core/http/error.interceptor';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
-const TRIGGERS: Record<EscalationRuleInfo['trigger'], string> = {
-  AtRisk: 'SLA at risk',
-  Breached: 'SLA breached',
-  NoResponseFor: 'No response for…',
-};
+const TRIGGERS: EscalationRuleInfo['trigger'][] = ['AtRisk', 'Breached', 'NoResponseFor'];
 
-const ACTIONS: Record<EscalationRuleInfo['action'], string> = {
-  NotifyAssignee: 'Notify the assignee',
-  NotifyManager: "Notify the assignee's manager",
-  BumpPriority: 'Raise the priority',
-  ReassignToTeam: 'Reassign to a team',
-};
+const ACTIONS: EscalationRuleInfo['action'][] = ['NotifyAssignee', 'NotifyManager', 'BumpPriority', 'ReassignToTeam'];
 
 /** HR Admin: escalation rules ("when …, do …"). Each rule fires at most once per case. */
 @Component({
   selector: 'app-escalations-admin',
-  imports: [ReactiveFormsModule, MatButtonModule, MatCardModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatSlideToggleModule],
+  imports: [ReactiveFormsModule, MatButtonModule, MatCardModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatSlideToggleModule, TranslatePipe],
   template: `
-    <h1>Escalation rules</h1>
-    <p class="intro">The SLA monitor checks running cases every minute. Each rule fires at most once per case.</p>
+    <h1>{{ 'escalation.title' | translate }}</h1>
+    <p class="intro">{{ 'escalation.intro' | translate }}</p>
 
     <div class="rules">
       @for (rule of rules.value() ?? []; track rule.id) {
@@ -39,48 +31,48 @@ const ACTIONS: Record<EscalationRuleInfo['action'], string> = {
           <mat-card-content class="rule">
             <div>
               <strong>{{ rule.name }}</strong>
-              <p>When {{ describe(rule) }} → {{ actions[rule.action] }}{{ teamSuffix(rule) }}</p>
-              <p class="fired">Fired {{ rule.timesFired }} time(s)</p>
+              <p>{{ 'escalation.rule' | translate: { trigger: describe(rule), action: ('escalation.action.' + rule.action) | translate, team: teamSuffix(rule) } }}</p>
+              <p class="fired">{{ 'escalation.fired' | translate: { count: rule.timesFired } }}</p>
             </div>
-            <mat-slide-toggle [checked]="rule.isActive" (change)="toggle(rule, $event.checked)" [attr.aria-label]="'Active: ' + rule.name" />
+            <mat-slide-toggle [checked]="rule.isActive" (change)="toggle(rule, $event.checked)" [attr.aria-label]="'escalation.activeAria' | translate: { name: rule.name }" />
           </mat-card-content>
         </mat-card>
       }
     </div>
 
     <mat-card appearance="outlined" class="new">
-      <mat-card-header><mat-card-title>New rule</mat-card-title></mat-card-header>
+      <mat-card-header><mat-card-title>{{ 'escalation.newRule' | translate }}</mat-card-title></mat-card-header>
       <mat-card-content>
         <form [formGroup]="form" (ngSubmit)="create()" class="form">
           <mat-form-field appearance="outline">
-            <mat-label>Name</mat-label>
+            <mat-label>{{ 'escalation.name' | translate }}</mat-label>
             <input matInput formControlName="name" maxlength="100" />
           </mat-form-field>
           <mat-form-field appearance="outline">
-            <mat-label>When</mat-label>
+            <mat-label>{{ 'escalation.when' | translate }}</mat-label>
             <mat-select formControlName="trigger">
               @for (t of triggerKeys; track t) {
-                <mat-option [value]="t">{{ triggers[t] }}</mat-option>
+                <mat-option [value]="t">{{ 'escalation.trigger.' + t | translate }}</mat-option>
               }
             </mat-select>
           </mat-form-field>
           @if (form.controls.trigger.value === 'NoResponseFor') {
             <mat-form-field appearance="outline">
-              <mat-label>Business hours without response</mat-label>
+              <mat-label>{{ 'escalation.hoursWithout' | translate }}</mat-label>
               <input matInput type="number" min="1" max="720" formControlName="noResponseHours" />
             </mat-form-field>
           }
           <mat-form-field appearance="outline">
-            <mat-label>Do</mat-label>
+            <mat-label>{{ 'escalation.do' | translate }}</mat-label>
             <mat-select formControlName="action">
               @for (a of actionKeys; track a) {
-                <mat-option [value]="a">{{ actions[a] }}</mat-option>
+                <mat-option [value]="a">{{ 'escalation.action.' + a | translate }}</mat-option>
               }
             </mat-select>
           </mat-form-field>
           @if (form.controls.action.value === 'ReassignToTeam') {
             <mat-form-field appearance="outline">
-              <mat-label>Team</mat-label>
+              <mat-label>{{ 'escalation.team' | translate }}</mat-label>
               <mat-select formControlName="targetTeamId">
                 @for (team of teams.value() ?? []; track team.id) {
                   <mat-option [value]="team.id">{{ team.name }}</mat-option>
@@ -89,7 +81,7 @@ const ACTIONS: Record<EscalationRuleInfo['action'], string> = {
             </mat-form-field>
           }
           <div class="actions">
-            <button mat-flat-button type="submit" [disabled]="form.invalid" data-testid="create-rule">Add rule</button>
+            <button mat-flat-button type="submit" [disabled]="form.invalid" data-testid="create-rule">{{ 'escalation.add' | translate }}</button>
           </div>
         </form>
       </mat-card-content>
@@ -133,10 +125,9 @@ export class EscalationsAdmin {
   private readonly api = inject(EscalationsApi);
   private readonly snackBar = inject(MatSnackBar);
 
-  protected readonly triggers = TRIGGERS;
-  protected readonly actions = ACTIONS;
-  protected readonly triggerKeys = Object.keys(TRIGGERS) as EscalationRuleInfo['trigger'][];
-  protected readonly actionKeys = Object.keys(ACTIONS) as EscalationRuleInfo['action'][];
+  private readonly translate = inject(TranslateService);
+  protected readonly triggerKeys = TRIGGERS;
+  protected readonly actionKeys = ACTIONS;
   protected readonly rules = rxResource({ stream: () => this.api.list() });
   protected readonly teams = rxResource({ stream: () => inject(TeamsApi).list() });
 
@@ -149,7 +140,9 @@ export class EscalationsAdmin {
   });
 
   protected describe(rule: EscalationRuleInfo): string {
-    return rule.trigger === 'NoResponseFor' ? `no response for ${rule.noResponseHours} business hours` : TRIGGERS[rule.trigger].toLowerCase();
+    return rule.trigger === 'NoResponseFor'
+      ? this.translate.instant('escalation.noResponseFor', { hours: rule.noResponseHours })
+      : (this.translate.instant(`escalation.trigger.${rule.trigger}`) as string).toLowerCase();
   }
 
   protected teamSuffix(rule: EscalationRuleInfo): string {
@@ -185,7 +178,9 @@ export class EscalationsAdmin {
         this.rules.reload();
       },
       error: (error: unknown) => {
-        this.snackBar.open(problemOf(error)?.detail ?? problemOf(error)?.title ?? 'The rule could not be saved.', 'Dismiss', { duration: 6000 });
+        this.snackBar.open(problemOf(error)?.detail ?? problemMessage(this.translate, error, 'escalation.saveFailed'), this.translate.instant('common.dismiss'), {
+          duration: 6000,
+        });
         this.rules.reload();
       },
     });

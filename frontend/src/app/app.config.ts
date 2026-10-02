@@ -1,10 +1,17 @@
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
-import { ApplicationConfig, inject, provideAppInitializer, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { provideRouter, withComponentInputBinding } from '@angular/router';
+import { ApplicationConfig, LOCALE_ID, inject, provideAppInitializer, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { MatPaginatorIntl } from '@angular/material/paginator';
+import { TitleStrategy, provideRouter, withComponentInputBinding } from '@angular/router';
+import { provideTranslateService } from '@ngx-translate/core';
+import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 import { routes } from './app.routes';
 import { authInterceptor } from './core/auth/auth.interceptor';
 import { AuthService } from './core/auth/auth.service';
 import { errorInterceptor } from './core/http/error.interceptor';
+import { initialLanguage, localeOf } from './core/i18n/language';
+import { LanguageService } from './core/i18n/language.service';
+import { TranslatedPaginatorIntl } from './core/i18n/paginator-intl';
+import { TranslatedTitleStrategy } from './core/i18n/translated-title';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -12,7 +19,12 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes, withComponentInputBinding()),
     // errorInterceptor wraps authInterceptor, so it only sees errors left after a refresh-and-retry.
     provideHttpClient(withFetch(), withInterceptors([errorInterceptor, authInterceptor])),
-    // Restore the session from the refresh cookie before the first navigation.
+    provideTranslateService({ fallbackLang: 'en', loader: provideTranslateHttpLoader({ prefix: '/i18n/', suffix: '.json' }) }),
+    { provide: TitleStrategy, useExisting: TranslatedTitleStrategy },
+    { provide: MatPaginatorIntl, useClass: TranslatedPaginatorIntl },
+    { provide: LOCALE_ID, useFactory: () => localeOf(initialLanguage()) },
+    // Texts first, then the session from the refresh cookie, before the first navigation.
+    provideAppInitializer(() => inject(LanguageService).init()),
     provideAppInitializer(() => inject(AuthService).restoreSession()),
   ],
 };

@@ -1,28 +1,31 @@
 import { Component } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslatePipe } from '@ngx-translate/core';
+import { LanguageMenu } from '../../core/i18n/language-menu';
 
 /** Split screen for the sign-in pages: brand panel on the left (hidden on small screens), form on the right. */
 @Component({
   selector: 'app-auth-layout',
-  imports: [MatIconModule],
+  imports: [MatIconModule, TranslatePipe, LanguageMenu],
   template: `
     <div class="page">
       <aside class="hero" aria-hidden="true">
         <div class="brand">
           <span class="logo"><mat-icon fontSet="material-symbols-outlined">support_agent</mat-icon></span>
-          <span>HR Service Desk</span>
+          <span>{{ 'common.appName' | translate }}</span>
         </div>
         <div class="pitch">
-          <h2>HR service delivery,<br />on time, every time.</h2>
+          <h2 [innerHTML]="'auth.pitchTitle' | translate"></h2>
           <ul>
-            <li><mat-icon fontSet="material-symbols-outlined">schedule</mat-icon> Deadlines in business hours, with automatic escalation</li>
-            <li><mat-icon fontSet="material-symbols-outlined">fact_check</mat-icon> Approval workflows your managers actually use</li>
-            <li><mat-icon fontSet="material-symbols-outlined">lock</mat-icon> Confidential cases seen only by the right people</li>
+            <li><mat-icon fontSet="material-symbols-outlined">schedule</mat-icon> {{ 'auth.pitch1' | translate }}</li>
+            <li><mat-icon fontSet="material-symbols-outlined">fact_check</mat-icon> {{ 'auth.pitch2' | translate }}</li>
+            <li><mat-icon fontSet="material-symbols-outlined">lock</mat-icon> {{ 'auth.pitch3' | translate }}</li>
           </ul>
         </div>
-        <p class="footnote">Payroll · Leave · Certificates · Benefits · Training</p>
+        <p class="footnote">{{ 'auth.footnote' | translate }}</p>
       </aside>
       <main class="panel">
+        <div class="lang"><app-language-menu /></div>
         <div class="form-wrap">
           <ng-content />
         </div>
@@ -49,7 +52,8 @@ import { MatIconModule } from '@angular/material/icon';
     .hero::after {
       content: '';
       position: absolute;
-      inset: auto -120px -160px auto;
+      inset-block-end: -160px;
+      inset-inline-end: -120px;
       width: 420px;
       height: 420px;
       border-radius: 50%;
@@ -59,7 +63,7 @@ import { MatIconModule } from '@angular/material/icon';
       display: flex;
       align-items: center;
       gap: 12px;
-      font: 600 1.1rem Inter, sans-serif;
+      font: 600 1.1rem Inter, 'IBM Plex Sans Arabic', sans-serif;
     }
     .logo {
       width: 40px;
@@ -70,7 +74,7 @@ import { MatIconModule } from '@angular/material/icon';
       background: rgba(255, 255, 255, 0.18);
     }
     .pitch h2 {
-      font: 700 2.4rem/1.15 Inter, sans-serif;
+      font: 700 2.4rem/1.15 Inter, 'IBM Plex Sans Arabic', sans-serif;
       letter-spacing: -0.03em;
       margin: 0 0 28px;
     }
@@ -93,9 +97,15 @@ import { MatIconModule } from '@angular/material/icon';
       margin: 0;
     }
     .panel {
+      position: relative;
       display: grid;
       place-items: center;
       padding: 32px 24px;
+    }
+    .lang {
+      position: absolute;
+      top: 16px;
+      inset-inline-end: 16px;
     }
     .form-wrap {
       width: 100%;

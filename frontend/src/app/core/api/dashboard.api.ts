@@ -31,6 +31,8 @@ export interface DashboardData {
     averageFirstResponseHours: number | null;
     averageResolutionHours: number | null;
     reopenRatePercent: number | null;
+    averageSatisfaction: number | null;
+    ratings: number;
   };
   complianceByRequestType: ComplianceRow[];
   complianceByTeam: ComplianceRow[];

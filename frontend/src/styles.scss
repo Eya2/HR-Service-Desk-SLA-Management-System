@@ -11,8 +11,8 @@ html {
       theme-type: color-scheme,
     ),
     typography: (
-      plain-family: 'Inter, system-ui, -apple-system, Segoe UI, sans-serif',
-      brand-family: 'Inter, system-ui, -apple-system, Segoe UI, sans-serif',
+      plain-family: "Inter, 'IBM Plex Sans Arabic', system-ui, -apple-system, Segoe UI, sans-serif",
+      brand-family: "Inter, 'IBM Plex Sans Arabic', system-ui, -apple-system, Segoe UI, sans-serif",
     ),
     density: 0,
   ));
@@ -72,7 +72,7 @@ body {
 
 body {
   margin: 0;
-  font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: Inter, 'IBM Plex Sans Arabic', system-ui, -apple-system, 'Segoe UI', sans-serif;
   background: var(--app-page-bg);
   color: var(--mat-sys-on-surface);
   -webkit-font-smoothing: antialiased;
@@ -108,7 +108,7 @@ body {
   margin-bottom: 24px;
 
   h1 {
-    font: 600 1.6rem/1.2 Inter, system-ui, sans-serif;
+    font: 600 1.6rem/1.2 Inter, 'IBM Plex Sans Arabic', system-ui, sans-serif;
     letter-spacing: -0.02em;
     margin: 0;
   }
@@ -142,4 +142,9 @@ a {
   @include mat.form-field-density(-4);
   @include mat.button-toggle-density(-2);
   @include mat.select-density(-2);
+}
+
+/* Right-to-left (Arabic): mirror directional icons (arrows, chevrons). */
+[dir='rtl'] .flip-rtl {
+  transform: scaleX(-1);
 }

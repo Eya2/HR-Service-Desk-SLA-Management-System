@@ -12,8 +12,9 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterLink } from '@angular/router';
 import { APPROVER_ROLES } from '../../core/api/api.models';
 import { SlaApi, TeamsApi, WorkflowsApi } from '../../core/api/approvals.api';
-import { problemOf } from '../../core/http/error.interceptor';
-import { humanize } from '../../shared/ui/labels';
+import { problemMessage, problemOf } from '../../core/http/error.interceptor';
+import { enumLabel } from '../../shared/ui/enum-label';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 type StepForm = FormGroup<{ name: FormControl<string>; approverRole: FormControl<string> }>;
 
@@ -32,37 +33,38 @@ const MAX_STEPS = 5;
     MatSelectModule,
     MatSlideToggleModule,
     RouterLink,
+    TranslatePipe,
   ],
   template: `
-    <a mat-button routerLink="/admin/workflows"><mat-icon fontSet="material-symbols-outlined">arrow_back</mat-icon> Workflows</a>
+    <a mat-button routerLink="/admin/workflows"><mat-icon class="flip-rtl" fontSet="material-symbols-outlined">arrow_back</mat-icon> {{ 'workflows.back' | translate }}</a>
     @if (workflow.value(); as w) {
       <h1>{{ w.requestTypeName }}</h1>
       @if (w.requestTypeIsConfidential) {
-        <p class="note" role="note">Confidential requests can only be approved by HR Admins.</p>
+        <p class="note" role="note">{{ 'workflows.confidentialNote' | translate }}</p>
       }
       <mat-card appearance="outlined" class="routing">
         <mat-card-content>
           <mat-form-field appearance="outline" subscriptSizing="dynamic">
-            <mat-label>Handled by team</mat-label>
+            <mat-label>{{ 'workflows.handledBy' | translate }}</mat-label>
             <mat-select [value]="w.responsibleTeamId" (selectionChange)="setTeam(w.requestTypeId, $event.value)" data-testid="routing-team">
-              <mat-option [value]="null">No team (general queue)</mat-option>
+              <mat-option [value]="null">{{ 'workflows.noTeam' | translate }}</mat-option>
               @for (team of teams.value() ?? []; track team.id) {
                 <mat-option [value]="team.id">{{ team.name }}</mat-option>
               }
             </mat-select>
           </mat-form-field>
           <mat-form-field appearance="outline" subscriptSizing="dynamic">
-            <mat-label>SLA policy</mat-label>
+            <mat-label>{{ 'workflows.slaPolicy' | translate }}</mat-label>
             <mat-select [value]="policyOf(w.requestTypeName)" (selectionChange)="setPolicy(w.requestTypeId, $event.value)" data-testid="sla-policy">
               @for (policy of policies.value() ?? []; track policy.id) {
-                <mat-option [value]="policy.id">{{ policy.name }}{{ policy.isDefault ? ' (default)' : '' }}</mat-option>
+                <mat-option [value]="policy.id">{{ policy.name }}{{ policy.isDefault ? ('workflows.default' | translate) : '' }}</mat-option>
               }
             </mat-select>
           </mat-form-field>
         </mat-card-content>
       </mat-card>
 
-      <h2>Approval chain</h2>
+      <h2>{{ 'workflows.chain' | translate }}</h2>
       <mat-card appearance="outlined">
         <mat-card-content>
           <ol class="steps">
@@ -70,39 +72,39 @@ const MAX_STEPS = 5;
               <li [formGroup]="step" data-testid="step">
                 <span class="number">{{ i + 1 }}</span>
                 <mat-form-field appearance="outline" subscriptSizing="dynamic">
-                  <mat-label>Step name</mat-label>
+                  <mat-label>{{ 'workflows.stepName' | translate }}</mat-label>
                   <input matInput formControlName="name" maxlength="100" />
                 </mat-form-field>
                 <mat-form-field appearance="outline" subscriptSizing="dynamic">
-                  <mat-label>Approver</mat-label>
+                  <mat-label>{{ 'workflows.approver' | translate }}</mat-label>
                   <mat-select formControlName="approverRole">
                     @for (role of roles(); track role) {
                       <mat-option [value]="role">{{ roleLabel(role) }}</mat-option>
                     }
                   </mat-select>
                 </mat-form-field>
-                <button mat-icon-button type="button" (click)="move(i, -1)" [disabled]="i === 0" aria-label="Move up">
+                <button mat-icon-button type="button" (click)="move(i, -1)" [disabled]="i === 0" [attr.aria-label]="'workflows.moveUp' | translate">
                   <mat-icon fontSet="material-symbols-outlined">arrow_upward</mat-icon>
                 </button>
-                <button mat-icon-button type="button" (click)="move(i, 1)" [disabled]="last" aria-label="Move down">
+                <button mat-icon-button type="button" (click)="move(i, 1)" [disabled]="last" [attr.aria-label]="'workflows.moveDown' | translate">
                   <mat-icon fontSet="material-symbols-outlined">arrow_downward</mat-icon>
                 </button>
-                <button mat-icon-button type="button" (click)="remove(i)" [disabled]="steps.length === 1" aria-label="Remove step">
+                <button mat-icon-button type="button" (click)="remove(i)" [disabled]="steps.length === 1" [attr.aria-label]="'workflows.removeStep' | translate">
                   <mat-icon fontSet="material-symbols-outlined">delete</mat-icon>
                 </button>
               </li>
             }
           </ol>
           <button mat-stroked-button type="button" (click)="add()" [disabled]="steps.length >= maxSteps" data-testid="add-step">
-            <mat-icon fontSet="material-symbols-outlined">add</mat-icon> Add a step
+            <mat-icon fontSet="material-symbols-outlined">add</mat-icon> {{ 'workflows.addStep' | translate }}
           </button>
           <div class="footer">
-            <mat-slide-toggle [formControl]="isActive">Workflow active</mat-slide-toggle>
+            <mat-slide-toggle [formControl]="isActive">{{ 'workflows.active' | translate }}</mat-slide-toggle>
             <button mat-flat-button type="button" (click)="save(w.requestTypeId)" [disabled]="steps.invalid || saving()" data-testid="save-workflow">
-              Save
+              {{ 'common.save' | translate }}
             </button>
           </div>
-          <p class="hint">Changes apply to new requests only; requests already submitted keep their approval chain.</p>
+          <p class="hint">{{ 'workflows.hint' | translate }}</p>
         </mat-card-content>
       </mat-card>
     }
@@ -169,6 +171,7 @@ const MAX_STEPS = 5;
 export class WorkflowEditor {
   private readonly api = inject(WorkflowsApi);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly translate = inject(TranslateService);
   private readonly router = inject(Router);
   private readonly teamsApi = inject(TeamsApi);
 
@@ -185,10 +188,10 @@ export class WorkflowEditor {
     // Choosing the default policy is stored as "no specific policy", so it follows future default changes.
     this.slaApi.setRequestTypePolicy(requestTypeId, policy?.isDefault ? null : policyId).subscribe({
       next: () => {
-        this.snackBar.open('SLA policy saved.', undefined, { duration: 3000 });
+        this.snackBar.open(this.translate.instant('workflows.policySaved'), undefined, { duration: 3000 });
         this.policies.reload();
       },
-      error: (error: unknown) => this.snackBar.open(problemOf(error)?.title ?? 'Could not save.', 'Dismiss', { duration: 6000 }),
+      error: (error: unknown) => this.fail(error, 'ticket.saveFailed'),
     });
   }
 
@@ -211,7 +214,7 @@ export class WorkflowEditor {
       const w = this.workflow.value();
       if (!w) return;
       this.steps.clear();
-      const initial = w.steps.length > 0 ? w.steps : [{ name: 'Manager approval', approverRole: this.roles()[0] }];
+      const initial = w.steps.length > 0 ? w.steps : [{ name: this.translate.instant('workflows.defaultStep') as string, approverRole: this.roles()[0] }];
       initial.forEach((s) => this.steps.push(this.stepForm(s.name, s.approverRole)));
       this.isActive.setValue(w.isConfigured ? w.isActive : true);
     });
@@ -219,13 +222,13 @@ export class WorkflowEditor {
 
   protected setTeam(requestTypeId: string, teamId: string | null): void {
     this.teamsApi.setResponsibleTeam(requestTypeId, teamId).subscribe({
-      next: () => this.snackBar.open('Routing saved.', undefined, { duration: 3000 }),
-      error: (error: unknown) => this.snackBar.open(problemOf(error)?.title ?? 'Routing could not be saved.', 'Dismiss', { duration: 6000 }),
+      next: () => this.snackBar.open(this.translate.instant('workflows.routingSaved'), undefined, { duration: 3000 }),
+      error: (error: unknown) => this.fail(error, 'workflows.routingFailed'),
     });
   }
 
   protected roleLabel(role: string): string {
-    return role === 'Manager' ? "Requester's manager" : humanize(role);
+    return role === 'Manager' ? this.translate.instant('workflows.requesterManager') : enumLabel(this.translate, 'role', role);
   }
 
   protected add(): void {
@@ -247,16 +250,22 @@ export class WorkflowEditor {
     this.api.save(requestTypeId, this.isActive.value, this.steps.getRawValue()).subscribe({
       next: () => {
         this.saving.set(false);
-        this.snackBar.open('Workflow saved.', undefined, { duration: 3000 });
+        this.snackBar.open(this.translate.instant('workflows.saved'), undefined, { duration: 3000 });
         void this.router.navigate(['/admin/workflows']);
       },
       error: (error: unknown) => {
         this.saving.set(false);
         const problem = problemOf(error);
-        const detail = problem?.errors ? Object.values(problem.errors).flat().join(' ') : problem?.detail ?? problem?.title;
-        this.snackBar.open(detail ?? 'The workflow could not be saved.', 'Dismiss', { duration: 8000 });
+        const detail = problem?.errors
+          ? Object.values(problem.errors).flat().join(' ')
+          : (problem?.detail ?? problemMessage(this.translate, error, 'workflows.saveFailed'));
+        this.snackBar.open(detail, this.translate.instant('common.dismiss'), { duration: 8000 });
       },
     });
+  }
+
+  private fail(error: unknown, fallbackKey: string): void {
+    this.snackBar.open(problemMessage(this.translate, error, fallbackKey), this.translate.instant('common.dismiss'), { duration: 6000 });
   }
 
   private stepForm(name: string, approverRole: string): StepForm {

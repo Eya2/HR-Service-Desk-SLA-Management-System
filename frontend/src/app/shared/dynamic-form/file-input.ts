@@ -4,11 +4,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { fileSize } from '../ui/labels';
 import { ACCEPTED_EXTENSIONS } from './form-builder';
+import { TranslatePipe } from '@ngx-translate/core';
 
 /** A file picker bound to a form control holding File[]. */
 @Component({
   selector: 'app-file-input',
-  imports: [MatButtonModule, MatIconModule],
+  imports: [MatButtonModule, MatIconModule, TranslatePipe],
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => FileInput), multi: true }],
   template: `
     <input
@@ -21,7 +22,7 @@ import { ACCEPTED_EXTENSIONS } from './form-builder';
     />
     <button mat-stroked-button type="button" (click)="picker.click()" [disabled]="disabled() || files().length >= maxFiles()">
       <mat-icon fontSet="material-symbols-outlined">attach_file</mat-icon>
-      {{ maxFiles() > 1 ? 'Add files' : 'Choose a file' }}
+      {{ (maxFiles() > 1 ? 'form.addFiles' : 'form.chooseFile') | translate }}
     </button>
     <ul class="files">
       @for (file of files(); track $index) {
@@ -29,7 +30,7 @@ import { ACCEPTED_EXTENSIONS } from './form-builder';
           <mat-icon fontSet="material-symbols-outlined">description</mat-icon>
           <span class="name">{{ file.name }}</span>
           <span class="size">{{ size(file.size) }}</span>
-          <button mat-icon-button type="button" (click)="remove($index)" [attr.aria-label]="'Remove ' + file.name">
+          <button mat-icon-button type="button" (click)="remove($index)" [attr.aria-label]="'form.removeFile' | translate: { name: file.name }">
             <mat-icon fontSet="material-symbols-outlined">close</mat-icon>
           </button>
         </li>

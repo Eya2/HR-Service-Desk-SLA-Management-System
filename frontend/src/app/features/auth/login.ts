@@ -8,8 +8,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
-import { problemOf } from '../../core/http/error.interceptor';
+import { problemMessage } from '../../core/http/error.interceptor';
 import { AuthLayout } from './auth-layout';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-login',
@@ -23,26 +24,27 @@ import { AuthLayout } from './auth-layout';
     MatInputModule,
     MatProgressSpinnerModule,
     AuthLayout,
+    TranslatePipe,
   ],
   template: `
     <app-auth-layout>
-      <h1>Welcome back</h1>
-      <p class="lead">Sign in with your work e-mail.</p>
+      <h1>{{ 'auth.welcome' | translate }}</h1>
+      <p class="lead">{{ 'auth.lead' | translate }}</p>
 
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
         <mat-form-field appearance="outline">
-          <mat-label>Work e-mail</mat-label>
+          <mat-label>{{ 'auth.email' | translate }}</mat-label>
           <mat-icon matPrefix fontSet="material-symbols-outlined">mail</mat-icon>
           <input matInput formControlName="email" type="email" autocomplete="username" required />
           @if (form.controls.email.hasError('required')) {
-            <mat-error>E-mail is required.</mat-error>
+            <mat-error>{{ 'auth.emailRequired' | translate }}</mat-error>
           } @else if (form.controls.email.hasError('email')) {
-            <mat-error>Enter a valid e-mail address.</mat-error>
+            <mat-error>{{ 'auth.emailInvalid' | translate }}</mat-error>
           }
         </mat-form-field>
 
         <mat-form-field appearance="outline">
-          <mat-label>Password</mat-label>
+          <mat-label>{{ 'auth.password' | translate }}</mat-label>
           <mat-icon matPrefix fontSet="material-symbols-outlined">lock</mat-icon>
           <input
             matInput
@@ -56,18 +58,18 @@ import { AuthLayout } from './auth-layout';
             matSuffix
             type="button"
             (click)="showPassword.set(!showPassword())"
-            [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+            [attr.aria-label]="(showPassword() ? 'auth.hidePassword' : 'auth.showPassword') | translate"
           >
             <mat-icon fontSet="material-symbols-outlined">{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
           </button>
           @if (form.controls.password.hasError('required')) {
-            <mat-error>Password is required.</mat-error>
+            <mat-error>{{ 'auth.passwordRequired' | translate }}</mat-error>
           }
         </mat-form-field>
 
         <div class="row">
-          <mat-checkbox formControlName="rememberMe" data-testid="remember-me">Remember me</mat-checkbox>
-          <a routerLink="/forgot-password" data-testid="forgot-link">Forgot password?</a>
+          <mat-checkbox formControlName="rememberMe" data-testid="remember-me">{{ 'auth.rememberMe' | translate }}</mat-checkbox>
+          <a routerLink="/forgot-password" data-testid="forgot-link">{{ 'auth.forgotLink' | translate }}</a>
         </div>
 
         @if (error(); as message) {
@@ -80,16 +82,16 @@ import { AuthLayout } from './auth-layout';
           @if (submitting()) {
             <mat-spinner diameter="20" />
           } @else {
-            Sign in
+            {{ 'auth.signIn' | translate }}
           }
         </button>
       </form>
-      <p class="hint">On a shared computer, leave "Remember me" unticked: you will be signed out when the browser closes.</p>
+      <p class="hint">{{ 'auth.sharedHint' | translate }}</p>
     </app-auth-layout>
   `,
   styles: `
     h1 {
-      font: 700 1.8rem/1.2 Inter, sans-serif;
+      font: 700 1.8rem/1.2 Inter, 'IBM Plex Sans Arabic', sans-serif;
       letter-spacing: -0.02em;
       margin: 0 0 6px;
     }
@@ -138,6 +140,7 @@ import { AuthLayout } from './auth-layout';
 export class Login {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
 
   /** Bound from the `returnUrl` query parameter set by the auth guard. */
   readonly returnUrl = input<string>();
@@ -165,7 +168,7 @@ export class Login {
       next: () => void this.router.navigateByUrl(this.safeReturnUrl()),
       error: (error: unknown) => {
         this.submitting.set(false);
-        this.error.set(problemOf(error)?.title ?? 'Sign-in failed. Please try again.');
+        this.error.set(problemMessage(this.translate, error, 'auth.signInFailed'));
       },
     });
   }

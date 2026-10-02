@@ -87,6 +87,10 @@ export class TicketsApi {
     return this.http.post<void>(`/api/tickets/${encodeURIComponent(id)}/status`, { status, reason });
   }
 
+  rate(id: string, score: number, comment: string | null): Observable<void> {
+    return this.http.post<void>(`/api/tickets/${encodeURIComponent(id)}/satisfaction`, { score, comment });
+  }
+
   addComment(id: string, body: string, isInternal: boolean): Observable<CommentInfo> {
     return this.http.post<CommentInfo>(`/api/tickets/${encodeURIComponent(id)}/comments`, { body, isInternal });
   }

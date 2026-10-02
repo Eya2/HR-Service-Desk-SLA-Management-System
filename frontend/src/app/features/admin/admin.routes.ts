@@ -10,32 +10,37 @@ export const routes: Routes = [
       {
         path: 'workflows',
         loadComponent: () => import('./workflows-list').then((m) => m.WorkflowsList),
-        title: 'Approval workflows · HR Service Desk',
+        title: 'title.workflows',
       },
       {
         path: 'teams',
         loadComponent: () => import('./teams-admin').then((m) => m.TeamsAdmin),
-        title: 'Teams · HR Service Desk',
+        title: 'title.teams',
       },
       {
         path: 'sla',
         loadComponent: () => import('./sla-admin').then((m) => m.SlaAdmin),
-        title: 'SLA & calendar · HR Service Desk',
+        title: 'title.sla',
       },
       {
         path: 'escalations',
         loadComponent: () => import('./escalations-admin').then((m) => m.EscalationsAdmin),
-        title: 'Escalation rules · HR Service Desk',
+        title: 'title.escalations',
       },
       {
         path: 'retention',
         loadComponent: () => import('./retention-admin').then((m) => m.RetentionAdmin),
-        title: 'Data retention · HR Service Desk',
+        title: 'title.retention',
+      },
+      {
+        path: 'knowledge',
+        loadComponent: () => import('./knowledge-admin').then((m) => m.KnowledgeAdmin),
+        title: 'title.kbAdmin',
       },
       {
         path: 'workflows/:requestTypeId',
         loadComponent: () => import('./workflow-editor').then((m) => m.WorkflowEditor),
-        title: 'Edit workflow · HR Service Desk',
+        title: 'title.editWorkflow',
       },
     ],
   },
