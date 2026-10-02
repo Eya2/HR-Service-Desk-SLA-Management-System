@@ -63,7 +63,7 @@ public sealed class TicketAccessTests(PostgresFixture postgres)
     }
 
     [Fact]
-    public async Task Confidential_cases_are_visible_only_to_the_requester_and_hr_admins()
+    public async Task Confidential_cases_are_visible_only_to_the_requester_and_the_restricted_group()
     {
         var employee = await SignedInAs(DemoUsers.AcmeEmployee);
         var typeId = await employee.RequestTypeIdAsync("Harassment report");

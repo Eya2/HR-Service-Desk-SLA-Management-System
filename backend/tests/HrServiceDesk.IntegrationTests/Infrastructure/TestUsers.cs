@@ -13,7 +13,8 @@ public static class TestUsers
         var admin = api.CreateApiClient();
         admin.Authorize(await admin.LoginAsync(adminEmail));
 
-        var email = $"{prefix}.{Guid.NewGuid():N}@acme.example";
+        var domain = adminEmail.Split('@')[1];
+        var email = $"{prefix}.{Guid.NewGuid():N}@{domain}";
         var response = await admin.PostAsJsonAsync("/api/users", new
         {
             email,
