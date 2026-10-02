@@ -63,7 +63,7 @@ This system brings IT-service-management discipline (catalog, workflows, SLAs, e
 | **Backend** | .NET 8, ASP.NET Core Web API, Entity Framework Core 8, PostgreSQL (Npgsql), MediatR (CQRS), FluentValidation, Mapperly, Serilog, Swagger/OpenAPI |
 | **Background jobs** | Hangfire (PostgreSQL storage) |
 | **Auth** | JWT access tokens + rotating refresh tokens, role- and policy-based authorization |
-| **Frontend** | Angular 22 (standalone components, signals, lazy-loaded routes), Angular Material, Reactive Forms, RxJS, Chart.js, ngx-translate |
+| **Frontend** | Angular 22 (standalone components, signals, lazy-loaded routes), Angular Material 3 with light and dark themes, Reactive Forms, RxJS, Chart.js, ngx-translate |
 | **Tests** | xUnit, FluentAssertions, Testcontainers (real PostgreSQL), Karma + Jasmine |
 | **DevOps** | Docker, Docker Compose, nginx, GitHub Actions, MailHog |
 
@@ -202,8 +202,8 @@ The project is delivered in 13 phases. Each phase ends with a green build and te
 | 7 | **SLA foundations** | Business calendars and holidays (TN/FR), business-time calculator, SLA policies, pause/resume | backend · frontend | ✅ Done |
 | 8 | **SLA monitor & escalation** | Hangfire job every minute, escalation rules (idempotent), in-app and email notifications | backend · frontend | ✅ Done |
 | 9 | **Confidentiality & GDPR** | Restricted HR group, sensitive-access audit log, retention and anonymization job, audit viewer | backend · frontend | ✅ Done |
-| 10 | **Dashboards** | KPIs, charts, date and team filters, CSV export | backend · frontend | ⏳ Next |
-| 11 | **Knowledge base, CSAT & i18n** | FAQ with suggestions while typing, satisfaction ratings, FR / EN / AR with RTL | backend · frontend | 🔲 Planned |
+| 10 | **Dashboards** | KPIs, charts, date and team filters, CSV export | backend · frontend | ✅ Done |
+| 11 | **Knowledge base, CSAT & i18n** | FAQ with suggestions while typing, satisfaction ratings, FR / EN / AR with RTL | backend · frontend | ⏳ Next |
 | 12 | **Integration** | API keys, integration endpoints, HMAC-signed webhooks with retry, mock payroll container | backend | 🔲 Planned |
 | 13 | **Demo & polish** | Full seed (2 tenants, every role), end-to-end demo script, final documentation | backend · frontend | 🔲 Planned |
 
