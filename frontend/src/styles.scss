@@ -1,15 +1,68 @@
 @use '@angular/material' as mat;
 
+// Material 3 theme in both schemes; the ThemeService picks light, dark or the OS setting
+// by setting `color-scheme` on <html>.
 html {
-  color-scheme: light;
+  color-scheme: light dark;
   @include mat.theme((
     color: (
-      primary: mat.$azure-palette,
-      tertiary: mat.$blue-palette,
+      primary: mat.$blue-palette,
+      tertiary: mat.$violet-palette,
+      theme-type: color-scheme,
     ),
-    typography: Roboto,
+    typography: (
+      plain-family: 'Inter, system-ui, -apple-system, Segoe UI, sans-serif',
+      brand-family: 'Inter, system-ui, -apple-system, Segoe UI, sans-serif',
+    ),
     density: 0,
   ));
+
+  // App-level design tokens.
+  --app-radius: 16px;
+  --app-radius-sm: 10px;
+  --app-page-bg: light-dark(#f5f6fa, #0f1115);
+  --app-card-bg: light-dark(#ffffff, #181a20);
+  --app-border: light-dark(rgba(16, 24, 40, 0.08), rgba(255, 255, 255, 0.08));
+  --app-shadow: light-dark(0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 2px rgba(0, 0, 0, 0.4)),
+    light-dark(0 4px 16px rgba(16, 24, 40, 0.06), 0 4px 16px rgba(0, 0, 0, 0.3));
+  --app-muted: light-dark(#5b6170, #a3a9b7);
+  --app-brand-gradient: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+
+  // Chart tokens (validated with the data-viz palette checker for both surfaces).
+  --viz-surface: #fcfcfb;
+  --viz-ink: #0b0b0b;
+  --viz-ink-secondary: #52514e;
+  --viz-muted: #898781;
+  --viz-grid: #e1e0d9;
+  --viz-axis: #c3c2b7;
+  --viz-series-1: #2a78d6;
+  --viz-series-2: #eb6834;
+  --viz-ordinal-1: #86b6ef;
+  --viz-ordinal-2: #3987e5;
+  --viz-ordinal-3: #256abf;
+  --viz-ordinal-4: #184f95;
+}
+
+// Dark chart tokens: their own validated steps, not an automatic flip.
+@mixin viz-dark {
+  --viz-surface: #1a1a19;
+  --viz-ink: #ffffff;
+  --viz-ink-secondary: #c3c2b7;
+  --viz-muted: #898781;
+  --viz-grid: #2c2c2a;
+  --viz-axis: #383835;
+  --viz-series-1: #3987e5;
+  --viz-series-2: #d95926;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme='light']) {
+    @include viz-dark;
+  }
+}
+
+html[data-theme='dark'] {
+  @include viz-dark;
 }
 
 html,
@@ -19,7 +72,67 @@ body {
 
 body {
   margin: 0;
-  font-family: Roboto, 'Helvetica Neue', sans-serif;
-  background: var(--mat-sys-surface-container-lowest);
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: var(--app-page-bg);
   color: var(--mat-sys-on-surface);
+  -webkit-font-smoothing: antialiased;
+}
+
+// Cards: soft, rounded surfaces.
+.mat-mdc-card {
+  --mat-card-outlined-container-shape: var(--app-radius);
+  --mat-card-elevated-container-shape: var(--app-radius);
+  --mat-card-outlined-outline-color: var(--app-border);
+  --mat-card-outlined-container-color: var(--app-card-bg);
+  box-shadow: var(--app-shadow);
+}
+
+// Buttons and fields: slightly rounder, modern feel.
+.mat-mdc-button-base {
+  --mat-button-filled-container-shape: 10px;
+  --mat-button-outlined-container-shape: 10px;
+  --mat-button-text-container-shape: 10px;
+}
+
+.mat-mdc-form-field {
+  --mat-form-field-outlined-container-shape: 10px;
+}
+
+// Page header used by every screen.
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+
+  h1 {
+    font: 600 1.6rem/1.2 Inter, system-ui, sans-serif;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+
+  p {
+    margin: 4px 0 0;
+    color: var(--app-muted);
+  }
+}
+
+h1 {
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: var(--mat-sys-primary);
+}
+
+// Respect users who ask for less motion.
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
 }
