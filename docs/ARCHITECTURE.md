@@ -244,6 +244,8 @@ The Hangfire dashboard is exposed at `/hangfire`, restricted to SuperAdmin.
 | 81 | Webhook signing secrets are encrypted at rest (AES-256-GCM, key from `INTEGRATION_SECRET_KEY`) since they must be read to sign; shown once at creation or rotation | Secrets not readable from a database dump |
 | 82 | SSRF protection: https only (plain http allowed for development and the demo network), no redirects, short timeout, and private, loopback and link-local addresses refused on the address actually connected to, unless explicitly allowed | Webhook URLs are user input |
 | 83 | A mock payroll container receives the signed webhooks, verifies them, and resolves payroll cases that become Open through the integration API — the demo of the whole loop | Spec mock payroll consumer |
+| 84 | Demo history (`Seed:History`, on in development and Docker, off in tests): six weeks of cases per organisation built with the domain model at past timestamps and saved without interceptors (no notification, e-mail or webhook for history); open cases keep their last state so the live SLA monitor detects and escalates the late ones | Believable dashboards and queues from the first start |
+| 85 | The end-to-end demo story is an integration test with a simulated clock (holiday-skipping deadline, at risk, breached, escalation, webhook, integration API, audit, confidentiality), plus a shell script that plays it against the running stack | The demo cannot silently break |
 
 ## 7. Testing strategy
 
@@ -268,7 +270,7 @@ Each phase ends with a green build and tests, a summary, verification steps, and
 10. **Dashboards**: KPI queries, charts, filters, CSV export.
 11. **Knowledge base, CSAT and i18n**: FAQ articles with deflection suggestions, satisfaction ratings, FR/EN/AR with RTL.
 12. **Integration**: API keys, integration endpoints, HMAC-signed webhooks with retry, mock payroll container.
-13. **Demo and polish**: full seed (2 tenants, all roles, breached and at-risk tickets), end-to-end demo script (payslip correction → approval → payroll → holiday-skipping SLA → AtRisk → Breached → escalation → dashboard → audit; confidential case hidden from an agent), README and docs.
+13. **Demo and polish** (see `docs/DEMO.md`): full seed (2 tenants, all roles, breached and at-risk tickets), end-to-end demo script (payslip correction → approval → payroll → holiday-skipping SLA → AtRisk → Breached → escalation → dashboard → audit; confidential case hidden from an agent), README and docs.
 
 ## 9. Resolved questions
 

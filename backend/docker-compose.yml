@@ -26,6 +26,7 @@ services:
       Jwt__SigningKey: ${JWT_SIGNING_KEY:?Set JWT_SIGNING_KEY in .env (at least 32 characters)}
       Seed__Enabled: "true"
       Seed__DemoPassword: ${SEED_PASSWORD:?Set SEED_PASSWORD in .env}
+      Seed__History: ${SEED_HISTORY:-true}
       Storage__RootPath: /app/data/attachments
       BackgroundJobs__Enabled: "true"
       Smtp__Enabled: "true"

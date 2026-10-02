@@ -81,6 +81,7 @@ public static class DependencyInjection
 
         services.AddOptions<SeedOptions>().BindConfiguration(SeedOptions.SectionName);
         services.AddScoped<DemoDataSeeder>();
+        services.AddScoped<DemoHistorySeeder>();
 
         services.AddHealthChecks()
             .AddNpgSql(GetConnectionString, name: "postgres", tags: ["ready"]);

@@ -18,6 +18,7 @@ internal sealed partial class DemoDataSeeder(
     AppDbContext db,
     IPasswordHasher hasher,
     IWebhookSecretProtector secretProtector,
+    DemoHistorySeeder history,
     IOptions<SeedOptions> options,
     ILogger<DemoDataSeeder> logger)
 {
@@ -43,6 +44,8 @@ internal sealed partial class DemoDataSeeder(
         await SeedEscalationsAsync(cancellationToken);
         await SeedConfidentialityAsync(cancellationToken);
         await SeedKnowledgeAsync(cancellationToken);
+        if (seed.History)
+            await history.SeedAsync(seed.DemoPassword, cancellationToken);
         await SeedPayrollIntegrationAsync(seed, cancellationToken);
     }
 
