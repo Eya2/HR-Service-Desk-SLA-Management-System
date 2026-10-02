@@ -9,7 +9,8 @@ namespace HrServiceDesk.Domain.Tickets;
 
 /// <summary>
 /// An HR case. Status, comments and attachments only change through the aggregate, and every change
-/// appends a <see cref="TicketEvent"/> to the audit trail.
+/// appends a <see cref="TicketEvent"/> to the audit trail. Children take the case's tenant (a new case gets
+/// its tenant when saved, and its children with it), so background jobs need no tenant context.
 /// </summary>
 public sealed class Ticket : Entity, ITenantOwned, IAuditable
 {
@@ -141,7 +142,7 @@ public sealed class Ticket : Entity, ITenantOwned, IAuditable
             Record(TicketEventType.DetailsUpdated, actorId, now, new { title = Title });
     }
 
-    public void ChangePriority(TicketPriority priority, Guid actorId, DateTimeOffset now)
+    public void ChangePriority(TicketPriority priority, Guid? actorId, DateTimeOffset now)
     {
         if (priority == Priority)
             return;
@@ -196,6 +197,7 @@ public sealed class Ticket : Entity, ITenantOwned, IAuditable
                     ? new TicketApproval(Id, step.Order, step.Name, Role.Manager, managerId)
                     : new TicketApproval(Id, step.Order, $"{step.Name} (no manager: HR Admin)", Role.HrAdmin, null)
                 : new TicketApproval(Id, step.Order, step.Name, step.ApproverRole, null);
+            approval.TenantId = TenantId;
             _approvals.Add(approval);
         }
 
@@ -346,6 +348,27 @@ public sealed class Ticket : Entity, ITenantOwned, IAuditable
         return (previous, SlaState);
     }
 
+    /// <summary>Business minutes since submission without any HR response (pauses excluded); null once answered.</summary>
+    public int? BusinessMinutesWithoutResponse(IBusinessTimeCalculator calculator, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(calculator);
+        if (SlaStartedAt is not { } start || FirstRespondedAt is not null)
+            return null;
+        var end = SlaStoppedAt is { } stopped && stopped < now ? stopped : now;
+        var paused = _slaPauses.Where(p => p.From < end)
+            .Sum(p => calculator.BusinessMinutesBetween(p.From, p.To is { } to && to < end ? to : end));
+        return calculator.BusinessMinutesBetween(start, end) - paused;
+    }
+
+    /// <summary>Raises the priority one level (no-op at Critical). Returns whether it changed.</summary>
+    public bool RaisePriority(DateTimeOffset now)
+    {
+        if (Priority == TicketPriority.Critical)
+            return false;
+        ChangePriority(Priority + 1, actorId: null, now);
+        return true;
+    }
+
     private SlaState StateFor(int elapsedMinutes, int targetMinutes) =>
         elapsedMinutes >= targetMinutes ? SlaState.Breached
         : elapsedMinutes * 100L >= (long)targetMinutes * SlaAtRiskPercent ? SlaState.AtRisk
@@ -383,7 +406,7 @@ public sealed class Ticket : Entity, ITenantOwned, IAuditable
         // Each gets a strictly later timestamp (1 µs, PostgreSQL's precision) so the trail sorts in the order things happened.
         var at = now > _lastEventAt ? now : _lastEventAt.AddTicks(10);
         _lastEventAt = at;
-        var entry = new TicketEvent(Id, type, actorId, at, JsonSerializer.Serialize(data, JsonDefaults.Web), isInternal);
+        var entry = new TicketEvent(Id, type, actorId, at, JsonSerializer.Serialize(data, JsonDefaults.Web), isInternal) { TenantId = TenantId };
         _events.Add(entry);
         return entry;
     }
@@ -408,7 +431,7 @@ public sealed class Ticket : Entity, ITenantOwned, IAuditable
         if (body.Length is 0 or > Comment.BodyMaxLength)
             throw new DomainException("comment.invalid_body", $"A comment must be 1 to {Comment.BodyMaxLength} characters.");
 
-        var comment = new Comment(Id, authorId, body, isInternal, now);
+        var comment = new Comment(Id, authorId, body, isInternal, now) { TenantId = TenantId };
         _comments.Add(comment);
         Record(TicketEventType.CommentAdded, authorId, now, new { commentId = comment.Id, isInternal }, isInternal);
         return comment;
@@ -417,7 +440,7 @@ public sealed class Ticket : Entity, ITenantOwned, IAuditable
     public Attachment AddAttachment(
         string fileName, string contentType, long sizeBytes, string storageKey, Guid uploadedById, string? fieldKey, DateTimeOffset now)
     {
-        var attachment = new Attachment(Id, fileName, contentType, sizeBytes, storageKey, uploadedById, fieldKey, now);
+        var attachment = new Attachment(Id, fileName, contentType, sizeBytes, storageKey, uploadedById, fieldKey, now) { TenantId = TenantId };
         _attachments.Add(attachment);
         // Files answering a form field come with the submission and are part of the "Created" event.
         if (fieldKey is null)
