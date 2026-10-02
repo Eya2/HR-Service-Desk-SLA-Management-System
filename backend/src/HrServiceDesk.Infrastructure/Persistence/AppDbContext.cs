@@ -1,9 +1,13 @@
 using System.Reflection;
 using HrServiceDesk.Application.Abstractions;
+using HrServiceDesk.Domain.Catalog;
 using HrServiceDesk.Domain.Common;
 using HrServiceDesk.Domain.Tenants;
+using HrServiceDesk.Domain.Tickets;
 using HrServiceDesk.Domain.Users;
+using HrServiceDesk.Infrastructure.Tickets;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace HrServiceDesk.Infrastructure.Persistence;
 
@@ -38,6 +42,19 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<User> Users => Set<User>();
 
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+    public DbSet<RequestType> RequestTypes => Set<RequestType>();
+
+    public DbSet<Ticket> Tickets => Set<Ticket>();
+
+    public DbSet<Comment> Comments => Set<Comment>();
+
+    public DbSet<Attachment> Attachments => Set<Attachment>();
+
+    internal DbSet<ReferenceCounter> ReferenceCounters => Set<ReferenceCounter>();
+
+    public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default) =>
+        Database.BeginTransactionAsync(cancellationToken);
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

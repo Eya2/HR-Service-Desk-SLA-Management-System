@@ -8,8 +8,8 @@ using Microsoft.Extensions.Options;
 namespace HrServiceDesk.Infrastructure.Persistence.Seeding;
 
 /// <summary>
-/// Seeds demo tenants and one account per role. Runs only when the database has no tenant yet.
-/// Ticket data is added in later phases.
+/// Seeds demo data in independent, idempotent steps: tenants and one account per role (only into an
+/// empty database), then the request catalog of each demo organisation that has none yet.
 /// </summary>
 internal sealed partial class DemoDataSeeder(
     AppDbContext db,
@@ -29,10 +29,15 @@ internal sealed partial class DemoDataSeeder(
             LogMissingPassword(logger);
             return;
         }
-        if (await db.Tenants.AnyAsync(cancellationToken))
-            return;
+        if (!await db.Tenants.AnyAsync(cancellationToken))
+            await SeedTenantsAndUsersAsync(seed.DemoPassword, cancellationToken);
 
-        var passwordHash = hasher.Hash(seed.DemoPassword);
+        await SeedCatalogAsync(cancellationToken);
+    }
+
+    private async Task SeedTenantsAndUsersAsync(string demoPassword, CancellationToken cancellationToken)
+    {
+        var passwordHash = hasher.Hash(demoPassword);
 
         var platform = Tenant.Create("Platform", "platform", "UTC", "en");
         db.Tenants.Add(platform);
@@ -66,6 +71,28 @@ internal sealed partial class DemoDataSeeder(
         LogSeeded(logger);
     }
 
+    private async Task SeedCatalogAsync(CancellationToken cancellationToken)
+    {
+        string[] demoSlugs = ["acme-tn", "globex-fr"];
+        var tenants = await db.Tenants.Where(t => demoSlugs.Contains(t.Slug)).ToListAsync(cancellationToken);
+        foreach (var tenant in tenants)
+        {
+            // No ambient tenant while seeding: the tenant filter must be bypassed and TenantId set explicitly.
+            if (await db.RequestTypes.IgnoreQueryFilters().AnyAsync(t => t.TenantId == tenant.Id, cancellationToken))
+                continue;
+
+            foreach (var type in DemoCatalog.Create())
+            {
+                type.TenantId = tenant.Id;
+                db.RequestTypes.Add(type);
+            }
+
+            LogCatalogSeeded(logger, tenant.Slug);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
     private void AddOrganisation(
         Tenant tenant, string domain, string passwordHash, DemoUser employee, DemoUser manager, DemoUser[] others)
     {
@@ -89,6 +116,9 @@ internal sealed partial class DemoDataSeeder(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Demo seeding is enabled but Seed:DemoPassword (SEED_PASSWORD) is empty; skipping")]
     private static partial void LogMissingPassword(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Demo request catalog seeded for {Tenant}")]
+    private static partial void LogCatalogSeeded(ILogger logger, string tenant);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Demo tenants and users seeded")]
     private static partial void LogSeeded(ILogger logger);

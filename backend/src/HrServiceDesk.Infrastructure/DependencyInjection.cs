@@ -1,9 +1,12 @@
 using HrServiceDesk.Application.Abstractions;
 using HrServiceDesk.Application.Auth;
+using HrServiceDesk.Application.Tickets.Files;
 using HrServiceDesk.Infrastructure.Auth;
+using HrServiceDesk.Infrastructure.Files;
 using HrServiceDesk.Infrastructure.Persistence;
 using HrServiceDesk.Infrastructure.Persistence.Interceptors;
 using HrServiceDesk.Infrastructure.Persistence.Seeding;
+using HrServiceDesk.Infrastructure.Tickets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,6 +24,7 @@ public static class DependencyInjection
 
         AddPersistence(services);
         AddAuth(services);
+        AddTickets(services);
 
         return services;
     }
@@ -57,6 +61,14 @@ public static class DependencyInjection
 
         services.AddSingleton<IPasswordHasher, AspNetPasswordHasher>();
         services.AddSingleton<ITokenService, JwtTokenService>();
+    }
+
+    private static void AddTickets(IServiceCollection services)
+    {
+        services.AddOptions<AttachmentOptions>().BindConfiguration(AttachmentOptions.SectionName);
+        services.AddOptions<StorageOptions>().BindConfiguration(StorageOptions.SectionName);
+        services.AddSingleton<IFileStorage, LocalFileStorage>();
+        services.AddScoped<IReferenceNumberGenerator, ReferenceNumberGenerator>();
     }
 
     private static string GetConnectionString(IServiceProvider sp) =>
