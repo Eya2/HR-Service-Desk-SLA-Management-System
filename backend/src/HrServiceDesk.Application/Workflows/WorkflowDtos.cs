@@ -7,6 +7,7 @@ public sealed record WorkflowDto(
     Guid RequestTypeId,
     string RequestTypeName,
     bool RequestTypeIsConfidential,
+    Guid? ResponsibleTeamId,
     bool IsConfigured,
     bool IsActive,
     int Version,

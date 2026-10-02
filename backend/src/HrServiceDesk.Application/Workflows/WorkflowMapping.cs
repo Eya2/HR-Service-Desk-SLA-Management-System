@@ -9,6 +9,7 @@ internal static class WorkflowMapping
         type.Id,
         type.Name,
         type.IsConfidential,
+        type.ResponsibleTeamId,
         IsConfigured: workflow is not null,
         IsActive: workflow?.IsActive ?? false,
         Version: workflow?.Version ?? 0,

@@ -186,5 +186,12 @@ public sealed class TeamAssignmentTests(PostgresFixture postgres)
 
         (await officer.PostAsJsonAsync("/api/teams", new { name = "Not allowed", strategy = "Manual", memberIds = Array.Empty<Guid>() }))
             .StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        // Route training requests to the new team: new submissions go there.
+        var trainingId = await admin.RequestTypeIdAsync("Training request");
+        (await admin.PutAsJsonAsync($"/api/request-types/{trainingId}/team", new { teamId = team.Id })).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await admin.GetFromJsonAsync<JsonObject>($"/api/workflows/{trainingId}"))!["responsibleTeamId"]!.GetValue<Guid>().Should().Be(team.Id);
+        (await admin.PutAsJsonAsync($"/api/request-types/{trainingId}/team", new { teamId = teams.Single(t => t.Name == "HR Service Center").Id }))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
 }
