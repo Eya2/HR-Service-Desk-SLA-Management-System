@@ -52,6 +52,10 @@ export class TicketsApi {
     return this.http.put<void>(`/api/tickets/${encodeURIComponent(id)}`, change);
   }
 
+  changeStatus(id: string, status: string, reason: string | null): Observable<void> {
+    return this.http.post<void>(`/api/tickets/${encodeURIComponent(id)}/status`, { status, reason });
+  }
+
   addComment(id: string, body: string, isInternal: boolean): Observable<CommentInfo> {
     return this.http.post<CommentInfo>(`/api/tickets/${encodeURIComponent(id)}/comments`, { body, isInternal });
   }

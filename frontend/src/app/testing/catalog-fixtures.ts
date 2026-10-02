@@ -66,7 +66,17 @@ export function ticketDetails(overrides: Partial<TicketDetails> = {}): TicketDet
     answers: [{ key: 'payPeriod', label: 'Pay period', type: 'Text', value: '2026-03', displayValue: '2026-03', files: [] }],
     attachments: [],
     comments: [],
-    permissions: { canComment: true, canCommentInternally: false, canEdit: true, canChangePriority: false, canAttach: true },
+    timeline: [
+      { id: 'e1', type: 'Created', actorName: 'Amira Ben Salah', occurredAt: '2026-03-02T09:00:00Z', data: { reference: 'HR-2026-000042' } },
+    ],
+    permissions: {
+      canComment: true,
+      canCommentInternally: false,
+      canEdit: true,
+      canChangePriority: false,
+      canAttach: true,
+      availableTransitions: ['Cancelled'],
+    },
     createdAt: '2026-03-02T09:00:00Z',
     updatedAt: null,
     ...overrides,

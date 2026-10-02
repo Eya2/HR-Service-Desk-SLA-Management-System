@@ -101,6 +101,17 @@ export interface TicketPermissions {
   canEdit: boolean;
   canChangePriority: boolean;
   canAttach: boolean;
+  /** Statuses the caller may move the case to, according to the API's status machine. */
+  availableTransitions: string[];
+}
+
+/** One entry of a case's audit trail. `actorName` is null for system actions. */
+export interface TimelineEntry {
+  id: string;
+  type: string;
+  actorName: string | null;
+  occurredAt: string;
+  data: Record<string, unknown> | null;
 }
 
 export interface TicketDetails {
@@ -119,6 +130,7 @@ export interface TicketDetails {
   answers: FormAnswer[];
   attachments: AttachmentInfo[];
   comments: CommentInfo[];
+  timeline: TimelineEntry[];
   permissions: TicketPermissions;
   createdAt: string;
   updatedAt: string | null;

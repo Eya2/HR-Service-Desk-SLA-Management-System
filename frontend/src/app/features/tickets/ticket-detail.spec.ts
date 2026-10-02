@@ -39,18 +39,66 @@ describe('TicketDetail', () => {
 
     TestBed.resetTestingModule();
     el = await render(
-      ticketDetails({ permissions: { canComment: true, canCommentInternally: true, canEdit: true, canChangePriority: true, canAttach: true } }),
+      ticketDetails({ permissions: { canComment: true, canCommentInternally: true, canEdit: true, canChangePriority: true, canAttach: true, availableTransitions: [] } }),
     );
     expect(el.querySelector('[data-testid="internal-toggle"]')).not.toBeNull();
   });
 
   it('hides the reply box for read-only viewers', async () => {
     const el = await render(
-      ticketDetails({ permissions: { canComment: false, canCommentInternally: false, canEdit: false, canChangePriority: false, canAttach: false } }),
+      ticketDetails({ permissions: { canComment: false, canCommentInternally: false, canEdit: false, canChangePriority: false, canAttach: false, availableTransitions: [] } }),
     );
 
     expect(el.querySelector('[data-testid="comment-body"]')).toBeNull();
     expect(el.textContent).not.toContain('Add documents');
+  });
+
+  it('offers the transitions the API allows, applying simple ones directly', async () => {
+    const el = await render(
+      ticketDetails({
+        status: 'Open',
+        permissions: {
+          canComment: true,
+          canCommentInternally: true,
+          canEdit: true,
+          canChangePriority: true,
+          canAttach: true,
+          availableTransitions: ['InProgress', 'Rejected'],
+        },
+      }),
+    );
+
+    const buttons = Array.from(el.querySelectorAll('[data-status]')).map((b) => b.getAttribute('data-status'));
+    expect(buttons).toEqual(['InProgress', 'Rejected']);
+
+    (el.querySelector('[data-status="InProgress"]') as HTMLButtonElement).click();
+    const req = http.expectOne('/api/tickets/t-1/status');
+    expect(req.request.body).toEqual({ status: 'InProgress', reason: null });
+    req.flush(null, { status: 204, statusText: 'No Content' });
+    TestBed.tick(); // runs the resource reload scheduled after success
+    http.expectOne('/api/tickets/t-1').flush(ticketDetails({ status: 'InProgress' }));
+  });
+
+  it('shows the history of the case', async () => {
+    const el = await render(
+      ticketDetails({
+        timeline: [
+          { id: 'e1', type: 'Created', actorName: 'Amira Ben Salah', occurredAt: '2026-03-02T09:00:00Z', data: {} },
+          {
+            id: 'e2',
+            type: 'StatusChanged',
+            actorName: 'Leila Mansour',
+            occurredAt: '2026-03-02T10:00:00Z',
+            data: { from: 'Open', to: 'Rejected', reason: 'Already paid' },
+          },
+        ],
+      }),
+    );
+
+    const entries = Array.from(el.querySelectorAll('[data-testid="timeline-entry"]')).map((e) => e.textContent ?? '');
+    expect(entries[0]).toContain('Amira Ben Salah submitted the request');
+    expect(entries[1]).toContain('Leila Mansour changed the status from Open to Rejected');
+    expect(entries[1]).toContain('Already paid');
   });
 
   it('appends a sent reply to the conversation', async () => {

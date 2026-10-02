@@ -1,10 +1,11 @@
 import { DatePipe, formatDate, formatNumber } from '@angular/common';
-import { Component, LOCALE_ID, inject, input, signal } from '@angular/core';
+import { Component, LOCALE_ID, computed, inject, input, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -16,6 +17,8 @@ import { TicketsApi } from '../../core/api/tickets.api';
 import { problemOf } from '../../core/http/error.interceptor';
 import { fileSize } from '../../shared/ui/labels';
 import { StatusChip } from '../../shared/ui/status-chip';
+import { ReasonDialog } from './reason-dialog';
+import { StatusAction, describeEvent, statusAction } from './status-actions';
 
 /** A case: answers, documents and the conversation. Actions follow the permissions sent by the API. */
 @Component({
@@ -55,6 +58,22 @@ import { StatusChip } from '../../shared/ui/status-chip';
           }
         </div>
       </header>
+
+      @if (actions().length > 0) {
+        <div class="status-actions" role="group" aria-label="Case actions">
+          @for (action of actions(); track action.status) {
+            @if (action.primary) {
+              <button mat-flat-button type="button" (click)="changeStatus(t, action)" [disabled]="changing()" [attr.data-status]="action.status">
+                <mat-icon fontSet="material-symbols-outlined">{{ action.icon }}</mat-icon>{{ action.label }}
+              </button>
+            } @else {
+              <button mat-stroked-button type="button" (click)="changeStatus(t, action)" [disabled]="changing()" [attr.data-status]="action.status">
+                <mat-icon fontSet="material-symbols-outlined">{{ action.icon }}</mat-icon>{{ action.label }}
+              </button>
+            }
+          }
+        </div>
+      }
 
       <div class="layout">
         <div class="main">
@@ -196,6 +215,23 @@ import { StatusChip } from '../../shared/ui/status-chip';
               }
             </mat-card-content>
           </mat-card>
+
+          <mat-card appearance="outlined">
+            <mat-card-header><mat-card-title>History</mat-card-title></mat-card-header>
+            <mat-card-content>
+              <ol class="timeline">
+                @for (entry of t.timeline; track entry.id) {
+                  <li data-testid="timeline-entry">
+                    <span class="who">{{ entry.actorName ?? 'System' }}</span> {{ describe(entry.type, entry.data) }}
+                    @if (entry.data?.['reason']; as reason) {
+                      <q>{{ reason }}</q>
+                    }
+                    <time [attr.datetime]="entry.occurredAt">{{ entry.occurredAt | date: 'medium' }}</time>
+                  </li>
+                }
+              </ol>
+            </mat-card-content>
+          </mat-card>
         </aside>
       </div>
     }
@@ -227,6 +263,35 @@ import { StatusChip } from '../../shared/ui/status-chip';
       gap: 2px;
       color: var(--mat-sys-error);
       font: var(--mat-sys-label-medium);
+    }
+    .status-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .timeline {
+      list-style: none;
+      margin: 0;
+      padding: 0 0 0 12px;
+      border-left: 2px solid var(--mat-sys-outline-variant);
+      display: grid;
+      gap: 12px;
+    }
+    .timeline li {
+      font: var(--mat-sys-body-small);
+    }
+    .timeline .who {
+      font-weight: 500;
+    }
+    .timeline q {
+      display: block;
+      font-style: italic;
+      color: var(--mat-sys-on-surface-variant);
+    }
+    .timeline time {
+      display: block;
+      color: var(--mat-sys-on-surface-variant);
     }
     .layout {
       display: grid;
@@ -342,6 +407,14 @@ export class TicketDetail {
   protected readonly editing = signal(false);
   protected readonly sending = signal(false);
   protected readonly uploading = signal(false);
+  protected readonly changing = signal(false);
+  protected readonly describe = describeEvent;
+  private readonly dialog = inject(MatDialog);
+
+  protected readonly actions = computed<StatusAction[]>(() => {
+    const t = this.ticket.value();
+    return t ? t.permissions.availableTransitions.map((to) => statusAction(t.status, to)) : [];
+  });
 
   protected readonly commentForm = this.fb.group({
     body: ['', [Validators.required, Validators.maxLength(4000)]],
@@ -359,6 +432,35 @@ export class TicketDetail {
     if (answer.type === 'Number' && typeof value === 'number') return formatNumber(value, this.locale);
     if (answer.type === 'Date' && typeof value === 'string') return formatDate(value, 'mediumDate', this.locale);
     return value === null || value === undefined ? '' : `${value}`;
+  }
+
+  protected changeStatus(ticket: TicketDetails, action: StatusAction): void {
+    if (action.reason === 'none') {
+      this.applyStatus(ticket, action, null);
+      return;
+    }
+    this.dialog
+      .open<ReasonDialog, StatusAction, string>(ReasonDialog, { data: action })
+      .afterClosed()
+      .subscribe((reason) => {
+        if (reason !== undefined) this.applyStatus(ticket, action, reason || null);
+      });
+  }
+
+  private applyStatus(ticket: TicketDetails, action: StatusAction, reason: string | null): void {
+    this.changing.set(true);
+    this.api.changeStatus(ticket.id, action.status, reason).subscribe({
+      next: () => {
+        this.changing.set(false);
+        this.snackBar.open(`${action.label}: done.`, undefined, { duration: 3000 });
+        this.ticket.reload();
+      },
+      error: (error: unknown) => {
+        this.changing.set(false);
+        this.snackBar.open(problemOf(error)?.title ?? 'The status could not be changed.', 'Dismiss', { duration: 6000 });
+        this.ticket.reload();
+      },
+    });
   }
 
   protected download(ticket: TicketDetails, file: AttachmentInfo): void {
