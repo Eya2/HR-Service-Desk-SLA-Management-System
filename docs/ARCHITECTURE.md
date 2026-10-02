@@ -201,6 +201,11 @@ The Hangfire dashboard is exposed at `/hangfire`, restricted to SuperAdmin.
 | 38 | Managers see their direct reports' non-confidential cases; a named approver sees the case they must decide | Needed for the manager view and for informed decisions |
 | 39 | Events recorded within one operation get strictly increasing timestamps (1 µs apart) | EF Core sorts inserts by key, so insertion order cannot order the timeline |
 | 40 | Demo workflows: payslip correction and leave → manager; salary advance → manager, payroll; training → manager, HR officer | Matches the spec's demo scenario (manager approves, then payroll) |
+| 41 | A request type names its responsible team; cases are routed there at submission and auto-assigned when HR can act (at submission without approval, after the last approval otherwise) | Spec demo: "manager approves, it goes to payroll" |
+| 42 | Strategies are pure pickers (Manual, RoundRobin, LeastLoaded) behind one interface; ties in LeastLoaded follow round-robin order; only active members holding an HR role are eligible | Strategy pattern from the spec; deterministic and testable |
+| 43 | Tickets carry an `xmin` row version: two simultaneous claims give one 204 and one 409; claiming a case held by someone else is a 409 too | Spec: two agents can't claim the same ticket |
+| 44 | The round-robin pointer is not locked; two simultaneous submissions may rarely go to the same agent | Fairness is best-effort; failing a submission would be worse |
+| 45 | Demo teams: HR Service Center (round-robin: HR officer, HR admin), Payroll (least-loaded: payroll specialist), Confidential HR (manual: HR admin) | Covers the three strategies |
 
 ## 7. Testing strategy
 
