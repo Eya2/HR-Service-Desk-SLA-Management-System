@@ -13,6 +13,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
       </a>
       <a mat-tab-link routerLink="teams" routerLinkActive #teams="routerLinkActive" [active]="teams.isActive">Teams</a>
       <a mat-tab-link routerLink="sla" routerLinkActive #sla="routerLinkActive" [active]="sla.isActive">SLA & calendar</a>
+      <a mat-tab-link routerLink="escalations" routerLinkActive #esc="routerLinkActive" [active]="esc.isActive">Escalation</a>
     </nav>
     <mat-tab-nav-panel #panel>
       <router-outlet />

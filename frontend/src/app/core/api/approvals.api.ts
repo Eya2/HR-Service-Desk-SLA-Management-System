@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
-import { CalendarInfo, Paged, PendingApproval, SlaPolicyInfo, TeamInfo, TeamStats, TicketSummary, WorkflowInfo } from './api.models';
+import { CalendarInfo, EscalationRuleInfo, Paged, PendingApproval, SlaPolicyInfo, TeamInfo, TeamStats, TicketSummary, WorkflowInfo } from './api.models';
 
 @Injectable({ providedIn: 'root' })
 export class ApprovalsApi {
@@ -107,5 +107,20 @@ export class SlaApi {
 
   setRequestTypePolicy(requestTypeId: string, policyId: string | null): Observable<void> {
     return this.http.put<void>(`/api/request-types/${encodeURIComponent(requestTypeId)}/sla-policy`, { policyId });
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class EscalationsApi {
+  private readonly http = inject(HttpClient);
+
+  list(): Observable<EscalationRuleInfo[]> {
+    return this.http.get<EscalationRuleInfo[]>('/api/escalation-rules');
+  }
+
+  save(rule: Omit<EscalationRuleInfo, 'id' | 'timesFired'> & { id: string | null }): Observable<EscalationRuleInfo> {
+    return rule.id
+      ? this.http.put<EscalationRuleInfo>(`/api/escalation-rules/${encodeURIComponent(rule.id)}`, rule)
+      : this.http.post<EscalationRuleInfo>('/api/escalation-rules', rule);
   }
 }

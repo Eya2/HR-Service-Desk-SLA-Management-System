@@ -23,6 +23,11 @@ export const routes: Routes = [
         title: 'SLA & calendar · HR Service Desk',
       },
       {
+        path: 'escalations',
+        loadComponent: () => import('./escalations-admin').then((m) => m.EscalationsAdmin),
+        title: 'Escalation rules · HR Service Desk',
+      },
+      {
         path: 'workflows/:requestTypeId',
         loadComponent: () => import('./workflow-editor').then((m) => m.WorkflowEditor),
         title: 'Edit workflow · HR Service Desk',

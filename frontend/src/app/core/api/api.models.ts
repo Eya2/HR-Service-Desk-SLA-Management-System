@@ -259,3 +259,15 @@ export const STATUSES = [
   'Rejected',
   'Cancelled',
 ] as const;
+
+export interface EscalationRuleInfo {
+  id: string;
+  name: string;
+  trigger: 'AtRisk' | 'Breached' | 'NoResponseFor';
+  noResponseHours: number | null;
+  action: 'NotifyAssignee' | 'NotifyManager' | 'BumpPriority' | 'ReassignToTeam';
+  targetTeamId: string | null;
+  requestTypeId: string | null;
+  isActive: boolean;
+  timesFired: number;
+}
