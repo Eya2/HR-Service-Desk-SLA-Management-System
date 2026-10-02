@@ -184,6 +184,12 @@ The Hangfire dashboard is exposed at `/hangfire`, restricted to SuperAdmin.
 | 21 | All endpoints require authentication unless marked `[AllowAnonymous]` (fallback policy); an anonymous call to an unknown route therefore gets 401, not 404 | Secure by default; does not reveal which routes exist |
 | 22 | User roles are stored as a PostgreSQL `varchar(32)[]` on `users` rather than a join table | Roles are a closed enum; arrays are queryable (`= ANY`) and keep the model small |
 | 23 | Demo accounts are seeded only when `Seed:Enabled` is true and `SEED_PASSWORD` is provided; the JWT key comes from `JWT_SIGNING_KEY` | No secret or shared password is committed |
+| 24 | Submitting a request is one `multipart/form-data` call (JSON `payload` part + one file part per file field, named by field key) | Atomic: a case is never created without its mandatory documents, and no orphan uploads exist |
+| 25 | Cases are never deleted; "CRUD" is create / read / update, and withdrawal is the `Cancelled` status (phase 4) | HR records must stay auditable |
+| 26 | Until the restricted HR group exists (phase 9), confidential cases are visible to the requester and HR Admins only | Never leak a confidential case, even before phase 9 |
+| 27 | Priority comes from the request type; only HR staff can change it | Employees should not self-escalate |
+| 28 | Accepted attachments: PDF, PNG, JPEG, DOCX, XLSX, 10 MB each, 10 per request, type checked by magic bytes; always served as downloads | Spec asks for size and type validation |
+| 29 | Reference numbers come from `reference_counters` (tenant, year) incremented with `INSERT … ON CONFLICT … RETURNING` inside the submission transaction; the year follows the tenant's time zone | Sequential, gap-free and race-free |
 
 ## 7. Testing strategy
 
