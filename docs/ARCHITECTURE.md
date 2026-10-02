@@ -224,6 +224,12 @@ The Hangfire dashboard is exposed at `/hangfire`, restricted to SuperAdmin.
 | 61 | A request type can be flagged sensitive (seed: bank details, leave with medical certificates, harassment); cases copy the flag at submission | Not every case needs read auditing |
 | 62 | Retention is per organisation (6–120 months, default 24, database default 24 for existing rows). A daily job anonymizes closed, cancelled or rejected cases older than that: texts, answers, documents and notifications are removed, free text in the trail is dropped, and the requester becomes an inactive "Former employee" placeholder; statuses, dates and SLA results remain for statistics | GDPR storage limitation while keeping dashboards meaningful |
 | 63 | HR Admins can run retention on demand for their organisation; every anonymization is audited | Demo and operational control |
+| 64 | Dashboard KPIs: SLA compliance = share of cases *resolved in the period* that met their resolution target; average times are business hours with pauses excluded (as the SLA counts them); reopen rate = share of cases resolved in the period that were ever reopened; backlog = active cases now | Comparable, explainable numbers |
+| 65 | Dashboards use the same visibility rule as lists: confidential cases count only for the restricted group | Aggregates must not leak confidential activity |
+| 66 | Volume is bucketed per day in the organisation's time zone (per week, Monday-based, beyond 92 days); a period spans at most a year | Readable charts, bounded queries |
+| 67 | CSV export: one row per case created in the period, UTF-8 with BOM, RFC 4180 quoting, and a leading quote on text starting with = + - @ (spreadsheet formula injection) | Spec CSV export, safe to open in Excel |
+| 68 | "Remember me" stores a persistent refresh cookie (7 days) that keeps the choice across rotations; otherwise the cookie ends with the browser session | Standard login behaviour |
+| 69 | Forgotten password: the same answer whatever the address, a single-use link valid one hour (hash stored, newest link only), reset ends all sessions, unlocks the account and is audited | Standard, secure self-service reset |
 
 ## 7. Testing strategy
 
