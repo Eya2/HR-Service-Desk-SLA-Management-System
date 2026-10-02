@@ -206,6 +206,13 @@ The Hangfire dashboard is exposed at `/hangfire`, restricted to SuperAdmin.
 | 43 | Tickets carry an `xmin` row version: two simultaneous claims give one 204 and one 409; claiming a case held by someone else is a 409 too | Spec: two agents can't claim the same ticket |
 | 44 | The round-robin pointer is not locked; two simultaneous submissions may rarely go to the same agent | Fairness is best-effort; failing a submission would be worse |
 | 45 | Demo teams: HR Service Center (round-robin: HR officer, HR admin), Payroll (least-loaded: payroll specialist), Confidential HR (manual: HR admin) | Covers the three strategies |
+| 46 | One business calendar per organisation: weekly local working intervals (a lunch break is a gap), an IANA time zone, whole-day holidays | Spec: calendar per tenant/country; Acme uses Tunisia, Globex France |
+| 47 | The calculator converts each local working interval to UTC per day, so DST changes shorten or lengthen the real interval; times skipped by DST move forward | Correct deadlines around DST without special cases |
+| 48 | Cases copy the policy's targets for their priority when the clock starts; a priority change takes the new targets; no calendar or no policy means no SLA | Same snapshot principle as workflows |
+| 49 | The clock pauses in the policy's pause statuses (default PendingApproval and WaitingOnEmployee) and while Resolved; it stops for good when the case is closed, cancelled or rejected | Spec pause rule; resolution time is what counts |
+| 50 | Elapsed time excludes every pause; deadlines are pushed back only by completed pauses, and shown empty while paused | A deadline frozen at the moment of resolution stays meaningful for reporting |
+| 51 | First response = HR's first public reply, a status message to the employee, or moving to InProgress/Resolved; until then the first-response target also drives the case's SLA state | Decision 9 refined; a forgotten case must show up as at risk early |
+| 52 | Demo policies: Standard (default; Low 8h/40h … Critical 1h/4h in business time) and Payroll (twice as fast) for payroll request types | Lets the demo breach a payroll case quickly |
 
 ## 7. Testing strategy
 
