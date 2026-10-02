@@ -3,6 +3,7 @@ import { rxResource } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -22,7 +23,7 @@ const STRATEGY_HELP: Record<string, string> = {
 /** HR Admin: teams, their assignment strategy and members. */
 @Component({
   selector: 'app-teams-admin',
-  imports: [ReactiveFormsModule, MatButtonModule, MatCardModule, MatFormFieldModule, MatIconModule, MatInputModule, MatSelectModule],
+  imports: [ReactiveFormsModule, MatButtonModule, MatCardModule, MatCheckboxModule, MatFormFieldModule, MatIconModule, MatInputModule, MatSelectModule],
   template: `
     <div class="header">
       <h1>Teams</h1>
@@ -58,6 +59,9 @@ const STRATEGY_HELP: Record<string, string> = {
                 }
               </mat-select>
             </mat-form-field>
+            <mat-checkbox formControlName="isConfidentialGroup">
+              Restricted HR group: its members (and the requester) are the only people who see confidential cases
+            </mat-checkbox>
             <div class="actions">
               <button mat-button type="button" (click)="editing.set(false)">Cancel</button>
               <button mat-flat-button type="submit" [disabled]="form.invalid || saving()" data-testid="save-team">Save</button>
@@ -72,7 +76,12 @@ const STRATEGY_HELP: Record<string, string> = {
         <mat-card appearance="outlined" [attr.data-testid]="'team-' + team.name">
           <mat-card-header>
             <mat-card-title>{{ team.name }}</mat-card-title>
-            <mat-card-subtitle>{{ humanize(team.strategy) }}</mat-card-subtitle>
+            <mat-card-subtitle>
+              {{ humanize(team.strategy) }}
+              @if (team.isConfidentialGroup) {
+                · <span class="restricted">restricted group</span>
+              }
+            </mat-card-subtitle>
             <button mat-icon-button class="edit" (click)="edit(team)" [attr.aria-label]="'Edit ' + team.name">
               <mat-icon fontSet="material-symbols-outlined">edit</mat-icon>
             </button>
@@ -128,6 +137,9 @@ const STRATEGY_HELP: Record<string, string> = {
       padding: 0;
       margin: 0;
     }
+    .restricted {
+      color: var(--mat-sys-error);
+    }
     .load,
     .types {
       color: var(--mat-sys-on-surface-variant);
@@ -151,6 +163,7 @@ export class TeamsAdmin {
     name: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(100)] }),
     strategy: new FormControl<string>('RoundRobin', { nonNullable: true }),
     memberIds: new FormControl<string[]>([], { nonNullable: true }),
+    isConfidentialGroup: new FormControl(false, { nonNullable: true }),
   });
 
   protected help(strategy: string): string {
@@ -163,6 +176,7 @@ export class TeamsAdmin {
       name: team?.name ?? '',
       strategy: team?.strategy ?? 'RoundRobin',
       memberIds: team?.members.map((m) => m.id) ?? [],
+      isConfidentialGroup: team?.isConfidentialGroup ?? false,
     });
     this.editing.set(true);
   }

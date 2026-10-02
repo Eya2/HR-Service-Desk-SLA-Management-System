@@ -39,6 +39,13 @@ export const AREAS: readonly Area[] = [
     roles: ['HrAdmin', 'Auditor', 'HrOfficer', 'PayrollSpecialist'],
   },
   {
+    path: 'audit',
+    label: 'Audit',
+    icon: 'policy',
+    description: 'Who viewed or changed sensitive data.',
+    roles: ['HrAdmin', 'Auditor'],
+  },
+  {
     path: 'admin',
     label: 'Administration',
     icon: 'admin_panel_settings',

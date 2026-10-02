@@ -173,6 +173,7 @@ describe('TicketDetail', () => {
           id: 'team-1',
           name: 'HR Service Center',
           strategy: 'RoundRobin',
+          isConfidentialGroup: false,
           members: [{ id: 'u-2', fullName: 'Leila Mansour', activeCases: 2 }],
           requestTypes: [],
         },

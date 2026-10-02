@@ -9,6 +9,7 @@ describe('TeamsAdmin', () => {
     id: 'team-payroll',
     name: 'Payroll',
     strategy: 'LeastLoaded',
+    isConfidentialGroup: false,
     members: [{ id: 'u-sami', fullName: 'Sami Gharbi', activeCases: 3 }],
     requestTypes: ['Payslip correction'],
   };
@@ -40,7 +41,7 @@ describe('TeamsAdmin', () => {
 
     const req = http.expectOne('/api/teams/team-payroll');
     expect(req.request.method).toBe('PUT');
-    expect(req.request.body).toEqual({ name: 'Payroll', strategy: 'LeastLoaded', memberIds: ['u-sami'] });
+    expect(req.request.body).toEqual({ name: 'Payroll', strategy: 'LeastLoaded', memberIds: ['u-sami'], isConfidentialGroup: false });
     req.flush(payroll);
   });
 });

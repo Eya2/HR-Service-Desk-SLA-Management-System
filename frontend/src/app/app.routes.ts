@@ -41,6 +41,12 @@ export const routes: Routes = [
         loadChildren: () => import('./features/dashboard/dashboard.routes').then((m) => m.routes),
       },
       {
+        path: 'audit',
+        canActivate: [roleGuard(areaByPath('audit').roles)],
+        loadComponent: () => import('./features/audit/audit-log').then((m) => m.AuditLogPage),
+        title: 'Audit · HR Service Desk',
+      },
+      {
         path: 'admin',
         canActivate: [roleGuard(areaByPath('admin').roles)],
         loadChildren: () => import('./features/admin/admin.routes').then((m) => m.routes),

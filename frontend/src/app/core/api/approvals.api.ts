@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
-import { CalendarInfo, EscalationRuleInfo, Paged, PendingApproval, SlaPolicyInfo, TeamInfo, TeamStats, TicketSummary, WorkflowInfo } from './api.models';
+import { AuditEntry, CalendarInfo, EscalationRuleInfo, Paged, PendingApproval, SlaPolicyInfo, TeamInfo, TeamStats, TicketSummary, WorkflowInfo } from './api.models';
 
 @Injectable({ providedIn: 'root' })
 export class ApprovalsApi {
@@ -54,7 +54,7 @@ export class TeamsApi {
     return this.http.get<TeamInfo[]>('/api/teams');
   }
 
-  save(id: string | null, team: { name: string; strategy: string; memberIds: string[] }): Observable<TeamInfo> {
+  save(id: string | null, team: { name: string; strategy: string; memberIds: string[]; isConfidentialGroup: boolean }): Observable<TeamInfo> {
     return id
       ? this.http.put<TeamInfo>(`/api/teams/${encodeURIComponent(id)}`, team)
       : this.http.post<TeamInfo>('/api/teams', team);
@@ -122,5 +122,30 @@ export class EscalationsApi {
     return rule.id
       ? this.http.put<EscalationRuleInfo>(`/api/escalation-rules/${encodeURIComponent(rule.id)}`, rule)
       : this.http.post<EscalationRuleInfo>('/api/escalation-rules', rule);
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class ComplianceApi {
+  private readonly http = inject(HttpClient);
+
+  auditLogs(query: { action: string | null; from: string | null; to: string | null; page: number; pageSize: number }): Observable<Paged<AuditEntry>> {
+    let params = new HttpParams().set('page', query.page).set('pageSize', query.pageSize);
+    if (query.action) params = params.set('action', query.action);
+    if (query.from) params = params.set('from', query.from);
+    if (query.to) params = params.set('to', query.to);
+    return this.http.get<Paged<AuditEntry>>('/api/audit-logs', { params });
+  }
+
+  retention(): Observable<{ retentionMonths: number }> {
+    return this.http.get<{ retentionMonths: number }>('/api/settings/retention');
+  }
+
+  setRetention(retentionMonths: number): Observable<{ retentionMonths: number }> {
+    return this.http.put<{ retentionMonths: number }>('/api/settings/retention', { retentionMonths });
+  }
+
+  runRetention(): Observable<{ anonymized: number }> {
+    return this.http.post<{ anonymized: number }>('/api/settings/retention/run', null);
   }
 }

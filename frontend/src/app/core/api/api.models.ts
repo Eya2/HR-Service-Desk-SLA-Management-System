@@ -152,6 +152,7 @@ export interface TeamInfo {
   id: string;
   name: string;
   strategy: 'Manual' | 'RoundRobin' | 'LeastLoaded';
+  isConfidentialGroup: boolean;
   members: { id: string; fullName: string; activeCases: number }[];
   requestTypes: string[];
 }
@@ -271,3 +272,26 @@ export interface EscalationRuleInfo {
   isActive: boolean;
   timesFired: number;
 }
+
+export interface AuditEntry {
+  id: string;
+  occurredAt: string;
+  userId: string | null;
+  userName: string;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  summary: string;
+}
+
+export const AUDIT_ACTIONS = [
+  'SensitiveCaseViewed',
+  'SensitiveAttachmentDownloaded',
+  'UserCreated',
+  'UserUpdated',
+  'UserRolesChanged',
+  'UserDeactivated',
+  'PasswordReset',
+  'RetentionPolicyChanged',
+  'CaseAnonymized',
+] as const;
