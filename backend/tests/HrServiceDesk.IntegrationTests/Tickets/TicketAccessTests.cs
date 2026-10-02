@@ -34,8 +34,12 @@ public sealed class TicketAccessTests(PostgresFixture postgres)
     {
         var employee = await SignedInAs(DemoUsers.AcmeEmployee);
         var created = await employee.SubmitPayslipCorrectionAsync();
+        var colleague = _api.CreateApiClient();
+        colleague.Authorize(await colleague.LoginAsync(await TestUsers.CreateAsync(_api, "colleague"), TestUsers.Password));
 
-        (await (await SignedInAs(DemoUsers.AcmeManager)).GetAsync($"/api/tickets/{created.Id}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await colleague.GetAsync($"/api/tickets/{created.Id}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        // Amira's manager sees her (non-confidential) requests.
+        (await (await SignedInAs(DemoUsers.AcmeManager)).GetAsync($"/api/tickets/{created.Id}")).StatusCode.Should().Be(HttpStatusCode.OK);
         (await (await SignedInAs(DemoUsers.GlobexHrAdmin)).GetAsync($"/api/tickets/{created.Id}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await (await SignedInAs(DemoUsers.AcmeHrOfficer)).GetAsync($"/api/tickets/{created.Id}")).StatusCode.Should().Be(HttpStatusCode.OK);
     }
@@ -128,9 +132,9 @@ public sealed class TicketAccessTests(PostgresFixture postgres)
     public async Task Requester_rewords_a_new_case_but_only_staff_change_priority()
     {
         var employee = await SignedInAs(DemoUsers.AcmeEmployee);
-        var created = await employee.SubmitPayslipCorrectionAsync();
+        var created = await employee.SubmitWorkCertificateAsync();
 
-        (await employee.PutAsJsonAsync($"/api/tickets/{created.Id}", new { title = "Reworded title", description = "More detail", priority = "High" }))
+        (await employee.PutAsJsonAsync($"/api/tickets/{created.Id}", new { title = "Reworded title", description = "More detail", priority = "Low" }))
             .StatusCode.Should().Be(HttpStatusCode.NoContent);
         var escalate = await employee.PutAsJsonAsync($"/api/tickets/{created.Id}", new { title = "Reworded title", description = "", priority = "Critical" });
         escalate.StatusCode.Should().Be(HttpStatusCode.Forbidden);

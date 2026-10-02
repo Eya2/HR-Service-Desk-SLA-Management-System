@@ -26,7 +26,7 @@ public sealed partial class TicketSubmissionTests(PostgresFixture postgres)
 
         created.Reference.Should().MatchRegex(@"^HR-20\d\d-\d{6}$");
         var ticket = (await client.GetFromJsonAsync<TicketDetails>($"/api/tickets/{created.Id}"))!;
-        ticket.Status.Should().Be("New");
+        ticket.Status.Should().Be("PendingApproval", "payslip corrections need the manager's approval");
         ticket.Priority.Should().Be("High");
         ticket.RequestTypeName.Should().Be("Payslip correction");
         ticket.Answers.Select(a => a.Label).Should().Equal("Pay period", "Issue", "Expected amount", "Payslip");
@@ -37,8 +37,8 @@ public sealed partial class TicketSubmissionTests(PostgresFixture postgres)
         var payslip = ticket.Answers.Single(a => a.Key == "payslip").Files.Should().ContainSingle().Subject;
         payslip.FileName.Should().Be("payslip-march.pdf");
         payslip.ContentType.Should().Be("application/pdf");
-        ticket.Permissions.Should().BeEquivalentTo(new Permissions(true, false, true, false, true, ["Cancelled"]));
-        ticket.Timeline.Should().ContainSingle().Which.Type.Should().Be("Created");
+        ticket.Permissions.Should().BeEquivalentTo(new Permissions(true, false, false, false, true, ["Cancelled"]), "a case pending approval can no longer be reworded");
+        ticket.Timeline.Select(e => e.Type).Should().Equal("Created", "StatusChanged", "ApprovalRequested");
     }
 
     [Fact]

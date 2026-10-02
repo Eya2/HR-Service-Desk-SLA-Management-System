@@ -23,7 +23,7 @@ public sealed class TicketLifecycleTests(PostgresFixture postgres)
     {
         var employee = await SignedInAs(DemoUsers.AcmeEmployee);
         var officer = await SignedInAs(DemoUsers.AcmeHrOfficer);
-        var created = await employee.SubmitPayslipCorrectionAsync();
+        var created = await employee.SubmitWorkCertificateAsync();
 
         (await GetAsync(officer, created.Id)).Permissions.AvailableTransitions.Should().Equal("Open", "Rejected", "Cancelled");
 
@@ -43,6 +43,7 @@ public sealed class TicketLifecycleTests(PostgresFixture postgres)
 
         var ticket = await GetAsync(employee, created.Id);
         ticket.Status.Should().Be("Closed");
+        ticket.Approvals.Should().BeEmpty("work certificates need no approval");
         ticket.Permissions.AvailableTransitions.Should().BeEmpty();
         ticket.Permissions.CanComment.Should().BeFalse();
         ticket.Comments.Select(c => c.Body).Should().Equal(
@@ -59,7 +60,7 @@ public sealed class TicketLifecycleTests(PostgresFixture postgres)
     public async Task Invalid_transitions_are_422_and_unauthorised_ones_403()
     {
         var employee = await SignedInAs(DemoUsers.AcmeEmployee);
-        var created = await employee.SubmitPayslipCorrectionAsync();
+        var created = await employee.SubmitWorkCertificateAsync();
 
         var invalid = await employee.ChangeStatusAsync(created.Id, "Closed");
         invalid.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
@@ -82,7 +83,7 @@ public sealed class TicketLifecycleTests(PostgresFixture postgres)
     {
         var employee = await SignedInAs(DemoUsers.AcmeEmployee);
         var officer = await SignedInAs(DemoUsers.AcmeHrOfficer);
-        var created = await employee.SubmitPayslipCorrectionAsync();
+        var created = await employee.SubmitWorkCertificateAsync();
 
         (await officer.ChangeStatusAsync(created.Id, "Rejected")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await officer.ChangeStatusAsync(created.Id, "Rejected", "Overtime was paid in February.")).StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -99,11 +100,11 @@ public sealed class TicketLifecycleTests(PostgresFixture postgres)
         var employee = await SignedInAs(DemoUsers.AcmeEmployee);
         var officer = await SignedInAs(DemoUsers.AcmeHrOfficer);
 
-        var withdrawn = await employee.SubmitPayslipCorrectionAsync();
+        var withdrawn = await employee.SubmitWorkCertificateAsync();
         (await employee.ChangeStatusAsync(withdrawn.Id, "Cancelled")).StatusCode.Should().Be(HttpStatusCode.NoContent);
         (await officer.ChangeStatusAsync(withdrawn.Id, "Open")).StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
 
-        var reopened = await employee.SubmitPayslipCorrectionAsync();
+        var reopened = await employee.SubmitWorkCertificateAsync();
         await officer.ChangeStatusAsync(reopened.Id, "Open");
         await officer.ChangeStatusAsync(reopened.Id, "Resolved");
         (await officer.ChangeStatusAsync(reopened.Id, "Reopened")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
@@ -116,7 +117,7 @@ public sealed class TicketLifecycleTests(PostgresFixture postgres)
     {
         var employee = await SignedInAs(DemoUsers.AcmeEmployee);
         var officer = await SignedInAs(DemoUsers.AcmeHrOfficer);
-        var created = await employee.SubmitPayslipCorrectionAsync();
+        var created = await employee.SubmitWorkCertificateAsync();
 
         await officer.PostAsJsonAsync($"/api/tickets/{created.Id}/comments", new { body = "Check with payroll", isInternal = true });
 

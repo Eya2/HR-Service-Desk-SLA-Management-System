@@ -18,13 +18,16 @@ public sealed record Comment(Guid Id, string AuthorName, string Body, bool IsInt
 public sealed record Answer(string Key, string Label, string Type, JsonNode? Value, string? DisplayValue, Attachment[] Files);
 
 public sealed record Permissions(
-    bool CanComment, bool CanCommentInternally, bool CanEdit, bool CanChangePriority, bool CanAttach, string[] AvailableTransitions);
+    bool CanComment, bool CanCommentInternally, bool CanEdit, bool CanChangePriority, bool CanAttach, string[] AvailableTransitions,
+    Guid? DecidableApprovalId = null);
 
 public sealed record TimelineEntry(string Type, string? ActorName, JsonNode? Data);
 
+public sealed record Approval(Guid Id, int StepOrder, string StepName, string ApproverRole, string? ApproverName, string Decision, string? DecidedByName, string? Comment);
+
 public sealed record TicketDetails(
     Guid Id, string Reference, string Title, string Description, string RequestTypeName, string Status, string Priority,
-    bool IsConfidential, Answer[] Answers, Attachment[] Attachments, Comment[] Comments, TimelineEntry[] Timeline, Permissions Permissions);
+    bool IsConfidential, Answer[] Answers, Attachment[] Attachments, Comment[] Comments, TimelineEntry[] Timeline, Approval[] Approvals, Permissions Permissions);
 
 public sealed record TicketSummary(Guid Id, string Reference, string Title, string Status, string RequesterName);
 
@@ -80,6 +83,15 @@ public static class TicketApi
 
     public static Task<HttpResponseMessage> ChangeStatusAsync(this HttpClient client, Guid ticketId, string status, string? reason = null) =>
         client.PostAsJsonAsync($"/api/tickets/{ticketId}/status", new { status, reason });
+
+    /// <summary>A request type without approval workflow: the case starts as New.</summary>
+    public static async Task<Created> SubmitWorkCertificateAsync(this HttpClient client, string title = "Certificate for my bank")
+    {
+        var typeId = await client.RequestTypeIdAsync("Work certificate");
+        var response = await client.SubmitAsync(typeId, title, new JsonObject { ["purpose"] = "bank", ["language"] = "fr", ["copies"] = 1 });
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<Created>())!;
+    }
 
     public static async Task<IReadOnlyDictionary<string, string[]>> ValidationErrorsAsync(this HttpResponseMessage response)
     {
