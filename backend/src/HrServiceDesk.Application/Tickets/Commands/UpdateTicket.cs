@@ -29,7 +29,7 @@ internal sealed class UpdateTicketHandler(IAppDbContext db, ICurrentUser current
 {
     public async Task<Result> Handle(UpdateTicketCommand request, CancellationToken cancellationToken)
     {
-        var ticket = await db.Tickets.VisibleTo(currentUser).SingleOrDefaultAsync(t => t.Id == request.Id, cancellationToken);
+        var ticket = await db.Tickets.VisibleTo(db, currentUser).SingleOrDefaultAsync(t => t.Id == request.Id, cancellationToken);
         if (ticket is null)
             return TicketErrors.NotFound;
         if (!TicketAccess.CanParticipate(ticket, currentUser))

@@ -19,4 +19,10 @@ internal sealed class HttpCurrentUser(IHttpContextAccessor httpContextAccessor) 
     public bool IsAuthenticated => httpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated == true;
 
     public bool IsInRole(Role role) => httpContextAccessor.HttpContext?.User.IsInRole(role.ToString()) == true;
+
+    public IReadOnlyCollection<Role> Roles =>
+        httpContextAccessor.HttpContext?.User.FindAll(AppClaims.Role)
+            .Select(c => Enum.TryParse<Role>(c.Value, out var role) ? role : (Role?)null)
+            .OfType<Role>()
+            .ToList() ?? [];
 }

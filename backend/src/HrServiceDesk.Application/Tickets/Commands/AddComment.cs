@@ -20,7 +20,7 @@ internal sealed class AddCommentHandler(IAppDbContext db, ICurrentUser currentUs
 {
     public async Task<Result<CommentDto>> Handle(AddCommentCommand request, CancellationToken cancellationToken)
     {
-        var ticket = await db.Tickets.VisibleTo(currentUser).SingleOrDefaultAsync(t => t.Id == request.TicketId, cancellationToken);
+        var ticket = await db.Tickets.VisibleTo(db, currentUser).SingleOrDefaultAsync(t => t.Id == request.TicketId, cancellationToken);
         if (ticket is null)
             return TicketErrors.NotFound;
         if (!TicketAccess.CanParticipate(ticket, currentUser))

@@ -32,6 +32,24 @@ internal sealed class TicketConfiguration : IEntityTypeConfiguration<Ticket>
         builder.HasMany(t => t.Comments).WithOne().HasForeignKey(c => c.TicketId).OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(t => t.Attachments).WithOne().HasForeignKey(a => a.TicketId).OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(t => t.Events).WithOne().HasForeignKey(e => e.TicketId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(t => t.Approvals).WithOne().HasForeignKey(a => a.TicketId).OnDelete(DeleteBehavior.Cascade);
+        builder.Ignore(t => t.CurrentApproval);
+    }
+}
+
+internal sealed class TicketApprovalConfiguration : IEntityTypeConfiguration<TicketApproval>
+{
+    public void Configure(EntityTypeBuilder<TicketApproval> builder)
+    {
+        builder.HasKey(a => a.Id);
+        builder.Property(a => a.StepName).HasMaxLength(150).IsRequired();
+        builder.Property(a => a.ApproverRole).HasConversion<string>().HasMaxLength(32);
+        builder.Property(a => a.Decision).HasConversion<string>().HasMaxLength(16);
+        builder.Property(a => a.Comment).HasMaxLength(TicketApproval.CommentMaxLength);
+        builder.HasIndex(a => new { a.TicketId, a.StepOrder }).IsUnique();
+        builder.HasIndex(a => new { a.ApproverUserId, a.Decision });
+        builder.HasOne<User>().WithMany().HasForeignKey(a => a.ApproverUserId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<User>().WithMany().HasForeignKey(a => a.DecidedById).OnDelete(DeleteBehavior.Restrict);
     }
 }
 

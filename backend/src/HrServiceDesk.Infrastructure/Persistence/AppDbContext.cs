@@ -5,6 +5,7 @@ using HrServiceDesk.Domain.Common;
 using HrServiceDesk.Domain.Tenants;
 using HrServiceDesk.Domain.Tickets;
 using HrServiceDesk.Domain.Users;
+using HrServiceDesk.Domain.Workflows;
 using HrServiceDesk.Infrastructure.Tickets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -52,6 +53,10 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<Attachment> Attachments => Set<Attachment>();
 
     public DbSet<TicketEvent> TicketEvents => Set<TicketEvent>();
+
+    public DbSet<TicketApproval> TicketApprovals => Set<TicketApproval>();
+
+    public DbSet<WorkflowDefinition> WorkflowDefinitions => Set<WorkflowDefinition>();
 
     internal DbSet<ReferenceCounter> ReferenceCounters => Set<ReferenceCounter>();
 

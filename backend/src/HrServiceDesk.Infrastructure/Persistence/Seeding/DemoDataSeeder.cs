@@ -1,6 +1,7 @@
 using HrServiceDesk.Application.Abstractions;
 using HrServiceDesk.Domain.Tenants;
 using HrServiceDesk.Domain.Users;
+using HrServiceDesk.Domain.Workflows;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -33,6 +34,7 @@ internal sealed partial class DemoDataSeeder(
             await SeedTenantsAndUsersAsync(seed.DemoPassword, cancellationToken);
 
         await SeedCatalogAsync(cancellationToken);
+        await SeedWorkflowsAsync(cancellationToken);
     }
 
     private async Task SeedTenantsAndUsersAsync(string demoPassword, CancellationToken cancellationToken)
@@ -116,6 +118,25 @@ internal sealed partial class DemoDataSeeder(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Demo seeding is enabled but Seed:DemoPassword (SEED_PASSWORD) is empty; skipping")]
     private static partial void LogMissingPassword(ILogger logger);
+
+    private async Task SeedWorkflowsAsync(CancellationToken cancellationToken)
+    {
+        var tenantsWithWorkflows = await db.WorkflowDefinitions.IgnoreQueryFilters().Select(w => w.TenantId).Distinct().ToListAsync(cancellationToken);
+        var types = await db.RequestTypes.IgnoreQueryFilters()
+            .Where(t => !tenantsWithWorkflows.Contains(t.TenantId))
+            .ToListAsync(cancellationToken);
+
+        foreach (var type in types)
+        {
+            if (!DemoWorkflows.ByRequestType.TryGetValue(type.Name, out var steps))
+                continue;
+            var workflow = WorkflowDefinition.Create(type.Id, type.IsConfidential, steps);
+            workflow.TenantId = type.TenantId;
+            db.WorkflowDefinitions.Add(workflow);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Demo request catalog seeded for {Tenant}")]
     private static partial void LogCatalogSeeded(ILogger logger, string tenant);

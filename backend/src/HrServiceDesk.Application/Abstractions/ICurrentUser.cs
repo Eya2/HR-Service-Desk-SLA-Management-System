@@ -10,4 +10,6 @@ public interface ICurrentUser
     bool IsAuthenticated { get; }
 
     bool IsInRole(Role role);
+
+    IReadOnlyCollection<Role> Roles { get; }
 }

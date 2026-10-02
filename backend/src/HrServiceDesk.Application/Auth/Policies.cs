@@ -9,6 +9,7 @@ public static class Policies
     public const string CanWorkTickets = nameof(CanWorkTickets);
     public const string CanViewAllTickets = nameof(CanViewAllTickets);
     public const string CanApprove = nameof(CanApprove);
+    public const string CanManageTeam = nameof(CanManageTeam);
     public const string CanViewDashboards = nameof(CanViewDashboards);
     public const string CanReadAudit = nameof(CanReadAudit);
     public const string CanManagePlatform = nameof(CanManagePlatform);
@@ -19,6 +20,7 @@ public static class Policies
         [CanWorkTickets] = [Role.HrOfficer, Role.PayrollSpecialist, Role.HrAdmin],
         [CanViewAllTickets] = [Role.HrOfficer, Role.PayrollSpecialist, Role.HrAdmin, Role.Auditor],
         [CanApprove] = [Role.Manager, Role.HrOfficer, Role.PayrollSpecialist, Role.HrAdmin],
+        [CanManageTeam] = [Role.Manager],
         [CanViewDashboards] = [Role.HrAdmin, Role.Auditor, Role.HrOfficer, Role.PayrollSpecialist],
         [CanReadAudit] = [Role.HrAdmin, Role.Auditor],
         [CanManagePlatform] = [Role.SuperAdmin],

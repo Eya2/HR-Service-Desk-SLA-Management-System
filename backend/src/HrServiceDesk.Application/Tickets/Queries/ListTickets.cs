@@ -29,7 +29,7 @@ internal sealed class ListTicketsHandler(IAppDbContext db, ICurrentUser currentU
 {
     public async Task<PagedResult<TicketSummaryDto>> Handle(ListTicketsQuery request, CancellationToken cancellationToken)
     {
-        var query = db.Tickets.AsNoTracking().VisibleTo(currentUser).Search(request.Search);
+        var query = db.Tickets.AsNoTracking().VisibleTo(db, currentUser).Search(request.Search);
         if (request.Status is not null)
         {
             var status = Enum.Parse<TicketStatus>(request.Status);

@@ -14,7 +14,7 @@ internal sealed class GetAttachmentHandler(IAppDbContext db, ICurrentUser curren
     public async Task<Result<AttachmentContent>> Handle(GetAttachmentQuery request, CancellationToken cancellationToken)
     {
         var attachment = await (
-            from t in db.Tickets.AsNoTracking().VisibleTo(currentUser)
+            from t in db.Tickets.AsNoTracking().VisibleTo(db, currentUser)
             join a in db.Attachments.AsNoTracking() on t.Id equals a.TicketId
             where t.Id == request.TicketId && a.Id == request.AttachmentId
             select a).SingleOrDefaultAsync(cancellationToken);

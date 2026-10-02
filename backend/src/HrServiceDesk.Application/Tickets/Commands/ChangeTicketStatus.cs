@@ -30,7 +30,10 @@ internal sealed class ChangeTicketStatusHandler(IAppDbContext db, ICurrentUser c
 {
     public async Task<Result> Handle(ChangeTicketStatusCommand request, CancellationToken cancellationToken)
     {
-        var ticket = await db.Tickets.VisibleTo(currentUser).SingleOrDefaultAsync(t => t.Id == request.TicketId, cancellationToken);
+        // Approvals are loaded so that withdrawing or rejecting a pending case skips its remaining steps.
+        var ticket = await db.Tickets.VisibleTo(db, currentUser)
+            .Include(t => t.Approvals)
+            .SingleOrDefaultAsync(t => t.Id == request.TicketId, cancellationToken);
         if (ticket is null)
             return TicketErrors.NotFound;
 

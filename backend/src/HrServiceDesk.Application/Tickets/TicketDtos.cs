@@ -41,7 +41,13 @@ public sealed record TicketPermissionsDto(
     bool CanEdit,
     bool CanChangePriority,
     bool CanAttach,
-    IReadOnlyList<string> AvailableTransitions);
+    IReadOnlyList<string> AvailableTransitions,
+    Guid? DecidableApprovalId);
+
+/// <summary>One approval step of a case.</summary>
+public sealed record ApprovalDto(
+    Guid Id, int StepOrder, string StepName, string ApproverRole, string? ApproverName, string Decision,
+    string? DecidedByName, DateTimeOffset? DecidedAt, string? Comment);
 
 /// <summary>One entry of the case history (audit trail). <see cref="ActorName"/> is null for system actions.</summary>
 public sealed record TimelineEntryDto(Guid Id, string Type, string? ActorName, DateTimeOffset OccurredAt, JsonNode? Data);
@@ -63,6 +69,7 @@ public sealed record TicketDetailsDto(
     IReadOnlyList<AttachmentDto> Attachments,
     IReadOnlyList<CommentDto> Comments,
     IReadOnlyList<TimelineEntryDto> Timeline,
+    IReadOnlyList<ApprovalDto> Approvals,
     TicketPermissionsDto Permissions,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt);

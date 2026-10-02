@@ -62,6 +62,13 @@ internal sealed class SubmitTicketHandler(
         var reference = await references.NextTicketReferenceAsync(tenantId, cancellationToken);
         var now = clock.GetUtcNow();
         var ticket = Ticket.Submit(reference, type, requesterId, request.Title, request.Description, "{}", now);
+
+        var workflow = await db.WorkflowDefinitions.SingleOrDefaultAsync(w => w.RequestTypeId == type.Id && w.IsActive, cancellationToken);
+        if (workflow is not null)
+        {
+            var managerId = await db.Users.Where(u => u.Id == requesterId).Select(u => u.ManagerId).SingleAsync(cancellationToken);
+            ticket.StartApproval(workflow, managerId, now);
+        }
         var attachments = await TicketFiles.StoreAsync(storage, tenantId, ticket, files, requesterId, now, cancellationToken);
 
         // File fields are answered by the ids of their attachments.

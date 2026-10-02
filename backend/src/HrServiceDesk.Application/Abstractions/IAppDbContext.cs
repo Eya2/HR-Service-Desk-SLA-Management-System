@@ -2,6 +2,7 @@ using HrServiceDesk.Domain.Catalog;
 using HrServiceDesk.Domain.Tenants;
 using HrServiceDesk.Domain.Tickets;
 using HrServiceDesk.Domain.Users;
+using HrServiceDesk.Domain.Workflows;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
@@ -25,6 +26,10 @@ public interface IAppDbContext
     DbSet<Attachment> Attachments { get; }
 
     DbSet<TicketEvent> TicketEvents { get; }
+
+    DbSet<TicketApproval> TicketApprovals { get; }
+
+    DbSet<WorkflowDefinition> WorkflowDefinitions { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

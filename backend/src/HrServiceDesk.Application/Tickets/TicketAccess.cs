@@ -25,12 +25,21 @@ internal static class TicketAccess
     /// </summary>
     public static bool SeesConfidential(ICurrentUser user) => user.IsInRole(Role.HrAdmin);
 
-    public static IQueryable<Ticket> VisibleTo(this IQueryable<Ticket> tickets, ICurrentUser user)
+    /// <summary>
+    /// Requesters see their own cases; staff and auditors the organisation's non-confidential cases;
+    /// managers their direct reports' non-confidential cases; a named approver the cases they must decide.
+    /// </summary>
+    public static IQueryable<Ticket> VisibleTo(this IQueryable<Ticket> tickets, IAppDbContext db, ICurrentUser user)
     {
         var userId = user.UserId ?? Guid.Empty;
         var seesAll = SeesAllCases(user);
         var seesConfidential = SeesConfidential(user);
-        return tickets.Where(t => t.RequesterId == userId || (seesAll && (!t.IsConfidential || seesConfidential)));
+        var isManager = user.IsInRole(Role.Manager);
+        return tickets.Where(t =>
+            t.RequesterId == userId
+            || (seesAll && (!t.IsConfidential || seesConfidential))
+            || (isManager && !t.IsConfidential && db.Users.Any(u => u.Id == t.RequesterId && u.ManagerId == userId))
+            || db.TicketApprovals.Any(a => a.TicketId == t.Id && a.ApproverUserId == userId));
     }
 
     /// <summary>The status-machine roles the user holds on this case.</summary>
