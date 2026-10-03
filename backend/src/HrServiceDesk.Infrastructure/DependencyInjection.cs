@@ -1,6 +1,7 @@
 using HrServiceDesk.Application.Abstractions;
 using HrServiceDesk.Application.Auth;
 using HrServiceDesk.Application.Tickets.Files;
+using HrServiceDesk.Infrastructure.Assistant;
 using HrServiceDesk.Infrastructure.Auth;
 using HrServiceDesk.Infrastructure.Files;
 using HrServiceDesk.Infrastructure.Integration;
@@ -30,6 +31,7 @@ public static class DependencyInjection
         AddTickets(services);
         AddNotifications(services);
         AddIntegration(services);
+        AddAssistant(services);
         BackgroundJobsSetup.AddBackgroundJobs(services, configuration);
 
         return services;
@@ -60,6 +62,14 @@ public static class DependencyInjection
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("HrServiceDesk-Webhooks/1.0");
             })
             .ConfigurePrimaryHttpMessageHandler(sp => HttpWebhookSender.CreateHandler(sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<IntegrationOptions>>().Value));
+    }
+
+    private static void AddAssistant(IServiceCollection services)
+    {
+        services.AddOptions<AiOptions>().BindConfiguration(AiOptions.SectionName);
+        services.AddSingleton<IAiModel, ClaudeModel>();
+        services.AddHttpClient(ClaudeModel.ClientName, (sp, client) =>
+            client.Timeout = TimeSpan.FromSeconds(sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<AiOptions>>().Value.TimeoutSeconds));
     }
 
     private static void AddPersistence(IServiceCollection services)

@@ -20,6 +20,9 @@ internal static class AuthSetup
     /// <summary>Session refresh runs on every page load: limited per IP, but far more loosely than sign-in.</summary>
     public const string RefreshRateLimitPolicy = "refresh";
 
+    /// <summary>Assistant calls cost money and time: limited per user.</summary>
+    public const string AiRateLimitPolicy = "ai";
+
     public static IServiceCollection AddApiAuth(this IServiceCollection services)
     {
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -101,6 +104,19 @@ internal static class AuthSetup
                     _ => new FixedWindowRateLimiterOptions
                     {
                         PermitLimit = settings.GetValue("PermitLimit", 60),
+                        Window = TimeSpan.FromSeconds(settings.GetValue("WindowSeconds", 60)),
+                        QueueLimit = 0,
+                    });
+            });
+
+            options.AddPolicy(AiRateLimitPolicy, http =>
+            {
+                var settings = http.RequestServices.GetRequiredService<IConfiguration>().GetSection("RateLimiting:Ai");
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    http.User.FindFirst(AppClaims.Subject)?.Value ?? http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = settings.GetValue("PermitLimit", 20),
                         Window = TimeSpan.FromSeconds(settings.GetValue("WindowSeconds", 60)),
                         QueueLimit = 0,
                     });

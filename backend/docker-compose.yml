@@ -44,6 +44,7 @@ services:
       Seed__SsoMockAuthority: http://localhost:${MOCK_IDP_PORT:-8095}
       Seed__SsoMockMetadataAddress: http://mock-idp:8080/.well-known/openid-configuration
       Seed__SsoMockClientSecret: ${SSO_MOCK_CLIENT_SECRET:-}
+      Ai__ApiKey: ${ANTHROPIC_API_KEY:-}
       Logging__Json: "true"
       Cors__AllowedOrigins__0: http://localhost:4200
       Cors__AllowedOrigins__1: http://localhost:8080

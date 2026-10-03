@@ -2,7 +2,9 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using FluentValidation;
 using FluentValidation.Results;
+using HrServiceDesk.Api.Auth;
 using HrServiceDesk.Api.ErrorHandling;
+using HrServiceDesk.Application.Assistant;
 using HrServiceDesk.Application.Auth;
 using HrServiceDesk.Application.Common;
 using HrServiceDesk.Application.Tickets;
@@ -11,6 +13,7 @@ using HrServiceDesk.Application.Tickets.Files;
 using HrServiceDesk.Application.Tickets.Queries;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace HrServiceDesk.Api.Controllers;
 
@@ -135,6 +138,16 @@ public sealed class TicketsController : ApiControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<CommentDto>> AddComment(Guid id, AddCommentRequest request, CancellationToken cancellationToken) =>
         FromResult(await Sender.Send(new AddCommentCommand(id, request.Body, request.IsInternal), cancellationToken));
+
+    /// <summary>A reply drafted by the assistant for HR to review; refused on confidential and sensitive cases.</summary>
+    [HttpPost("{id:guid}/draft-reply")]
+    [Authorize(Policy = Policies.CanWorkTickets)]
+    [EnableRateLimiting(AuthSetup.AiRateLimitPolicy)]
+    [ProducesResponseType<DraftReplyDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests)]
+    public async Task<ActionResult<DraftReplyDto>> DraftReply(Guid id, CancellationToken cancellationToken) =>
+        FromResult(await Sender.Send(new DraftReplyCommand(id), cancellationToken));
 
     /// <summary>Adds documents to a case (multipart/form-data, any part names).</summary>
     [HttpPost("{id:guid}/attachments")]

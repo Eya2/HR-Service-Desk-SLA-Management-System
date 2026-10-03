@@ -252,6 +252,11 @@ The Hangfire dashboard is exposed at `/hangfire`, restricted to SuperAdmin.
 | 89 | The provider is chosen from the e-mail domain typed on the sign-in page; a domain belongs to one organisation; client secrets are encrypted at rest; optional just-in-time Employee accounts on first sign-in | Simple for users, safe across tenants |
 | 90 | "SSO required" blocks passwords for the domain, checked before the password (no oracle), except for HR Admins who keep a break-glass password | Avoids lock-out when the provider is misconfigured |
 | 91 | The demo runs a mock identity provider (account picker, RS256 tokens); integration tests use an in-memory provider that also checks PKCE and lets tests tamper with audience, nonce and keys | Realistic, offline-testable SSO |
+| 92 | Request assistant: the employee describes the need in a sentence; the assistant picks the request type, writes a title, pre-fills the answers it can read and shows related articles. HR agents get a "Draft with AI" reply to review and edit — nothing is ever sent automatically | AI where it saves time, a human always decides |
+| 93 | Claude (Anthropic Messages API) behind an `IAiModel` port: a fast model (Haiku) for routing with a forced tool call (structured output, request type ids as an enum), a stronger model (Sonnet) for drafting. No key configured, an error, a timeout or an invented type → a local bilingual FR/EN classifier (keyword hints, scoring on name, description, category and form labels) and template replies | Works offline and in tests; the AI never blocks the desk |
+| 94 | The model's answers are checked against the form: unknown fields, files, options that do not exist, numbers out of range and text failing the field pattern are dropped | Model output is untrusted input |
+| 95 | Privacy: confidential request types are not offered to the model and text the local classifier reads as confidential (harassment…) is classified locally only; replies are never drafted for confidential or sensitive cases, and drafts use the public conversation only (internal notes never leave). Prompts tag case content as data, not instructions | HR data minimisation, prompt-injection hygiene |
+| 96 | Assistant calls are rate limited per user (20/min) and staff-only for drafting | Cost and abuse control |
 
 ## 7. Testing strategy
 

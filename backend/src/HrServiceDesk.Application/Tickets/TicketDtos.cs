@@ -53,7 +53,8 @@ public sealed record TicketPermissionsDto(
     Guid? DecidableApprovalId,
     bool CanAssign,
     bool CanClaim,
-    bool CanRate);
+    bool CanRate,
+    bool CanDraftWithAi);
 
 public sealed record SatisfactionDto(int Score, string? Comment, DateTimeOffset CreatedAt);
 

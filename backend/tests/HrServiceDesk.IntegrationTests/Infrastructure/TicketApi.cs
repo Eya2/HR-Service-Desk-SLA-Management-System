@@ -19,7 +19,7 @@ public sealed record Answer(string Key, string Label, string Type, JsonNode? Val
 
 public sealed record Permissions(
     bool CanComment, bool CanCommentInternally, bool CanEdit, bool CanChangePriority, bool CanAttach, string[] AvailableTransitions,
-    Guid? DecidableApprovalId = null, bool CanAssign = false, bool CanClaim = false);
+    Guid? DecidableApprovalId = null, bool CanAssign = false, bool CanClaim = false, bool CanRate = false, bool CanDraftWithAi = false);
 
 public sealed record TimelineEntry(string Type, string? ActorName, JsonNode? Data);
 

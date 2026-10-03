@@ -118,7 +118,8 @@ internal sealed class GetTicketHandler(IAppDbContext db, ICurrentUser currentUse
                 : null,
             CanAssign: isStaff && !ticket.IsFinal,
             CanClaim: isStaff && !ticket.IsFinal && ticket.AssigneeId != currentUser.UserId,
-            CanRate: !rated && isRequester && ticket.Status == TicketStatus.Closed);
+            CanRate: !rated && isRequester && ticket.Status == TicketStatus.Closed,
+            CanDraftWithAi: participates && isStaff && !ticket.IsConfidential && !ticket.IsSensitive);
     }
 
     /// <summary>Labels the stored answers with the current form definition; answers to removed fields are kept under their key.</summary>
