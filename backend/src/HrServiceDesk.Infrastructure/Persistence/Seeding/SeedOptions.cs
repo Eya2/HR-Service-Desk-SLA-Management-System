@@ -21,4 +21,12 @@ public sealed class SeedOptions
 
     /// <summary>Signing secret shared with the mock payroll container.</summary>
     public string? PayrollWebhookSecret { get; set; }
+
+    /// <summary>Demo SSO: the mock identity provider's issuer (public URL). Seeded for Acme when set.</summary>
+    public string? SsoMockAuthority { get; set; }
+
+    /// <summary>Where the API reads the mock provider's discovery document (internal URL).</summary>
+    public string? SsoMockMetadataAddress { get; set; }
+
+    public string? SsoMockClientSecret { get; set; }
 }

@@ -99,6 +99,43 @@ public sealed class AuthController : ApiControllerBase
         return FromResult(result);
     }
 
+    /// <summary>Whether this e-mail's organisation signs in with SSO (shown on the sign-in page).</summary>
+    [HttpGet("sso/discover")]
+    [AllowAnonymous]
+    [EnableRateLimiting(AuthSetup.RefreshRateLimitPolicy)]
+    [ProducesResponseType<SsoDiscoveryDto>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<SsoDiscoveryDto>> DiscoverSso([FromQuery] string email, CancellationToken cancellationToken) =>
+        Ok(await Sender.Send(new DiscoverSsoQuery(email ?? string.Empty), cancellationToken));
+
+    /// <summary>Starts single sign-on: redirects the browser to the organisation's identity provider.</summary>
+    [HttpGet("sso/start")]
+    [AllowAnonymous]
+    [EnableRateLimiting(AuthSetup.AuthRateLimitPolicy)]
+    [ProducesResponseType(StatusCodes.Status302Found)]
+    public async Task<ActionResult> StartSso([FromQuery] string email, [FromQuery] string? returnUrl, [FromQuery] bool rememberMe, CancellationToken cancellationToken)
+    {
+        var result = await Sender.Send(new StartSsoCommand(email ?? string.Empty, returnUrl, rememberMe), cancellationToken);
+        return result.IsSuccess ? Redirect(result.Value) : Redirect(Links.App($"/login?ssoError={Uri.EscapeDataString(result.Error!.Code)}"));
+    }
+
+    /// <summary>The identity provider's redirect back: opens the session (cookie) and returns to the app.</summary>
+    [HttpGet("sso/callback")]
+    [AllowAnonymous]
+    [EnableRateLimiting(AuthSetup.AuthRateLimitPolicy)]
+    [ProducesResponseType(StatusCodes.Status302Found)]
+    public async Task<ActionResult> SsoCallback([FromQuery] string? state, [FromQuery] string? code, [FromQuery] string? error, CancellationToken cancellationToken)
+    {
+        var result = await Sender.Send(new CompleteSsoCommand(state, code, error), cancellationToken);
+        if (!result.IsSuccess)
+            return Redirect(Links.App($"/login?ssoError={Uri.EscapeDataString(result.Error!.Code)}"));
+
+        var session = result.Value.Session;
+        RefreshTokenCookie.Write(Response, session.RefreshToken, session.RefreshTokenExpiresAt, session.IsPersistent);
+        return Redirect(Links.App($"/sso/complete?returnUrl={Uri.EscapeDataString(result.Value.ReturnUrl)}"));
+    }
+
+    private Application.Abstractions.IAppLinks Links => HttpContext.RequestServices.GetRequiredService<Application.Abstractions.IAppLinks>();
+
     private ActionResult<SessionResponse> ToSessionResponse(Application.Common.Results.Result<AuthSession> result)
     {
         if (!result.IsSuccess)

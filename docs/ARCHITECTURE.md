@@ -247,6 +247,11 @@ The Hangfire dashboard is exposed at `/hangfire`, restricted to SuperAdmin.
 | 84 | Demo history (`Seed:History`, on in development and Docker, off in tests): six weeks of cases per organisation built with the domain model at past timestamps and saved without interceptors (no notification, e-mail or webhook for history); open cases keep their last state so the live SLA monitor detects and escalates the late ones | Believable dashboards and queues from the first start |
 | 85 | The end-to-end demo story is an integration test with a simulated clock (holiday-skipping deadline, at risk, breached, escalation, webhook, integration API, audit, confidentiality), plus a shell script that plays it against the running stack | The demo cannot silently break |
 | 86 | Session refresh (run on every page load) has its own per-IP limit (60/min), separate from sign-in, password reset and forgotten password (10/min) | A few reloads must not lock someone out of signing in |
+| 87 | Request types can be marked sensitive from the catalog editor (reads of their cases are audited), not only by the seed | Admins own data classification |
+| 88 | Single sign-on per organisation with OpenID Connect (authorization code + PKCE, server-side): works with Microsoft Entra ID and any compliant provider. State, nonce and PKCE verifier are kept on the server (single use, 10 minutes); the ID token is validated (issuer, audience, signature from the provider's keys, lifetime, nonce); people are matched by e-mail within the organisation's domains | Spec-level enterprise sign-in, no secrets in the browser |
+| 89 | The provider is chosen from the e-mail domain typed on the sign-in page; a domain belongs to one organisation; client secrets are encrypted at rest; optional just-in-time Employee accounts on first sign-in | Simple for users, safe across tenants |
+| 90 | "SSO required" blocks passwords for the domain, checked before the password (no oracle), except for HR Admins who keep a break-glass password | Avoids lock-out when the provider is misconfigured |
+| 91 | The demo runs a mock identity provider (account picker, RS256 tokens); integration tests use an in-memory provider that also checks PKCE and lets tests tamper with audience, nonce and keys | Realistic, offline-testable SSO |
 
 ## 7. Testing strategy
 

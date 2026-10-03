@@ -1,7 +1,7 @@
 namespace HrServiceDesk.Application.Abstractions;
 
-/// <summary>Encrypts webhook signing secrets at rest (they must be readable again to sign).</summary>
-public interface IWebhookSecretProtector
+/// <summary>Encrypts secrets that must be read back (webhook signing secrets, SSO client secrets) at rest.</summary>
+public interface ISecretProtector
 {
     string Protect(string secret);
 

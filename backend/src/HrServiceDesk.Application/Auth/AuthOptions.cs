@@ -14,4 +14,7 @@ public sealed class AuthOptions
     public TimeSpan LockoutDuration { get; set; } = TimeSpan.FromMinutes(15);
 
     public TimeSpan PasswordResetLifetime { get; set; } = TimeSpan.FromHours(1);
+
+    /// <summary>Accept http:// identity providers (local development and the demo's mock provider only).</summary>
+    public bool SsoAllowInsecureUrls { get; set; }
 }

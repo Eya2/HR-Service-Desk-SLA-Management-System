@@ -65,7 +65,7 @@ internal sealed class SaveWebhookValidator : AbstractValidator<SaveWebhookComman
 
 internal sealed class WebhookHandlers(
     IAppDbContext db,
-    IWebhookSecretProtector protector,
+    ISecretProtector protector,
     IIntegrationSettings settings,
     IWebhookDispatchTrigger trigger,
     AuditTrail audit,

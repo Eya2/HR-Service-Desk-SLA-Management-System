@@ -28,7 +28,7 @@ internal sealed class IntegrationSettings(IOptions<IntegrationOptions> options) 
 }
 
 /// <summary>AES-256-GCM with a key derived from <see cref="IntegrationOptions.SecretKey"/>; stored as "v1:" + base64(nonce|cipher|tag).</summary>
-internal sealed class AesSecretProtector(IOptions<IntegrationOptions> options) : IWebhookSecretProtector
+internal sealed class AesSecretProtector(IOptions<IntegrationOptions> options) : ISecretProtector
 {
     private const int NonceSize = 12;
     private const int TagSize = 16;

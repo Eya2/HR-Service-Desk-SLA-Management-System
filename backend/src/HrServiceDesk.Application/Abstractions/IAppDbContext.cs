@@ -24,6 +24,10 @@ public interface IAppDbContext
 
     DbSet<RefreshToken> RefreshTokens { get; }
 
+    DbSet<SsoConfiguration> SsoConfigurations { get; }
+
+    DbSet<SsoLoginAttempt> SsoLoginAttempts { get; }
+
     DbSet<PasswordResetToken> PasswordResetTokens { get; }
 
     DbSet<RequestType> RequestTypes { get; }

@@ -35,6 +35,12 @@ internal sealed class LoginHandler(
     {
         var now = clock.GetUtcNow();
         var user = await FindUserAsync(request.Email, cancellationToken);
+
+        // SSO required for the domain: checked before the password so the answer reveals nothing about it.
+        // HR Admins keep their password as a break-glass access.
+        if (await SsoRequiredAsync(request.Email, cancellationToken) && user?.Roles.Contains(Role.HrAdmin) != true)
+            return AuthErrors.SsoRequired;
+
         if (user is null)
         {
             hasher.Verify(_dummyHash ??= hasher.Hash(Guid.NewGuid().ToString()), request.Password);
@@ -66,6 +72,16 @@ internal sealed class LoginHandler(
         var session = sessions.Issue(user, tenant, familyId: null, request.RememberMe, out _);
         await db.SaveChangesAsync(cancellationToken);
         return session;
+    }
+
+    private async Task<bool> SsoRequiredAsync(string email, CancellationToken cancellationToken)
+    {
+        var at = (email ?? string.Empty).Trim().LastIndexOf('@');
+        if (at <= 0)
+            return false;
+        var domain = email!.Trim()[(at + 1)..].ToLowerInvariant();
+        return await db.SsoConfigurations.IgnoreQueryFilters()
+            .AnyAsync(c => c.IsEnabled && c.PasswordLoginDisabled && c.EmailDomains.Contains(domain), cancellationToken);
     }
 
     private async Task<User?> FindUserAsync(string email, CancellationToken cancellationToken)

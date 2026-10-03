@@ -17,7 +17,7 @@ namespace HrServiceDesk.Infrastructure.Persistence.Seeding;
 internal sealed partial class DemoDataSeeder(
     AppDbContext db,
     IPasswordHasher hasher,
-    IWebhookSecretProtector secretProtector,
+    ISecretProtector secretProtector,
     DemoHistorySeeder history,
     IOptions<SeedOptions> options,
     ILogger<DemoDataSeeder> logger)
@@ -47,6 +47,26 @@ internal sealed partial class DemoDataSeeder(
         if (seed.History)
             await history.SeedAsync(seed.DemoPassword, cancellationToken);
         await SeedPayrollIntegrationAsync(seed, cancellationToken);
+        await SeedSingleSignOnAsync(seed, cancellationToken);
+    }
+
+    /// <summary>Acme signs in with the mock identity provider (Microsoft-like), when configured. Passwords keep working.</summary>
+    private async Task SeedSingleSignOnAsync(SeedOptions seed, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(seed.SsoMockAuthority) || string.IsNullOrWhiteSpace(seed.SsoMockClientSecret))
+            return;
+        var acme = await db.Tenants.SingleOrDefaultAsync(t => t.Slug == "acme-tn", cancellationToken);
+        if (acme is null || await db.SsoConfigurations.IgnoreQueryFilters().AnyAsync(c => c.TenantId == acme.Id, cancellationToken))
+            return;
+
+        var configuration = SsoConfiguration.Create();
+        configuration.Update(
+            isEnabled: true, "Microsoft", seed.SsoMockAuthority, seed.SsoMockMetadataAddress, "hr-service-desk",
+            ["acme.example"], autoProvision: true, passwordLoginDisabled: false, allowInsecureUrls: true);
+        configuration.SetClientSecret(secretProtector.Protect(seed.SsoMockClientSecret));
+        configuration.TenantId = acme.Id;
+        db.SsoConfigurations.Add(configuration);
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>Acme's payroll connector: an API key and a webhook to the mock payroll container, when configured.</summary>

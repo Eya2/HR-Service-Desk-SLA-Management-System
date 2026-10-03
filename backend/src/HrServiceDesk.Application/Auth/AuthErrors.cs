@@ -11,5 +11,6 @@ public static class AuthErrors
     public static readonly Error InvalidRefreshToken = Error.Unauthorized("auth.invalid_refresh_token", "The session has expired. Please sign in again.");
     public static readonly Error RefreshTokenReused = Error.Unauthorized("auth.refresh_token_reused", "The session was revoked for security reasons. Please sign in again.");
     public static readonly Error NotAuthenticated = Error.Unauthorized("auth.not_authenticated", "Authentication is required.");
+    public static readonly Error SsoRequired = Error.Unauthorized("auth.sso_required", "Your organisation signs in with single sign-on.");
     public static readonly Error WrongCurrentPassword = Error.Validation("auth.wrong_current_password", "The current password is incorrect.");
 }

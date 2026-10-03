@@ -103,6 +103,11 @@ internal sealed class AppLinks(IOptions<SmtpOptions> options) : IAppLinks
 
     public string PasswordReset(string email, string token) =>
         $"{Base}/reset-password?email={Uri.EscapeDataString(email)}&token={Uri.EscapeDataString(token)}";
+
+    // The web app proxies /api to the API, so the callback is on the app's own origin (where the session cookie must live).
+    public string SsoCallback() => $"{Base}/api/auth/sso/callback";
+
+    public string App(string path) => $"{Base}{path}";
 }
 
 /// <summary>E-mails each notification to its recipient through the outbox.</summary>

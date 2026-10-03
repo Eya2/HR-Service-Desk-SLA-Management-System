@@ -40,6 +40,10 @@ services:
       Seed__PayrollApiKey: ${PAYROLL_API_KEY:-}
       Seed__PayrollWebhookSecret: ${PAYROLL_WEBHOOK_SECRET:-}
       Seed__PayrollWebhookUrl: http://mock-payroll:8080/webhooks
+      Auth__SsoAllowInsecureUrls: "true"
+      Seed__SsoMockAuthority: http://localhost:${MOCK_IDP_PORT:-8095}
+      Seed__SsoMockMetadataAddress: http://mock-idp:8080/.well-known/openid-configuration
+      Seed__SsoMockClientSecret: ${SSO_MOCK_CLIENT_SECRET:-}
       Logging__Json: "true"
       Cors__AllowedOrigins__0: http://localhost:4200
       Cors__AllowedOrigins__1: http://localhost:8080
@@ -63,6 +67,19 @@ services:
       Payroll__ProcessingDelaySeconds: "5"
     ports:
       - "${MOCK_PAYROLL_PORT:-8090}:8080"
+
+  # Stand-in for Microsoft Entra ID: OpenID Connect provider with an account picker (Acme's SSO in the demo).
+  mock-idp:
+    build:
+      context: .
+      dockerfile: tools/MockIdp/Dockerfile
+    environment:
+      Idp__PublicUrl: http://localhost:${MOCK_IDP_PORT:-8095}
+      Idp__InternalUrl: http://mock-idp:8080
+      Idp__ClientId: hr-service-desk
+      Idp__ClientSecret: ${SSO_MOCK_CLIENT_SECRET:-}
+    ports:
+      - "${MOCK_IDP_PORT:-8095}:8080"
 
   mailhog:
     image: mailhog/mailhog:v1.0.1

@@ -87,6 +87,10 @@ public class AppDbContext : DbContext, IAppDbContext
 
     public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
 
+    public DbSet<SsoConfiguration> SsoConfigurations => Set<SsoConfiguration>();
+
+    public DbSet<SsoLoginAttempt> SsoLoginAttempts => Set<SsoLoginAttempt>();
+
     public DbSet<WebhookSubscription> WebhookSubscriptions => Set<WebhookSubscription>();
 
     public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();

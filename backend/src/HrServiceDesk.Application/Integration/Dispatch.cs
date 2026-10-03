@@ -12,7 +12,7 @@ public sealed record DispatchWebhooksCommand(int BatchSize = 50) : IRequest<int>
 internal sealed partial class DispatchWebhooksHandler(
     IAppDbContext db,
     IWebhookSender sender,
-    IWebhookSecretProtector protector,
+    ISecretProtector protector,
     TimeProvider clock,
     ILogger<DispatchWebhooksHandler> logger) : IRequestHandler<DispatchWebhooksCommand, int>
 {

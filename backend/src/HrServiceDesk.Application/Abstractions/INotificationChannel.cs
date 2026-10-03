@@ -27,4 +27,10 @@ public interface IAppLinks
     string Ticket(Guid ticketId);
 
     string PasswordReset(string email, string token);
+
+    /// <summary>The OpenID Connect redirect URI to register at the identity provider.</summary>
+    string SsoCallback();
+
+    /// <summary>A page of the web app (path starting with '/').</summary>
+    string App(string path);
 }

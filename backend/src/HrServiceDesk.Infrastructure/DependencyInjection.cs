@@ -52,7 +52,7 @@ public static class DependencyInjection
         services.AddOptions<IntegrationOptions>().BindConfiguration(IntegrationOptions.SectionName);
         services.AddScoped<WebhookInterceptor>();
         services.AddSingleton<IIntegrationSettings, IntegrationSettings>();
-        services.AddSingleton<IWebhookSecretProtector, AesSecretProtector>();
+        services.AddSingleton<ISecretProtector, AesSecretProtector>();
         services.AddScoped<IWebhookSender, HttpWebhookSender>();
         services.AddHttpClient(HttpWebhookSender.ClientName, (sp, client) =>
             {
@@ -97,6 +97,8 @@ public static class DependencyInjection
 
         services.AddSingleton<IPasswordHasher, AspNetPasswordHasher>();
         services.AddSingleton<ITokenService, JwtTokenService>();
+        services.AddSingleton<ISsoProvider, OidcSsoProvider>();
+        services.AddHttpClient(OidcSsoProvider.ClientName, client => client.Timeout = TimeSpan.FromSeconds(15));
     }
 
     private static void AddTickets(IServiceCollection services)

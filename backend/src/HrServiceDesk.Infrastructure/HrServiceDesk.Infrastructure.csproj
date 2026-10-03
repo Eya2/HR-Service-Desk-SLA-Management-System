@@ -10,6 +10,7 @@
     <PackageReference Include="EFCore.NamingConventions" />
     <PackageReference Include="AspNetCore.HealthChecks.NpgSql" />
     <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
+    <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" />
     <PackageReference Include="Hangfire.Core" />
     <PackageReference Include="Hangfire.AspNetCore" />
     <PackageReference Include="Hangfire.PostgreSql" />
