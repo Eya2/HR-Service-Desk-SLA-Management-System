@@ -1,8 +1,15 @@
 import { HttpClient } from '@angular/common/http';
+import { DOCUMENT } from '@angular/common';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, catchError, finalize, firstValueFrom, map, of, shareReplay, tap, throwError } from 'rxjs';
 import { Role, Session, UserProfile } from './auth.models';
+
+export interface SsoDiscovery {
+  enabled: boolean;
+  displayName: string | null;
+  passwordLoginDisabled: boolean;
+}
 
 /**
  * Holds the session in memory only (never in storage). After a page reload the session is
@@ -12,6 +19,7 @@ import { Role, Session, UserProfile } from './auth.models';
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly document = inject(DOCUMENT);
 
   private readonly session = signal<Session | null>(null);
   private refreshInFlight: Observable<Session> | null = null;
@@ -59,6 +67,22 @@ export class AuthService {
         this.session.set(null);
         void this.router.navigate(['/login']);
       });
+  }
+
+  /** Whether this e-mail's organisation signs in with single sign-on. */
+  discoverSso(email: string): Observable<SsoDiscovery> {
+    return this.http.get<SsoDiscovery>('/api/auth/sso/discover', { params: { email } });
+  }
+
+  /** The address that starts SSO (a full-page navigation to the identity provider). */
+  ssoStartUrl(email: string, returnUrl: string, rememberMe: boolean): string {
+    const query = new URLSearchParams({ email, returnUrl, rememberMe: String(rememberMe) });
+    return `/api/auth/sso/start?${query.toString()}`;
+  }
+
+  /** Leaves the app for another site (the identity provider). */
+  navigateTo(url: string): void {
+    this.document.location.assign(url);
   }
 
   /** Always succeeds from the user's point of view: the API never says whether the address exists. */

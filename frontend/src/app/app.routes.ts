@@ -22,6 +22,12 @@ export const routes: Routes = [
     title: 'title.newPassword',
   },
   {
+    // After the identity provider: no guard, the page restores the session itself.
+    path: 'sso/complete',
+    loadComponent: () => import('./features/auth/sso-complete').then((m) => m.SsoComplete),
+    title: 'title.sso',
+  },
+  {
     path: '',
     loadComponent: () => import('./core/layout/shell').then((m) => m.Shell),
     canActivate: [authGuard],

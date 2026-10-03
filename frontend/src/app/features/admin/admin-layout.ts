@@ -20,6 +20,7 @@ import { TranslatePipe } from '@ngx-translate/core';
       <a mat-tab-link routerLink="retention" routerLinkActive #ret="routerLinkActive" [active]="ret.isActive">{{ 'admin.retentionTab' | translate }}</a>
       <a mat-tab-link routerLink="knowledge" routerLinkActive #kb="routerLinkActive" [active]="kb.isActive" data-testid="kb-tab">{{ 'kbAdmin.tab' | translate }}</a>
       <a mat-tab-link routerLink="integrations" routerLinkActive #integ="routerLinkActive" [active]="integ.isActive" data-testid="integrations-tab">{{ 'integrations.tab' | translate }}</a>
+      <a mat-tab-link routerLink="sso" routerLinkActive #ssoTab="routerLinkActive" [active]="ssoTab.isActive" data-testid="sso-tab">{{ 'ssoAdmin.tab' | translate }}</a>
     </nav>
     <mat-tab-nav-panel #panel>
       <router-outlet />

@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { session } from '../../testing/auth-fixtures';
+import { AuthService } from '../../core/auth/auth.service';
 import { Login } from './login';
 
 describe('Login', () => {
@@ -73,4 +74,56 @@ describe('Login', () => {
 
     expect(el().querySelector('[data-testid="login-error"]')?.textContent).toContain('Invalid e-mail or password.');
   });
+
+  describe('single sign-on', () => {
+    const typeEmail = async (email: string) => {
+      const input = el().querySelector('input[formcontrolname="email"]') as HTMLInputElement;
+      input.value = email;
+      input.dispatchEvent(new Event('input'));
+      await new Promise((resolve) => setTimeout(resolve, 400)); // past the typing pause
+      TestBed.tick();
+    };
+
+    it("detects the organisation's provider from the e-mail and hides the password when SSO is required", async () => {
+      await typeEmail('amira.bensalah@acme.example');
+      const req = http.expectOne((r) => r.url === '/api/auth/sso/discover');
+      expect(req.request.params.get('email')).toBe('amira.bensalah@acme.example');
+      req.flush({ enabled: true, displayName: 'Microsoft', passwordLoginDisabled: true });
+      await fixture.whenStable();
+
+      expect(el().querySelector('[data-testid="sso-hint"]')?.textContent).toContain('Your organisation signs in with Microsoft.');
+      expect(el().querySelector('input[formcontrolname="password"]')).toBeNull();
+      expect(el().querySelector('[data-testid="sso-button"]')?.textContent).toContain('Continue with Microsoft');
+    });
+
+    it('asks for the e-mail first', async () => {
+      (el().querySelector('[data-testid="sso-button"]') as HTMLButtonElement).click();
+      await fixture.whenStable();
+
+      expect(el().querySelector('[data-testid="login-error"]')?.textContent).toContain('Enter your work e-mail first');
+      http.expectNone((r) => r.url === '/api/auth/sso/discover');
+    });
+
+    it('sends the browser to the identity provider through the API', async () => {
+      const auth = TestBed.inject(AuthService);
+      const navigate = spyOn(auth, 'navigateTo');
+      fixture.componentRef.setInput('returnUrl', '/portal/requests');
+      await typeEmail('amira.bensalah@acme.example');
+      http.expectOne((r) => r.url === '/api/auth/sso/discover').flush({ enabled: true, displayName: 'Microsoft', passwordLoginDisabled: false });
+
+      (el().querySelector('[data-testid="sso-button"]') as HTMLButtonElement).click();
+      http.expectOne((r) => r.url === '/api/auth/sso/discover').flush({ enabled: true, displayName: 'Microsoft', passwordLoginDisabled: false });
+
+      expect(navigate).toHaveBeenCalledWith('/api/auth/sso/start?email=amira.bensalah%40acme.example&returnUrl=%2Fportal%2Frequests&rememberMe=false');
+    });
+
+    it('explains a failed single sign-on', async () => {
+      fixture.componentRef.setInput('ssoError', 'sso.no_account');
+      fixture.componentInstance.ngOnInit();
+      await fixture.whenStable();
+
+      expect(el().querySelector('[data-testid="login-error"]')?.textContent).toContain('No active account matches your identity');
+    });
+  });
 });
+

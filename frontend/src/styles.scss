@@ -662,3 +662,111 @@ form .mat-mdc-form-field.mat-form-field-appearance-outline {
     color: var(--mat-sys-error) !important;
   }
 }
+
+/* Single sign-on on the sign-in page. */
+.sso-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -6px 0 16px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  color: var(--mat-sys-on-surface);
+  background: color-mix(in srgb, var(--mat-sys-primary) 10%, transparent);
+
+  .mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: var(--mat-sys-primary);
+  }
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  color: var(--app-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--app-border);
+  }
+}
+
+.sso-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 50px;
+  border-radius: 12px;
+  border: 1px solid var(--app-field-border);
+  background: var(--app-field-bg);
+  color: var(--mat-sys-on-surface);
+  font: 600 0.98rem Inter, 'IBM Plex Sans Arabic', system-ui, sans-serif;
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+
+  &:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--mat-sys-primary) 45%, var(--app-field-border));
+    box-shadow: 0 6px 16px -10px rgba(16, 24, 40, 0.4);
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px var(--app-ring);
+  }
+
+  &.primary {
+    border-color: var(--mat-sys-primary);
+    box-shadow: 0 0 0 4px var(--app-ring);
+  }
+
+  &:disabled {
+    opacity: 0.65;
+    cursor: progress;
+  }
+
+  > .mat-icon {
+    color: var(--app-muted);
+  }
+}
+
+.ms-logo {
+  display: grid;
+  grid-template-columns: 9px 9px;
+  gap: 2px;
+
+  i {
+    display: block;
+    width: 9px;
+    height: 9px;
+
+    &:nth-child(1) {
+      background: #f25022;
+    }
+
+    &:nth-child(2) {
+      background: #7fba00;
+    }
+
+    &:nth-child(3) {
+      background: #00a4ef;
+    }
+
+    &:nth-child(4) {
+      background: #ffb900;
+    }
+  }
+}

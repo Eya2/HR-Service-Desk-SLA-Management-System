@@ -1,9 +1,11 @@
-import { Component, inject, input, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
 import { Router, RouterLink } from '@angular/router';
-import { AuthService } from '../../core/auth/auth.service';
+import { AuthService, SsoDiscovery } from '../../core/auth/auth.service';
+import { catchError, debounceTime, distinctUntilChanged, of, switchMap } from 'rxjs';
 import { problemMessage } from '../../core/http/error.interceptor';
 import { AuthLayout } from './auth-layout';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -37,6 +39,14 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
           }
         </label>
 
+        @if (sso()?.enabled) {
+          <p class="sso-hint" data-testid="sso-hint">
+            <mat-icon fontSet="material-symbols-outlined">verified_user</mat-icon>
+            {{ 'auth.ssoDetected' | translate: { provider: sso()!.displayName } }}
+          </p>
+        }
+
+        @if (!ssoOnly()) {
         <div class="auth-field" [class.invalid]="form.controls.password.invalid && form.controls.password.touched">
           <span class="auth-label">
             <label for="login-password">{{ 'auth.password' | translate }}</label>
@@ -65,6 +75,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
             <span class="auth-error"><mat-icon fontSet="material-symbols-outlined">error</mat-icon>{{ 'auth.passwordRequired' | translate }}</span>
           }
         </div>
+        }
 
         <mat-checkbox formControlName="rememberMe" class="remember" data-testid="remember-me">{{ 'auth.rememberMe' | translate }}</mat-checkbox>
 
@@ -74,13 +85,25 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
           </p>
         }
 
-        <button type="submit" class="auth-submit" [disabled]="submitting()">
-          @if (submitting()) {
-            <span class="auth-spinner" aria-hidden="true"></span>
+        @if (!ssoOnly()) {
+          <button type="submit" class="auth-submit" [disabled]="submitting()">
+            @if (submitting()) {
+              <span class="auth-spinner" aria-hidden="true"></span>
+            } @else {
+              {{ 'auth.signIn' | translate }}
+              <mat-icon class="flip-rtl" fontSet="material-symbols-outlined">arrow_forward</mat-icon>
+            }
+          </button>
+          <div class="auth-divider"><span>{{ 'auth.or' | translate }}</span></div>
+        }
+
+        <button type="button" class="sso-button" [class.primary]="ssoOnly()" (click)="startSso()" [disabled]="redirecting()" data-testid="sso-button">
+          @if (sso()?.enabled && isMicrosoft()) {
+            <span class="ms-logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
           } @else {
-            {{ 'auth.signIn' | translate }}
-            <mat-icon class="flip-rtl" fontSet="material-symbols-outlined">arrow_forward</mat-icon>
+            <mat-icon fontSet="material-symbols-outlined">key</mat-icon>
           }
+          {{ sso()?.enabled ? ('auth.continueWith' | translate: { provider: sso()!.displayName }) : ('auth.ssoButton' | translate) }}
         </button>
       </form>
       <p class="hint">{{ 'auth.sharedHint' | translate }}</p>
@@ -123,13 +146,16 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
     }
   `,
 })
-export class Login {
+export class Login implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly translate = inject(TranslateService);
 
   /** Bound from the `returnUrl` query parameter set by the auth guard. */
   readonly returnUrl = input<string>();
+
+  /** Set by the API when a single sign-on attempt failed (e.g. sso.no_account). */
+  readonly ssoError = input<string>();
 
   protected readonly form = inject(NonNullableFormBuilder).group({
     email: ['', [Validators.required, Validators.email]],
@@ -139,6 +165,60 @@ export class Login {
   protected readonly submitting = signal(false);
   protected readonly showPassword = signal(false);
   protected readonly error = signal<string | null>(null);
+
+  /** The organisation's SSO, found from the e-mail domain as it is typed. */
+  protected readonly sso = signal<SsoDiscovery | null>(null);
+  protected readonly ssoOnly = computed(() => !!this.sso()?.enabled && !!this.sso()?.passwordLoginDisabled);
+  protected readonly isMicrosoft = computed(() => /microsoft|entra|azure/i.test(this.sso()?.displayName ?? ''));
+  protected readonly redirecting = signal(false);
+
+  constructor() {
+    this.form.controls.email.valueChanges
+      .pipe(
+        debounceTime(350),
+        distinctUntilChanged(),
+        switchMap((email) =>
+          this.form.controls.email.valid ? this.auth.discoverSso(email).pipe(catchError(() => of(null))) : of(null),
+        ),
+        takeUntilDestroyed(),
+      )
+      .subscribe((discovery) => this.sso.set(discovery?.enabled ? discovery : null));
+  }
+
+  ngOnInit(): void {
+    const code = this.ssoError();
+    if (!code) return;
+    const key = `errors.${code}`;
+    const message = this.translate.instant(key) as string;
+    this.error.set(message === key ? (this.translate.instant('errors.sso.failed') as string) : message);
+  }
+
+  /** Sends the browser to the organisation's identity provider. */
+  protected startSso(): void {
+    const email = this.form.controls.email;
+    if (email.invalid) {
+      email.markAsTouched();
+      this.error.set(this.translate.instant('auth.ssoNeedsEmail') as string);
+      return;
+    }
+
+    this.error.set(null);
+    this.redirecting.set(true);
+    this.auth.discoverSso(email.value).subscribe({
+      next: (discovery) => {
+        if (!discovery.enabled) {
+          this.redirecting.set(false);
+          this.error.set(this.translate.instant('errors.sso.not_configured') as string);
+          return;
+        }
+        this.auth.navigateTo(this.auth.ssoStartUrl(email.value, this.safeReturnUrl(), this.form.controls.rememberMe.value));
+      },
+      error: () => {
+        this.redirecting.set(false);
+        this.error.set(this.translate.instant('errors.generic') as string);
+      },
+    });
+  }
 
   protected submit(): void {
     if (this.form.invalid) {

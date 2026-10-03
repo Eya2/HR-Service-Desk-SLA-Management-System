@@ -53,6 +53,11 @@ export const routes: Routes = [
         title: 'title.integrations',
       },
       {
+        path: 'sso',
+        loadComponent: () => import('./sso-admin').then((m) => m.SsoAdmin),
+        title: 'title.ssoAdmin',
+      },
+      {
         path: 'workflows/:requestTypeId',
         loadComponent: () => import('./workflow-editor').then((m) => m.WorkflowEditor),
         title: 'title.editWorkflow',
