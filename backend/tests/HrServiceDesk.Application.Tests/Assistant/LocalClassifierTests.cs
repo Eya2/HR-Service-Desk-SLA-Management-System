@@ -87,6 +87,7 @@ public class LocalClassifierTests
     [Theory]
     [InlineData("Mes heures sup manquent. Merci de vérifier.", "Mes heures sup manquent.")]
     [InlineData("attestation de travail", "Attestation de travail")]
+    [InlineData("Mes heures sup de septembre n'apparaissent pas sur ma fiche de paie, il manque environ 320 dinars", "Mes heures sup de septembre n'apparaissent pas sur ma fiche de paie")]
     public void Titles_come_from_the_first_sentence(string text, string expected) =>
         LocalClassifier.Title(text).Should().Be(expected);
 

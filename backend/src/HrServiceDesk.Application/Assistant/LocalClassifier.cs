@@ -183,6 +183,9 @@ internal static partial class LocalClassifier
     public static string Title(string text)
     {
         var first = SentenceEnd().Split(text.Trim())[0].Trim();
+        var clause = first.IndexOf(", ", StringComparison.Ordinal);
+        if (first.Length > 70 && clause >= 20)
+            first = first[..clause]; // the main clause reads better as a title than a run-on sentence
         if (first.Length > 90)
             first = first[..first.LastIndexOf(' ', 87)].TrimEnd(',', ';', ' ') + "…";
         return first.Length == 0 ? text.Trim() : char.ToUpper(first[0], CultureInfo.InvariantCulture) + first[1..];
