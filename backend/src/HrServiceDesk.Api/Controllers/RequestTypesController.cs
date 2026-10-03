@@ -15,7 +15,7 @@ namespace HrServiceDesk.Api.Controllers;
 public sealed class RequestTypesController : ApiControllerBase
 {
     public sealed record SaveRequestTypeRequest(
-        string Name, string? Description, string Category, bool IsConfidential, string DefaultPriority, IReadOnlyList<FormField> Fields);
+        string Name, string? Description, string Category, bool IsConfidential, string DefaultPriority, IReadOnlyList<FormField> Fields, bool IsSensitive = false);
 
     public sealed record SetActiveRequest(bool IsActive);
 
@@ -69,5 +69,5 @@ public sealed class RequestTypesController : ApiControllerBase
         FromResult(await Sender.Send(new SetResponsibleTeamCommand(id, request.TeamId), cancellationToken));
 
     private static SaveRequestTypeCommand ToCommand(Guid? id, SaveRequestTypeRequest r) =>
-        new(id, r.Name, r.Description, r.Category, r.IsConfidential, r.DefaultPriority, r.Fields ?? []);
+        new(id, r.Name, r.Description, r.Category, r.IsConfidential, r.DefaultPriority, r.Fields ?? [], r.IsSensitive);
 }

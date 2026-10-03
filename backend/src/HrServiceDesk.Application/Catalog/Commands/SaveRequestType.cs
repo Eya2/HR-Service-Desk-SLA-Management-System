@@ -16,7 +16,8 @@ public sealed record SaveRequestTypeCommand(
     string Category,
     bool IsConfidential,
     string DefaultPriority,
-    IReadOnlyList<FormField> Fields) : IRequest<Result<RequestTypeDto>>;
+    IReadOnlyList<FormField> Fields,
+    bool IsSensitive = false) : IRequest<Result<RequestTypeDto>>;
 
 internal sealed class SaveRequestTypeValidator : AbstractValidator<SaveRequestTypeCommand>
 {
@@ -54,6 +55,7 @@ internal sealed class SaveRequestTypeHandler(IAppDbContext db) : IRequestHandler
             db.RequestTypes.Add(type);
         }
 
+        type.MarkSensitive(request.IsSensitive);
         await db.SaveChangesAsync(cancellationToken);
         return CatalogRules.ToDto(type);
     }

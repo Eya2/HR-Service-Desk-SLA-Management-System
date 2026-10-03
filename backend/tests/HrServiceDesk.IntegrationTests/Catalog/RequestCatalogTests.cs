@@ -129,4 +129,24 @@ public sealed class RequestCatalogTests(PostgresFixture postgres)
     private static SaveBody NewType(string name) => new(
         name, "Request a parking badge.", "OnboardingOffboarding", false, "Low",
         [new { key = "plate", label = "Licence plate", type = "Text", required = true, maxLength = 15 }]);
+
+    private sealed record SensitiveDetails(Guid Id, bool IsSensitive);
+
+    [Fact]
+    public async Task Admin_marks_a_type_as_sensitive_so_its_cases_are_audited()
+    {
+        var admin = await SignedInAs(DemoUsers.AcmeHrAdmin);
+        var name = $"Medical file {Guid.NewGuid():N}";
+        var body = new
+        {
+            name, description = "Medical information.", category = "Benefits", isConfidential = false, defaultPriority = "Medium",
+            isSensitive = true, fields = new[] { new { key = "details", label = "Details", type = "Textarea", required = true } },
+        };
+
+        var created = (await (await admin.PostAsJsonAsync("/api/request-types", body)).Content.ReadFromJsonAsync<SensitiveDetails>())!;
+        created.IsSensitive.Should().BeTrue();
+
+        (await admin.PutAsJsonAsync($"/api/request-types/{created.Id}", body with { isSensitive = false })).EnsureSuccessStatusCode();
+        (await admin.GetFromJsonAsync<SensitiveDetails>($"/api/request-types/{created.Id}"))!.IsSensitive.Should().BeFalse();
+    }
 }

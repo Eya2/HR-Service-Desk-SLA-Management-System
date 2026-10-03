@@ -13,4 +13,5 @@ public sealed record RequestTypeDto(
     bool IsConfidential,
     bool IsActive,
     string DefaultPriority,
-    IReadOnlyList<FormField> Fields);
+    IReadOnlyList<FormField> Fields,
+    bool IsSensitive);

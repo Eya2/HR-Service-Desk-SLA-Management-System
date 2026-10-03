@@ -28,5 +28,6 @@ internal static class CatalogRules
         type.IsConfidential,
         type.IsActive,
         type.DefaultPriority.ToString(),
-        type.Schema.Fields);
+        type.Schema.Fields,
+        type.IsSensitive);
 }
