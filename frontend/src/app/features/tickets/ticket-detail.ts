@@ -16,6 +16,7 @@ import { ApprovalInfo, AttachmentInfo, FormAnswer, PRIORITIES, TeamInfo, TicketD
 import { Observable } from 'rxjs';
 import { ApprovalsApi, TeamsApi } from '../../core/api/approvals.api';
 import { TicketsApi } from '../../core/api/tickets.api';
+import { AssistantApi } from '../../core/api/assistant.api';
 import { problemMessage, problemOf } from '../../core/http/error.interceptor';
 import { fileSize } from '../../shared/ui/labels';
 import { SlaBadge } from '../../shared/ui/sla-badge';
@@ -210,9 +211,21 @@ import { EnumLabelPipe } from '../../shared/ui/enum-label';
                 <form [formGroup]="commentForm" (ngSubmit)="sendComment(t)" class="reply">
                   <mat-form-field appearance="outline">
                     <mat-label>{{ (commentForm.controls.isInternal.value ? 'ticket.internalNoteLabel' : 'ticket.reply') | translate }}</mat-label>
-                    <textarea matInput formControlName="body" rows="3" maxlength="4000" data-testid="comment-body"></textarea>
+                    <textarea matInput formControlName="body" [rows]="aiDrafted() ? 8 : 3" maxlength="4000" data-testid="comment-body"></textarea>
                   </mat-form-field>
+                  @if (aiDrafted()) {
+                    <p class="ai-note" role="note" data-testid="ai-note">
+                      <mat-icon fontSet="material-symbols-outlined">auto_awesome</mat-icon>
+                      {{ (aiDrafted() === 'claude' ? 'assistant.draftNoteClaude' : 'assistant.draftNoteLocal') | translate }}
+                    </p>
+                  }
                   <div class="actions">
+                    @if (t.permissions.canDraftWithAi) {
+                      <button mat-stroked-button type="button" class="ai-draft" (click)="draftReply(t)" [disabled]="drafting()" data-testid="ai-draft">
+                        <mat-icon fontSet="material-symbols-outlined">{{ drafting() ? 'hourglass_top' : 'auto_awesome' }}</mat-icon>
+                        {{ (drafting() ? 'assistant.drafting' : 'assistant.draft') | translate }}
+                      </button>
+                    }
                     @if (t.permissions.canCommentInternally) {
                       <mat-checkbox formControlName="isInternal" data-testid="internal-toggle">{{ 'ticket.internalNote' | translate }}</mat-checkbox>
                     }
@@ -658,6 +671,22 @@ import { EnumLabelPipe } from '../../shared/ui/enum-label';
     .edit {
       display: grid;
     }
+    .ai-draft {
+      margin-inline-end: auto;
+    }
+    .ai-note {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: -8px 0 8px;
+      font: var(--mat-sys-label-medium);
+      color: var(--mat-sys-primary);
+    }
+    .ai-note mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
     .actions {
       display: flex;
       justify-content: flex-end;
@@ -682,6 +711,7 @@ import { EnumLabelPipe } from '../../shared/ui/enum-label';
 })
 export class TicketDetail {
   private readonly api = inject(TicketsApi);
+  private readonly assistant = inject(AssistantApi);
   private readonly snackBar = inject(MatSnackBar);
   private readonly fb = inject(NonNullableFormBuilder);
   private readonly locale = inject(LOCALE_ID);
@@ -695,6 +725,9 @@ export class TicketDetail {
   protected readonly size = fileSize;
   protected readonly editing = signal(false);
   protected readonly sending = signal(false);
+  protected readonly drafting = signal(false);
+  /** The reply box holds a draft from the assistant ("claude" or "local"), to be reviewed before sending. */
+  protected readonly aiDrafted = signal<string | null>(null);
   protected readonly uploading = signal(false);
   protected readonly changing = signal(false);
   protected readonly describe = (type: string, data: Record<string, unknown> | null) => describeEvent(this.translate, type, data);
@@ -870,12 +903,31 @@ export class TicketDetail {
     this.api.addComment(ticket.id, body, isInternal).subscribe({
       next: (comment) => {
         this.sending.set(false);
+        this.aiDrafted.set(null);
         this.commentForm.reset({ body: '', isInternal: false });
         this.ticket.update((t) => (t ? { ...t, comments: [...t.comments, comment] } : t));
       },
       error: (error: unknown) => {
         this.sending.set(false);
         this.fail(error, 'ticket.sendFailed');
+      },
+    });
+  }
+
+  /** Puts a drafted reply in the box (after anything already typed); the agent edits and sends it. */
+  protected draftReply(ticket: TicketDetails): void {
+    this.drafting.set(true);
+    this.assistant.draftReply(ticket.id).subscribe({
+      next: (draft) => {
+        this.drafting.set(false);
+        const current = this.commentForm.controls.body.value.trim();
+        this.commentForm.patchValue({ body: (current ? `${current}\n\n${draft.body}` : draft.body).slice(0, 4000), isInternal: false });
+        this.commentForm.controls.body.markAsDirty();
+        this.aiDrafted.set(draft.source);
+      },
+      error: (error: unknown) => {
+        this.drafting.set(false);
+        this.fail(error, 'assistant.draftFailed');
       },
     });
   }

@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, effect, inject, input, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { rxResource, toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -18,6 +18,7 @@ import { DynamicFormGroup, buildFormGroup, toSubmission } from '../../shared/dyn
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { debounceTime, distinctUntilChanged, map, of } from 'rxjs';
 import { KnowledgeApi } from '../../core/api/knowledge.api';
+import { RequestPrefillStore } from '../../core/api/assistant.api';
 
 /** Submission page: a title and description, then the request type's own dynamic form. */
 @Component({
@@ -48,6 +49,13 @@ import { KnowledgeApi } from '../../core/api/knowledge.api';
         <p class="confidential" role="note">
           <mat-icon fontSet="material-symbols-outlined">lock</mat-icon>
           {{ 'newRequest.confidential' | translate }}
+        </p>
+      }
+
+      @if (assisted()) {
+        <p class="assisted" role="note" data-testid="assisted-note">
+          <mat-icon fontSet="material-symbols-outlined">auto_awesome</mat-icon>
+          {{ 'assistant.prefilledNote' | translate }}
         </p>
       }
 
@@ -121,6 +129,17 @@ import { KnowledgeApi } from '../../core/api/knowledge.api';
     mat-card {
       max-width: 720px;
     }
+    .assisted {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 720px;
+      box-sizing: border-box;
+      padding: 8px 12px;
+      border-radius: 10px;
+      background: color-mix(in srgb, var(--mat-sys-primary) 10%, transparent);
+      color: var(--mat-sys-primary);
+    }
     .details {
       display: grid;
       gap: 8px;
@@ -176,6 +195,7 @@ export class NewRequest {
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
   private readonly knowledgeApi = inject(KnowledgeApi);
+  private readonly prefillStore = inject(RequestPrefillStore);
 
   /** Route parameter. */
   readonly typeId = input.required<string>();
@@ -205,12 +225,28 @@ export class NewRequest {
   protected readonly suggestions = computed(() => this.suggested.value() ?? []);
   protected readonly submitting = signal(false);
   protected readonly error = signal<string | null>(null);
+  /** The form was pre-filled by the assistant from the employee's own words. */
+  protected readonly assisted = signal(false);
 
   constructor() {
-    // Suggest the request type's name as the title.
     effect(() => {
       const type = this.type.value();
-      if (type && !this.details.controls.title.dirty) this.details.controls.title.setValue(type.name);
+      const answers = this.answers();
+      if (!type || !answers) return;
+      const prefill = untracked(() => this.prefillStore.take(type.id));
+      if (prefill) {
+        this.details.controls.title.setValue(prefill.title.slice(0, 200));
+        this.details.controls.title.markAsDirty();
+        this.details.controls.description.setValue(prefill.description.slice(0, 4000));
+        for (const field of type.fields) {
+          const value = prefill.values[field.key];
+          if (field.type !== 'File' && value !== undefined && value !== null) answers.controls[field.key].setValue(field.type === 'Number' ? String(value) : value);
+        }
+        this.assisted.set(true);
+      } else if (!this.details.controls.title.dirty) {
+        // Suggest the request type's name as the title.
+        this.details.controls.title.setValue(type.name);
+      }
     });
   }
 

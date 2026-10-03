@@ -4,6 +4,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { payslipType } from '../../testing/catalog-fixtures';
 import { NewRequest } from './new-request';
+import { RequestPrefillStore } from '../../core/api/assistant.api';
 
 describe('NewRequest', () => {
   let fixture: ComponentFixture<NewRequest>;
@@ -96,5 +97,33 @@ describe('NewRequest', () => {
     const box = el().querySelector('[data-testid="suggestions"]');
     expect(box?.textContent).toContain('These articles may answer your question');
     expect(box?.querySelector('a')?.getAttribute('href')).toBe('/portal/help/k1');
+  });
+});
+
+describe('NewRequest with the assistant', () => {
+  it('starts from the title, description and answers the assistant prepared', async () => {
+    TestBed.configureTestingModule({
+      imports: [NewRequest],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+    });
+    TestBed.inject(RequestPrefillStore).set({
+      requestTypeId: payslipType.id,
+      title: 'Missing March overtime',
+      description: 'My March overtime is missing from my payslip',
+      values: { issue: 'missing_overtime', payPeriod: '2026-03', expectedAmount: 320 },
+    });
+    const fixture = TestBed.createComponent(NewRequest);
+    fixture.componentRef.setInput('typeId', payslipType.id);
+    fixture.detectChanges();
+    TestBed.inject(HttpTestingController).expectOne(`/api/request-types/${payslipType.id}`).flush(payslipType);
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    const answers = (fixture.componentInstance as unknown as { answers: () => import('../../shared/dynamic-form/form-builder').DynamicFormGroup }).answers();
+
+    expect((el.querySelector('input[formcontrolname="title"]') as HTMLInputElement).value).toBe('Missing March overtime');
+    expect((el.querySelector('textarea[formcontrolname="description"]') as HTMLTextAreaElement).value).toBe('My March overtime is missing from my payslip');
+    expect(answers.value).toEqual(jasmine.objectContaining({ issue: 'missing_overtime', payPeriod: '2026-03', expectedAmount: '320' }));
+    expect(el.querySelector('[data-testid="assisted-note"]')).not.toBeNull();
+    TestBed.inject(HttpTestingController).match(() => true);
   });
 });

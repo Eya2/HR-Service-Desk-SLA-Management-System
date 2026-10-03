@@ -159,6 +159,8 @@ export interface TicketPermissions {
   canClaim: boolean;
   /** The requester may rate the closed case (once). */
   canRate: boolean;
+  /** HR staff on a case that is neither confidential nor sensitive. */
+  canDraftWithAi?: boolean;
 }
 
 export interface Satisfaction {
@@ -352,4 +354,38 @@ export interface SaveArticle {
   body: string;
   category: string | null;
   isPublished: boolean;
+}
+
+/** Where an assistant answer came from: Claude, or the local classifier and templates. */
+export type AssistantSource = 'claude' | 'local';
+
+export interface RequestTypeOption {
+  id: string;
+  name: string;
+  category: string;
+}
+
+export interface RequestSuggestion {
+  requestTypeId: string;
+  name: string;
+  category: string;
+  isConfidential: boolean;
+  /** 0 to 1. */
+  confidence: number;
+  title: string;
+  values: Record<string, unknown>;
+  reason: string | null;
+}
+
+export interface Classification {
+  suggestion: RequestSuggestion | null;
+  alternatives: RequestTypeOption[];
+  articles: ArticleSummary[];
+  source: AssistantSource;
+}
+
+export interface DraftReply {
+  body: string;
+  source: AssistantSource;
+  articles: ArticleSummary[];
 }

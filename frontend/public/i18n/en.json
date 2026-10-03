@@ -51,6 +51,36 @@
       "label": "My requests"
     }
   },
+  "assistant": {
+    "articles": "These articles may already answer you",
+    "ask": "Find my request",
+    "confidential": "Confidential — only a restricted HR group will see it",
+    "continue": "Continue",
+    "draft": "Draft with AI",
+    "draftFailed": "The draft could not be prepared.",
+    "draftNoteClaude": "Draft written by Claude — review and edit before sending.",
+    "draftNoteLocal": "Suggested reply template — review and edit before sending.",
+    "drafting": "Drafting…",
+    "failed": "The assistant is unavailable. Please choose from the catalog.",
+    "hint": "Write it in your own words — the assistant finds the right request and fills in what it can.",
+    "match": {
+      "high": "Strong match",
+      "low": "Possible match",
+      "medium": "Likely match"
+    },
+    "none": "No request type matches yet — add a few details, or browse the catalog below.",
+    "orMaybe": "or maybe:",
+    "placeholder": "e.g. My March overtime is missing from my payslip",
+    "prefilled": "{{count}} answer(s) pre-filled",
+    "prefilledNote": "Pre-filled by the assistant from your description — please check before submitting.",
+    "source": {
+      "claude": "Suggested by Claude",
+      "local": "Suggested by smart search"
+    },
+    "suggested": "Suggested request",
+    "thinking": "Looking…",
+    "title": "Describe your need"
+  },
   "audit": {
     "ApiKeyCreated": "API key created",
     "ApiKeyRevoked": "API key revoked",
@@ -331,6 +361,10 @@
     "skippedVerb": "skipped"
   },
   "errors": {
+    "ai": {
+      "not_allowed": "Confidential and sensitive cases are never sent to the assistant.",
+      "staff_only": "Only HR staff can draft replies with the assistant."
+    },
     "approval": {
       "not_approver": "You are not an approver for this step.",
       "not_current": "This approval step is no longer waiting for a decision.",

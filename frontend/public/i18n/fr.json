@@ -51,6 +51,36 @@
       "label": "Mes demandes"
     }
   },
+  "assistant": {
+    "articles": "Ces articles répondent peut-être déjà à votre question",
+    "ask": "Trouver ma demande",
+    "confidential": "Confidentiel — visible uniquement par un groupe RH restreint",
+    "continue": "Continuer",
+    "draft": "Rédiger avec l’IA",
+    "draftFailed": "Le brouillon n’a pas pu être préparé.",
+    "draftNoteClaude": "Brouillon rédigé par Claude : relisez et ajustez avant d’envoyer.",
+    "draftNoteLocal": "Modèle de réponse suggéré : relisez et ajustez avant d’envoyer.",
+    "drafting": "Rédaction…",
+    "failed": "L’assistant est indisponible. Choisissez dans le catalogue.",
+    "hint": "Écrivez-le avec vos mots : l’assistant trouve la bonne demande et remplit ce qu’il peut.",
+    "match": {
+      "high": "Très pertinent",
+      "low": "Possible",
+      "medium": "Probable"
+    },
+    "none": "Aucune demande ne correspond pour l’instant : ajoutez quelques détails ou parcourez le catalogue ci-dessous.",
+    "orMaybe": "ou peut-être :",
+    "placeholder": "Ex. : mes heures sup de mars n’apparaissent pas sur ma fiche de paie",
+    "prefilled": "{{count}} réponse(s) pré-remplie(s)",
+    "prefilledNote": "Pré-rempli par l’assistant à partir de votre description : vérifiez avant d’envoyer.",
+    "source": {
+      "claude": "Suggéré par Claude",
+      "local": "Suggéré par la recherche intelligente"
+    },
+    "suggested": "Demande suggérée",
+    "thinking": "Recherche…",
+    "title": "Décrivez votre besoin"
+  },
   "audit": {
     "ApiKeyCreated": "Clé d'API créée",
     "ApiKeyRevoked": "Clé d'API révoquée",
@@ -331,6 +361,10 @@
     "skippedVerb": "a ignoré"
   },
   "errors": {
+    "ai": {
+      "not_allowed": "Les dossiers confidentiels et sensibles ne sont jamais envoyés à l’assistant.",
+      "staff_only": "Seule l’équipe RH peut rédiger des réponses avec l’assistant."
+    },
     "approval": {
       "not_approver": "Vous n'êtes pas approbateur de cette étape.",
       "not_current": "Cette étape d'approbation n'attend plus de décision.",

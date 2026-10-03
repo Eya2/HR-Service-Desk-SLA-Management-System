@@ -261,4 +261,23 @@ describe('TicketDetail', () => {
 
     expect(el.querySelector('[data-testid="csat-form"]')).toBeNull();
   });
+
+  it('lets HR staff insert an AI draft, marked for review', async () => {
+    const base = ticketDetails();
+    const el = await render(ticketDetails({ permissions: { ...base.permissions, canDraftWithAi: true } }));
+
+    (el.querySelector('[data-testid="ai-draft"]') as HTMLButtonElement).click();
+    http.expectOne({ method: 'POST', url: '/api/tickets/t-1/draft-reply' }).flush({ body: 'Hello Amira,\n\nYour certificate is ready.', source: 'claude', articles: [] });
+    await fixture.whenStable();
+
+    expect((el.querySelector('[data-testid="comment-body"]') as HTMLTextAreaElement).value).toBe('Hello Amira,\n\nYour certificate is ready.');
+    expect(el.querySelector('[data-testid="ai-note"]')?.textContent).toContain('review and edit before sending');
+    http.expectNone('/api/tickets/t-1/comments');
+  });
+
+  it('offers no AI draft when the API does not allow it', async () => {
+    const el = await render(ticketDetails());
+
+    expect(el.querySelector('[data-testid="ai-draft"]')).toBeNull();
+  });
 });
