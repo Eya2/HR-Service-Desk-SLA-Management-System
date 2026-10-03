@@ -6,9 +6,9 @@
 ![Angular 22](https://img.shields.io/badge/Angular-22-DD0031)
 ![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-4169E1)
 
-A multi-tenant **HR case management platform** in the style of the HR service delivery suites used by large employers. Employees submit HR requests (payslip corrections, certificates, leave, bank detail changes…) from a catalog. Requests go through configurable **approval workflows**, are routed to the right HR team, and are tracked against **business-hours-aware SLAs** with automatic **escalation**. HR leadership follows everything on **dashboards**, and external systems such as payroll integrate through a **REST API and signed webhooks**.
+A multi-tenant **HR case management platform** in the style of the HR service delivery suites used by large employers. Employees submit HR requests (payslip corrections, certificates, leave, bank detail changes…) from a catalog. Requests go through configurable **approval workflows**, are routed to the right HR team, and are tracked against **business-hours-aware SLAs** with automatic **escalation**. HR leadership follows everything on **dashboards**, and external systems such as payroll integrate through a **REST API and signed webhooks**. Employees can sign in with their company account (**single sign-on with Microsoft Entra ID**), and an **AI assistant** (Claude) routes requests written in plain words and drafts replies for HR.
 
-> **Status:** complete — all 13 phases delivered, 612 backend and 107 frontend tests green in CI. See the [roadmap](#roadmap) and the [demo guide](https://github.com/Eya2/HR-Service-Desk-SLA-Management-System/blob/backend/docs/DEMO.md).
+> **Status:** complete — all 13 phases delivered, plus a visual catalog editor, single sign-on and an AI assistant; 664 backend and 123 frontend tests green in CI. See the [roadmap](#roadmap) and the [demo guide](https://github.com/Eya2/HR-Service-Desk-SLA-Management-System/blob/backend/docs/DEMO.md).
 
 ---
 
@@ -32,6 +32,8 @@ A multi-tenant **HR case management platform** in the style of the HR service de
 
 | | |
 |---|---|
+| ![AI assistant](https://raw.githubusercontent.com/Eya2/HR-Service-Desk-SLA-Management-System/frontend/frontend/docs/screenshots/12-assistant.jpg) **AI request assistant** — the employee writes the need in plain words; the right request is suggested with its articles | ![Pre-filled form](https://raw.githubusercontent.com/Eya2/HR-Service-Desk-SLA-Management-System/frontend/frontend/docs/screenshots/13-assistant-prefilled-form.jpg) **Pre-filled form** — title, pay period, issue and amount read from the description |
+| ![AI draft](https://raw.githubusercontent.com/Eya2/HR-Service-Desk-SLA-Management-System/frontend/frontend/docs/screenshots/14-ai-draft-reply.jpg) **Draft with AI** — a reply for the HR agent to review before sending; never offered on confidential or sensitive cases | |
 | ![Dashboard](https://raw.githubusercontent.com/Eya2/HR-Service-Desk-SLA-Management-System/frontend/frontend/docs/screenshots/03-dashboard.jpg) **HR dashboard** — SLA compliance, volume, backlog, workload and satisfaction, with table views and CSV export | ![Dashboard, dark theme](https://raw.githubusercontent.com/Eya2/HR-Service-Desk-SLA-Management-System/frontend/frontend/docs/screenshots/04-dashboard-dark.jpg) **Dark theme** — every chart follows the theme with a colour-blind-safe palette |
 | ![HR queue](https://raw.githubusercontent.com/Eya2/HR-Service-Desk-SLA-Management-System/frontend/frontend/docs/screenshots/05-hr-queue.jpg) **HR queue** — SLA badges with deadlines in business hours | ![Case](https://raw.githubusercontent.com/Eya2/HR-Service-Desk-SLA-Management-System/frontend/frontend/docs/screenshots/06-case.jpg) **A case** — approvals, conversation, SLA, documents, history and the employee's rating |
 | ![Suggestions](https://raw.githubusercontent.com/Eya2/HR-Service-Desk-SLA-Management-System/frontend/frontend/docs/screenshots/07-new-request-suggestions.jpg) **Deflection** — help articles suggested while the employee types | ![Arabic](https://raw.githubusercontent.com/Eya2/HR-Service-Desk-SLA-Management-System/frontend/frontend/docs/screenshots/08-help-center-arabic.jpg) **Arabic, right to left** — also French and English |
@@ -48,7 +50,9 @@ This system brings IT-service-management discipline (catalog, workflows, SLAs, e
 
 | Area | What it does |
 |---|---|
-| **Request catalog** | Request types by category (Payroll, Leave & Absence, Contracts, Benefits, Onboarding/Offboarding, Training, Expenses, Certificates, Confidential), each with its own **dynamic form** defined as a JSON schema |
+| **AI request assistant** | The employee describes the need in a sentence ("mes heures sup de septembre n'apparaissent pas sur ma fiche de paie"); the assistant picks the request type, writes a title, **pre-fills the form** (pay period, issue, amount…) and shows help articles. HR agents get **"Draft with AI"** replies to review and edit. Runs on **Claude** (Haiku for routing with structured tool output, Sonnet for writing) when an Anthropic key is configured, otherwise on a built-in bilingual FR/EN classifier. Confidential and sensitive cases are never sent to the model, and its answers are validated against the form |
+| **Single sign-on** | OpenID Connect per organisation (Microsoft Entra ID or any compliant provider): authorization code + PKCE handled server-side, provider discovered from the e-mail domain, optional just-in-time accounts, "SSO required" with a break-glass password for HR Admins; a mock identity provider is included for the demo |
+| **Request catalog** | Request types by category (Payroll, Leave & Absence, Contracts, Benefits, Onboarding/Offboarding, Training, Expenses, Certificates, Confidential), each with its own **dynamic form** defined as a JSON schema, designed by HR Admins in a **visual form builder** (drag-and-drop fields, live preview, sensitivity flag) |
 | **HR cases (tickets)** | Reference numbers (`HR-2026-000123`), priorities, public replies and internal notes, attachments with type and size validation |
 | **Status machine** | Explicit transition table (New → PendingApproval → Open → InProgress → WaitingOnEmployee → Resolved → Closed, plus Reopened, Rejected, Cancelled) with role-based permissions; every transition is audited |
 | **Approval workflows** | Ordered approval steps per request type (Manager, HR Officer, Payroll Specialist…), edited by HR Admins; a rejection ends the flow |
@@ -76,7 +80,8 @@ This system brings IT-service-management discipline (catalog, workflows, SLAs, e
 |---|---|
 | **Backend** | .NET 8, ASP.NET Core Web API, Entity Framework Core 8, PostgreSQL (Npgsql), MediatR (CQRS), FluentValidation, Serilog, Swagger/OpenAPI |
 | **Background jobs** | Hangfire (PostgreSQL storage) |
-| **Auth** | JWT access tokens + rotating refresh tokens, role- and policy-based authorization |
+| **Auth** | JWT access tokens + rotating refresh tokens, role- and policy-based authorization, OpenID Connect single sign-on (Microsoft Entra ID) |
+| **AI** | Claude through the Anthropic Messages API (tool use for structured output), with a local bilingual fallback |
 | **Frontend** | Angular 22 (standalone components, signals, lazy-loaded routes), Angular Material 3 with light and dark themes, Reactive Forms, RxJS, Chart.js, ngx-translate |
 | **Tests** | xUnit, FluentAssertions, Testcontainers (real PostgreSQL), Karma + Jasmine |
 | **DevOps** | Docker, Docker Compose, nginx, GitHub Actions, MailHog |
@@ -94,12 +99,16 @@ flowchart LR
         PG[(PostgreSQL 16<br/>app data + jobs)]
         MAIL[MailHog<br/>SMTP sink]
         PAY[mock-payroll<br/>webhook consumer]
+        IDP[mock-idp<br/>OpenID Connect]
     end
+    CLAUDE[Anthropic API<br/>Claude, optional]
     EXT[External system<br/>API key] --> API
     WEB --> NGINX --> API
     API --> PG
     API -- SMTP --> MAIL
     API -- HMAC-signed webhooks --> PAY
+    API -- OIDC code + PKCE --> IDP
+    API -. routing and drafts .-> CLAUDE
 ```
 
 The backend follows **Clean Architecture**:
@@ -145,6 +154,7 @@ Each folder is self-contained, and the branches share nothing but this README, s
 git clone -b backend https://github.com/Eya2/HR-Service-Desk-SLA-Management-System.git hr-backend
 cd hr-backend/backend
 cp .env.example .env        # then set the secrets: each line of the file explains how to generate it
+                            # optional: ANTHROPIC_API_KEY=... to use Claude (otherwise the local assistant is used)
 docker compose up -d --build
 ```
 
@@ -155,6 +165,7 @@ docker compose up -d --build
 | MailHog (e-mails sent by the app) | http://localhost:8025 |
 | Mock payroll system (webhooks received) | http://localhost:8090 |
 | Background jobs (Hangfire, local requests only) | http://localhost:5080/hangfire |
+| Mock identity provider (demo SSO: sign in as anyone `@acme.example`) | http://localhost:8095 |
 
 ### 2. Start the frontend
 
@@ -199,8 +210,8 @@ npm start                                         # http://localhost:4200
 ### Running the tests
 
 ```bash
-cd backend && dotnet test          # 435 domain, 42 application, 135 integration tests (Testcontainers needs Docker running)
-cd frontend && npm run test:ci     # 107 specs, Karma with headless Chrome
+cd backend && dotnet test          # 446 domain, 60 application, 158 integration tests (Testcontainers needs Docker running)
+cd frontend && npm run test:ci     # 123 specs, Karma with headless Chrome
 ```
 
 ## Roadmap
@@ -222,6 +233,9 @@ The project is delivered in 13 phases. Each phase ends with a green build and te
 | 11 | **Knowledge base, CSAT & i18n** | FAQ with suggestions while typing, satisfaction ratings, FR / EN / AR with RTL | backend · frontend | ✅ Done |
 | 12 | **Integration** | API keys, integration endpoints, HMAC-signed webhooks with retry, mock payroll container | backend | ✅ Done |
 | 13 | **Demo & polish** | Six weeks of demo history, end-to-end demo script and test, user administration, screenshots, final documentation | backend · frontend | ✅ Done |
+| + | **Catalog editor** | Visual form builder with drag-and-drop fields and live preview, sensitive request types | backend · frontend | ✅ Done |
+| + | **Single sign-on** | OpenID Connect / Microsoft Entra ID per organisation, PKCE, JIT accounts, mock identity provider | backend · frontend | ✅ Done |
+| + | **AI assistant** | Claude-powered request routing with pre-filled forms and drafted HR replies, local bilingual fallback, privacy guards | backend · frontend | ✅ Done |
 
 ### Definition of done
 
