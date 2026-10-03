@@ -650,7 +650,9 @@ form .mat-mdc-form-field.mat-form-field-appearance-outline {
     top: -20px !important;
     transform: none !important;
     inset-inline-start: 0 !important;
+    width: max-content !important;
     max-width: 100% !important;
+    overflow: visible !important;
     font-size: 0.85rem !important;
     font-weight: 600;
     color: var(--mat-sys-on-surface) !important;

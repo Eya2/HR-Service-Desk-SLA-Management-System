@@ -13,6 +13,11 @@ export const routes: Routes = [
         title: 'title.users',
       },
       {
+        path: 'catalog',
+        loadComponent: () => import('./catalog-admin').then((m) => m.CatalogAdmin),
+        title: 'title.catalogAdmin',
+      },
+      {
         path: 'workflows',
         loadComponent: () => import('./workflows-list').then((m) => m.WorkflowsList),
         title: 'title.workflows',

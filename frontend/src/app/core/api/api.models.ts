@@ -35,6 +35,17 @@ export interface RequestTypeSummary {
 
 export interface RequestType extends RequestTypeSummary {
   fields: FormFieldDef[];
+  isSensitive?: boolean;
+}
+
+export interface SaveRequestType {
+  name: string;
+  description: string;
+  category: string;
+  isConfidential: boolean;
+  isSensitive: boolean;
+  defaultPriority: string;
+  fields: FormFieldDef[];
 }
 
 export interface Paged<T> {
